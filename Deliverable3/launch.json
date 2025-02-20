@@ -1,0 +1,22 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "Driver",
+            "request": "launch",
+            "mainClass": "Driver",
+            "projectName": "Deliverable 3_d990a1c2",
+            "classPaths": [
+                "bin",  // Folder containing your compiled .class files
+                "lib/mysql-connector-j-9.2.0"  // Path to your MySQL JDBC .jar file
+            ]
+        }
+    ]
+}
