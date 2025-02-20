@@ -1,6 +1,7 @@
 import java.sql.*;
 
 public class MovieDAO {
+
     public void insertMovie(Movie movie) {
         String sql = "INSERT INTO movies (title, category, cast, director, producer, synopsis, reviews, " +
                      "trailer_picture, trailer_video, mpaa_rating, show_dates) " +
@@ -27,5 +28,23 @@ public class MovieDAO {
         }
     }
 
-
+    public void deleteMovie(String title) {
+        String sql = "DELETE FROM movies WHERE title = ?";
+    
+        try (Connection conn = DatabaseHelper.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+    
+            stmt.setString(1, title);
+            int rowsAffected = stmt.executeUpdate();
+    
+            if (rowsAffected > 0) {
+                System.out.println("Movie deleted successfully.");
+            } else {
+                System.out.println("No movie found with the given title.");
+            }
+    
+        } catch (SQLException e) {
+            System.out.println("Error deleting movie: " + e.getMessage());
+        }
+    }
 }

@@ -46,6 +46,7 @@ public class Main {
 
                 Movie movie = new Movie(title, category, cast, director, producer, synopsis, reviews, 
                                        trailerPicture, trailerVideo, mpaaRating, showDates);
+
                 movieDAO.insertMovie(movie);
             
             }else if(input.startsWith("delete_movie")){
@@ -53,6 +54,8 @@ public class Main {
                 System.out.print("Enter title: ");
                 String title = scanner.nextLine();
                 
+                movieDAO.deleteMovie(title);
+
             }else {
                 // Execute other SQL commands
                 DatabaseHelper.executeSqlCommand(input);
