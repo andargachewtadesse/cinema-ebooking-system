@@ -1,0 +1,28 @@
+//Create tables
+CREATE TABLE movies ( 
+    title VARCHAR(255) PRIMARY KEY,
+    category VARCHAR(255),
+    cast VARCHAR(255),
+    director VARCHAR(255),
+    producer VARCHAR(255),
+    synopsis TEXT,
+    reviews TEXT,
+    trailer_picture VARCHAR(255),
+    trailer_video VARCHAR(255),
+    mpaa_rating VARCHAR(10),
+    show_dates DATE
+);
+
+CREATE TABLE showtimes (
+    show_time TIME PRIMARY KEY,
+    title VARCHAR(255),
+    FOREIGN KEY (title) REFERENCES movies(title)
+);
+
+//Insert attributes
+INSERT INTO movies (title, category, cast, director, producer, synopsis, reviews, trailer_picture, trailer_video, mpaa_rating, show_dates)
+VALUES ('The Avengers', 'Action, Sci-Fi', 'Robert Downey Jr., Chris Evans, Scarlett Johansson', 'Joss Whedon', 'Kevin Feige', 'Earth’s mightiest heroes must come together to stop Loki from enslaving humanity.', 'Amazing action-packed movie with great visual effects!', 'avengers_trailer_picture.jpg', 'avengers_trailer_video.mp4', 'PG-13', '2025-02-20');
+
+
+INSERT INTO showtimes (show_time, title)
+VALUES ('18:00:00', 'The Avengers');
