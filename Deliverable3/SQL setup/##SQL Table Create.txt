@@ -8,8 +8,8 @@ CREATE TABLE movies (
     producer VARCHAR(255) NOT NULL,
     synopsis TEXT NOT NULL,
     reviews TEXT,
-    trailer_picture VARCHAR(255) NOT NULL,
-    trailer_video VARCHAR(255) NOT NULL,
+    trailer_picture_url VARCHAR(255) NOT NULL,
+    trailer_video_url VARCHAR(255) NOT NULL,
     mpaa_rating VARCHAR(10) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
