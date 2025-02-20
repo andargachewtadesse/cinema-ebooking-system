@@ -1,0 +1,50 @@
+//Create tables
+CREATE TABLE movies (
+    movie_id INT AUTO_INCREMENT PRIMARY KEY, 
+    title VARCHAR(255) NOT NULL,
+    category VARCHAR(100) NOT NULL,
+    cast TEXT NOT NULL,
+    director VARCHAR(255) NOT NULL,
+    producer VARCHAR(255) NOT NULL,
+    synopsis TEXT NOT NULL,
+    reviews TEXT,
+    trailer_picture VARCHAR(255) NOT NULL,
+    trailer_video VARCHAR(255) NOT NULL,
+    mpaa_rating VARCHAR(10) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE show_times (
+    show_time_id INT AUTO_INCREMENT PRIMARY KEY,
+    movie_id INT NOT NULL,
+    show_date DATE NOT NULL,
+    show_time TIME NOT NULL,
+    screen_number INT NOT NULL,  
+    available_seats INT NOT NULL,  
+    price DECIMAL(6,2) NOT NULL,  
+    FOREIGN KEY (movie_id) REFERENCES movies(movie_id) ON DELETE CASCADE
+);
+
+
+-- Insert sample data for coming soon movies
+INSERT INTO movies (title, category, cast, director, producer, synopsis, reviews, trailer_picture_url, trailer_video_url, mpaa_rating, release_date)
+VALUES 
+('Black Panther: Wakanda Forever', 'Coming Soon', 'Letitia Wright, Lupita Nyong\'o, Danai Gurira', 'Ryan Coogler', 'Kevin Feige', 'The people of Wakanda fight to protect their home from intervening world powers as they mourn the death of King T\'Challa.', 'Highly anticipated sequel honoring the legacy of Chadwick Boseman.', 'https://example.com/black_panther_2.jpg', 'https://www.youtube.com/embed/RlOB3UALvrQ', 'PG-13', '2024-05-20'),
+
+('Jurassic World: Dominion', 'Coming Soon', 'Chris Pratt, Bryce Dallas Howard, Laura Dern, Jeff Goldblum', 'Colin Trevorrow', 'Frank Marshall, Patrick Crowley', 'Four years after the destruction of Isla Nublar, dinosaurs now live and hunt alongside humans all over the world.', 'The epic conclusion to the Jurassic saga, bringing together characters from all films.', 'https://example.com/jurassic_world_dominion.jpg', 'https://www.youtube.com/embed/fb5ELWi-ekk', 'PG-13', '2024-06-15'),
+
+('Avatar: The Way of Water', 'Coming Soon', 'Sam Worthington, Zoe Saldana, Sigourney Weaver', 'James Cameron', 'James Cameron, Jon Landau', 'Jake Sully and Neytiri have formed a family and are doing everything to stay together. However, they must leave their home and explore the regions of Pandora.', 'Visually stunning sequel to the highest-grossing film of all time.', 'https://example.com/avatar_2.jpg', 'https://www.youtube.com/embed/d9MyW72ELq0', 'PG-13', '2024-07-01');
+
+-- Insert sample show times for currently running movies
+INSERT INTO show_times (movie_id, show_date, show_time, screen_number, available_seats, price)
+VALUES
+-- The Avengers: Endgame showtimes
+(1, '2024-02-17', '12:00:00', 1, 150, 12.99),
+(1, '2024-02-17', '15:30:00', 1, 150, 12.99),
+(1, '2024-02-17', '19:00:00', 1, 150, 14.99),
+(1, '2024-02-18', '12:00:00', 1, 150, 12.99),
+(1, '2024-02-18', '15:30:00', 1, 150, 12.99),
+(1, '2024-02-18', '19:00:00', 1, 150, 14.99),
+
+
