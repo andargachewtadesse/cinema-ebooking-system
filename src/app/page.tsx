@@ -10,7 +10,7 @@ const mockMovies: Movie[] = [
   {
     id: "1",
     title: "The Adventure Begins",
-    imageUrl: "/placeholder.svg?height=400&width=300",
+    imageUrl: "/placeholder.svg",
     releaseDate: new Date(),
     isCurrentlyRunning: true,
     description: "An epic adventure that will take you on a journey through time and space.",
@@ -18,7 +18,7 @@ const mockMovies: Movie[] = [
   {
     id: "2",
     title: "Mystery of the Deep",
-    imageUrl: "/placeholder.svg?height=400&width=300",
+    imageUrl: "/placeholder.svg",
     releaseDate: new Date(),
     isCurrentlyRunning: true,
     description: "Explore the depths of the ocean in this thrilling underwater adventure.",
@@ -26,7 +26,7 @@ const mockMovies: Movie[] = [
   {
     id: "3",
     title: "Future World",
-    imageUrl: "/placeholder.svg?height=400&width=300",
+    imageUrl: "/placeholder.svg",
     releaseDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 
     isCurrentlyRunning: false,
     description: "A glimpse into the future of humanity in this sci-fi spectacle.",
@@ -34,7 +34,7 @@ const mockMovies: Movie[] = [
   {
     id: "4",
     title: "The Last Stand",
-    imageUrl: "/placeholder.svg?height=400&width=300",
+    imageUrl: "/placeholder.svg",
     releaseDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), 
     isCurrentlyRunning: false,
     description: "An action-packed thriller that will keep you on the edge of your seat.",
