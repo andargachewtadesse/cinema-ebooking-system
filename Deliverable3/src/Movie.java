@@ -1,5 +1,5 @@
 public class Movie {
-    private int id;
+
     private String title;
     private String category;
     private String cast;
@@ -14,10 +14,10 @@ public class Movie {
 
 
     // Constructor
-    public Movie(int id, String title, String category, String cast, String director, 
+    public Movie(String title, String category, String cast, String director, 
                  String producer, String synopsis, String reviews, String trailerPicture,
                  String trailerVideo, String mpaaRating, String showDates) {
-        this.id = id;
+
         this.title = title;
         this.category = category;
         this.cast = cast;
@@ -33,13 +33,6 @@ public class Movie {
     }
 
     // Getters and Setters
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
 
     public String getTitle() {
         return title;

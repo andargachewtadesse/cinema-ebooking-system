@@ -1,12 +1,10 @@
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 
 public class MovieDAO {
     public void insertMovie(Movie movie) {
         String sql = "INSERT INTO movies (title, category, cast, director, producer, synopsis, reviews, " +
-                     "trailer_picture, trailer_video, mpaa_rating, show_dates, show_times) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "trailer_picture, trailer_video, mpaa_rating, show_dates) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseHelper.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
@@ -29,47 +27,5 @@ public class MovieDAO {
         }
     }
 
-    public List<Movie> getAllMovies() {
-        List<Movie> movies = new ArrayList<>();
-        String sql = "SELECT * FROM movies";
 
-        try (Connection conn = DatabaseHelper.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
-                movies.add(new Movie(
-                    rs.getInt("id"),
-                    rs.getString("title"),
-                    rs.getString("category"),
-                    rs.getString("cast"),
-                    rs.getString("director"),
-                    rs.getString("producer"),
-                    rs.getString("synopsis"),
-                    rs.getString("reviews"),
-                    rs.getString("trailer_picture"),
-                    rs.getString("trailer_video"),
-                    rs.getString("mpaa_rating"),
-                    rs.getString("show_dates"),
-
-                ));
-            }
-        } catch (SQLException e) {
-            System.out.println("Error retrieving movies: " + e.getMessage());
-        }
-        return movies;
-    }
-
-    public void deleteMovie(int id) {
-        String sql = "DELETE FROM movies WHERE id = ?";
-        try (Connection conn = DatabaseHelper.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, id);
-            int rowsDeleted = stmt.executeUpdate();
-            System.out.println(rowsDeleted > 0 ? "Movie deleted." : "Movie not found.");
-        } catch (SQLException e) {
-            System.out.println("Error deleting movie: " + e.getMessage());
-        }
-    }
 }
