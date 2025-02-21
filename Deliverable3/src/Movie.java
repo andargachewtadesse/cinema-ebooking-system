@@ -1,5 +1,10 @@
-public class Movie {
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
+public class Movie {
+    private int movieId;
     private String title;
     private String category;
     private String cast;
@@ -7,17 +12,19 @@ public class Movie {
     private String producer;
     private String synopsis;
     private String reviews;
-    private String trailerPicture;
-    private String trailerVideo;
+    private String trailer_picture;
+    private String trailer_video;
     private String mpaaRating;
-    private String showDates;
+    private List<ShowTime> showTimes;
 
+    public Movie() {
+        this.showTimes = new ArrayList<>();
+    }
 
-    // Constructor
-    public Movie(String title, String category, String cast, String director, 
-                 String producer, String synopsis, String reviews, String trailerPicture,
-                 String trailerVideo, String mpaaRating, String showDates) {
-
+    public Movie(int movieId, String title, String category, String cast, String director, String producer,
+                 String synopsis, String reviews, String trailer_picture, String trailer_video,
+                 String mpaaRating) {
+        this.movieId = movieId;
         this.title = title;
         this.category = category;
         this.cast = cast;
@@ -25,14 +32,20 @@ public class Movie {
         this.producer = producer;
         this.synopsis = synopsis;
         this.reviews = reviews;
-        this.trailerPicture = trailerPicture;
-        this.trailerVideo = trailerVideo;
+        this.trailer_picture = trailer_picture;
+        this.trailer_video = trailer_video;
         this.mpaaRating = mpaaRating;
-        this.showDates = showDates;
-
+        this.showTimes = new ArrayList<>();
     }
 
     // Getters and Setters
+    public int getMovieId() {
+        return movieId;
+    }
+
+    public void setMovieId(int movieId) {
+        this.movieId = movieId;
+    }
 
     public String getTitle() {
         return title;
@@ -91,19 +104,19 @@ public class Movie {
     }
 
     public String getTrailerPicture() {
-        return trailerPicture;
+        return trailer_picture;
     }
 
-    public void setTrailerPicture(String trailerPicture) {
-        this.trailerPicture = trailerPicture;
+    public void setTrailerPicture(String trailer_picture) {
+        this.trailer_picture = trailer_picture;
     }
 
     public String getTrailerVideo() {
-        return trailerVideo;
+        return trailer_video;
     }
 
-    public void setTrailerVideo(String trailerVideo) {
-        this.trailerVideo = trailerVideo;
+    public void setTrailerVideo(String trailer_video) {
+        this.trailer_video = trailer_video;
     }
 
     public String getMpaaRating() {
@@ -114,15 +127,44 @@ public class Movie {
         this.mpaaRating = mpaaRating;
     }
 
-    public String getShowDates() {
-        return showDates;
+    public List<ShowTime> getShowTimes() {
+        return showTimes;
     }
 
-    public void setShowDates(String showDates) {
-        this.showDates = showDates;
+    public void setShowTimes(List<ShowTime> showTimes) {
+        this.showTimes = showTimes;
     }
 
-  
+    // Helper methods
+    public void addShowTime(ShowTime showTime) {
+        this.showTimes.add(showTime);
+    }
 
-   
+    public List<ShowTime> getUpcomingShowTimes() {
+        LocalDate today = LocalDate.now();
+        return this.showTimes.stream()
+                .filter(st -> !st.getShowDate().toLocalDate().isBefore(today))
+                .sorted((st1, st2) -> {
+                    int dateCompare = st1.getShowDate().compareTo(st2.getShowDate());
+                    if (dateCompare == 0) {
+                        return st1.getShowTime().compareTo(st2.getShowTime());
+                    }
+                    return dateCompare;
+                })
+                .collect(Collectors.toList());
+    }
+
+
+
+    @Override
+    public String toString() {
+        return "Movie{" +
+                "movieId=" + movieId +
+                ", title='" + title + '\'' +
+                ", category='" + category + '\'' +
+                ", mpaaRating='" + mpaaRating + '\'' +
+                ", showTimesCount=" + (showTimes != null ? showTimes.size() : 0) +
+                '}';
+    }
+
 }
