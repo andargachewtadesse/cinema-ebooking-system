@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Input } from "@/components/ui/input"
+import { Header } from "@/components/layout/header"
 import { MovieCard } from "@/components/layout/movie-card"
 import type { Movie } from "@/types/movie"
 
@@ -56,6 +57,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen">
+      <Header />
       {/* Hero Section */}
       <section className="relative bg-black text-white">
         <div className="container mx-auto px-4 py-24">
