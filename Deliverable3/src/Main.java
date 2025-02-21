@@ -66,32 +66,7 @@ public class Main {
         String mpaaRating = scanner.nextLine();
 
         // Collect showtimes from user input
-        List<ShowTime> showTimes = new ArrayList<>();
-        System.out.print("Enter number of showtimes: ");
-        int numShowtimes = Integer.parseInt(scanner.nextLine());
-        
-        for (int i = 0; i < numShowtimes; i++) {
-            System.out.println("Enter showtime " + (i + 1) + " details:");
 
-            System.out.print("Enter show date (YYYY-MM-DD): ");
-            Date showDate = Date.valueOf(scanner.nextLine());
-
-            System.out.print("Enter show time (HH:mm:ss): ");
-            Time showTime = Time.valueOf(scanner.nextLine());
-
-            System.out.print("Enter screen number: ");
-            int screenNumber = Integer.parseInt(scanner.nextLine());
-
-            System.out.print("Enter available seats: ");
-            int availableSeats = Integer.parseInt(scanner.nextLine());
-
-            System.out.print("Enter ticket price: ");
-            BigDecimal price = new BigDecimal(scanner.nextLine());
-
-            // Create a ShowTime object and add it to the list
-            ShowTime showTimeObj = new ShowTime(0, 0, showDate, showTime, screenNumber, availableSeats, price);
-            showTimes.add(showTimeObj);
-        }
 
         // Return the movie with the showtimes list
         return new Movie(title, category, cast, director, producer, synopsis, reviews, trailerPicture, trailerVideo, mpaaRating, showTimes);
