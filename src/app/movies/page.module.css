@@ -2,14 +2,14 @@
 .container {
     max-width: 100%; /* Full width */
     margin: 0 auto;
-    padding: 20px;
     font-family: 'Poppins', sans-serif;
     min-height: 100vh;
     position: relative;
-    background-image: url('/path/to/your/background-image.jpg'); /* Add your background image path here */
+    background-image: url('../../../public/hero.svg'); /* Add your background image path here */
     background-size: cover; /* Ensure the image covers the entire container */
     background-position: center; /* Center the image */
-    background-repeat: no-repeat; /* Prevent the image from repeating */
+    background-repeat: no-repeat; /* Prevent the image from repeating */ 
+    
   }
   
   /* Trailer Container */
@@ -17,6 +17,7 @@
     margin-bottom: 40px;
     display: flex;
     justify-content: center;
+    background-color: #333;
     align-items: center;
     height: 70vh; /* Set a fixed height for the trailer */
   }
@@ -26,8 +27,8 @@
     max-width: 1200px; /* Wider trailer */
     height: 100%;
     border: none;
+    padding: 10px;
     border-radius: 12px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   }
   
   /* Movie Card */
@@ -37,9 +38,10 @@
     border-radius: 12px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     overflow: hidden;
-    margin: 0 auto;
+    margin: auto;
+    padding: 20px;
     width: 100%; /* Full width */
-    max-width: none; /* Remove max-width restriction */
+    max-width: 97%; /* Remove max-width restriction */
     transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
   
@@ -88,11 +90,12 @@
     margin: 20px auto;
     padding: 10px;
     font-size: 1rem;
-    color: #fff;
-    background-color: #007BFF;
-    border: none;
+    color: #000000;
+    background-color: #d8d8d8;
     border-radius: 4px;
     cursor: pointer;
+
+    
     transition: background-color 0.3s ease;
   }
   
@@ -182,3 +185,24 @@
     font-size: 1.2rem;
     margin-bottom: 10px;
   }
+
+  .checkoutButton {
+    display: block;
+    width: 100%;
+    max-width: 200px;
+    margin: 20px auto;
+    padding: 10px;
+    font-size: 1rem;
+    color: #fff;
+    background-color: #007BFF;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    position: relative;
+  }
+  
+  .checkoutButton:hover {
+    background-color: #0056b3;
+  }
+  

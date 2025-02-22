@@ -60,9 +60,8 @@ const MoviePage = () => {
   };
 
   return (
-    <>
-      <OrderHeader />
       <div className={styles.container}>
+              <OrderHeader />
         {/* Trailer at the Top */}
         <div className={styles.trailerContainer}>
           <iframe
@@ -144,13 +143,13 @@ const MoviePage = () => {
         {showSeatSelection && selectedTime && (
           <div className={styles.checkoutSection}>
             <p>Selected Seats: {selectedSeats.length}</p>
+            
             <button className={styles.checkoutButton}>
             <Link href="/order">Checkout</Link>
             </button>
           </div>
         )}
       </div>
-    </>
   );
 };
 
