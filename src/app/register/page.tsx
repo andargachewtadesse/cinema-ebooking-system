@@ -1,6 +1,8 @@
 'use client';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Header } from '@/components/layout/header';
 
 const Register: React.FC = () => {
   const router = useRouter();
@@ -44,6 +46,8 @@ const Register: React.FC = () => {
   };
 
   return (
+    <>
+    <Header/>
     <div className="p-4">
       <div>
         <h2 className="text-3xl font-bold">Sign Up</h2>
@@ -90,12 +94,13 @@ const Register: React.FC = () => {
           </div>
           <div>
             <button className="bg-blue-600 text-white rounded px-4 py-2" type="submit">
-              Finish
+            <Link href="/register/confirmation">Finish</Link>
             </button>
           </div>
         </form>
       </div>
     </div>
+    </>
   );
 };
 
