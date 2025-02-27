@@ -1,59 +1,57 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Header } from "@/components/layout/header"
 import { MovieCard } from "@/components/layout/movie-card"
-import type { Movie } from "@/types/movie"
-
-// Mock data remains the same
-const mockMovies: Movie[] = [
-  {
-    id: "1",
-    title: "The Adventure Begins",
-    imageUrl: "/placeholder.svg",
-    releaseDate: new Date(),
-    isCurrentlyRunning: true,
-    description: "An epic adventure that will take you on a journey through time and space.",
-  },
-  {
-    id: "2",
-    title: "Mystery of the Deep",
-    imageUrl: "/placeholder.svg",
-    releaseDate: new Date(),
-    isCurrentlyRunning: true,
-    description: "Explore the depths of the ocean in this thrilling underwater adventure.",
-  },
-  {
-    id: "3",
-    title: "Future World",
-    imageUrl: "/placeholder.svg",
-    releaseDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 
-    isCurrentlyRunning: false,
-    description: "A glimpse into the future of humanity in this sci-fi spectacle.",
-  },
-  {
-    id: "4",
-    title: "The Last Stand",
-    imageUrl: "/placeholder.svg",
-    releaseDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), 
-    isCurrentlyRunning: false,
-    description: "An action-packed thriller that will keep you on the edge of your seat.",
-  },
-]
-
-// Mock auth state
-const isLoggedIn = false
 
 export default function Home() {
+  const [movies, setMovies] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
 
-  const filteredMovies = mockMovies.filter((movie) => 
+  useEffect(() => {
+    const fetchMovies = async () => {
+      setIsLoading(true)
+      try {
+        // Add a cache-busting parameter to force a fresh fetch
+        const response = await fetch(`/api/movies?t=${Date.now()}`)
+        const data = await response.json()
+        console.log('Fetched movies for homepage:', data)
+        setMovies(data)
+      } catch (error) {
+        console.error('Error fetching movies:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchMovies()
+  }, [])
+
+  useEffect(() => {
+    // After setting movies, log the categories for debugging
+    if (movies.length > 0) {
+      console.log('Movie categories:', movies.map(m => ({
+        title: m.title,
+        category: m.category,
+        status: m.status,
+        originalCategory: m.originalCategory
+      })));
+    }
+  }, [movies]);
+
+  const filteredMovies = movies.filter((movie) => 
     movie.title.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const currentMovies = filteredMovies.filter((movie) => movie.isCurrentlyRunning)
-  const comingSoonMovies = filteredMovies.filter((movie) => !movie.isCurrentlyRunning)
+  const currentlyRunning = filteredMovies.filter(movie => 
+    movie.status === "Currently Running"
+  )
+
+  const comingSoon = filteredMovies.filter(movie => 
+    movie.status === "Coming Soon"
+  )
 
   return (
     <div className="min-h-screen">
@@ -90,25 +88,39 @@ export default function Home() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
-        {/* Currently Running Movies */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-6">Currently Running</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {currentMovies.map((movie) => (
-              <MovieCard key={movie.id} movie={movie} isLoggedIn={isLoggedIn} />
-            ))}
-          </div>
-        </section>
+        {isLoading ? (
+          <div className="text-center py-12">Loading movies...</div>
+        ) : (
+          <>
+            {/* Currently Running Movies */}
+            <section className="mb-12">
+              <h2 className="text-2xl font-bold mb-6">Currently Running</h2>
+              {currentlyRunning.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {currentlyRunning.map((movie) => (
+                    <MovieCard key={movie.id} movie={movie} isLoggedIn={false} />
+                  ))}
+                </div>
+              ) : (
+                <p>No movies currently running</p>
+              )}
+            </section>
 
-        {/* Coming Soon Movies */}
-        <section>
-          <h2 className="text-2xl font-bold mb-6">Coming Soon</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {comingSoonMovies.map((movie) => (
-              <MovieCard key={movie.id} movie={movie} isLoggedIn={isLoggedIn} />
-            ))}
-          </div>
-        </section>
+            {/* Coming Soon Movies */}
+            <section>
+              <h2 className="text-2xl font-bold mb-6">Coming Soon</h2>
+              {comingSoon.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {comingSoon.map((movie) => (
+                    <MovieCard key={movie.id} movie={movie} isLoggedIn={false} />
+                  ))}
+                </div>
+              ) : (
+                <p>No upcoming movies</p>
+              )}
+            </section>
+          </>
+        )}
       </div>
     </div>
   )

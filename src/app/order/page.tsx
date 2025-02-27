@@ -6,8 +6,18 @@ import { OrderSummary } from "@/components/order/OrderSummary"
 import { OrderTotal } from "@/components/order/OrderTotal"
 import { Button } from "@/components/ui/button"
 import type { Ticket } from "@/types/order"
+import { CheckoutForm } from "@/components/order/checkoutform"
 
 export default function OrderPage() {
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
+  
+  // Update ticket types with prices
+  const ticketTypes = [
+    { type: "Adult", price: 15.0 },
+    { type: "Child", price: 10.0 },
+    { type: "Senior", price: 12.0 },
+  ]
+
   const [tickets, setTickets] = useState<Ticket[]>([
     {
       id: "1",
@@ -41,6 +51,23 @@ export default function OrderPage() {
     },
   ])
 
+  // Add new function to handle ticket type changes
+  const updateTicketType = (id: string, newType: string) => {
+    setTickets(
+      tickets.map((ticket) => {
+        if (ticket.id === id) {
+          const typeInfo = ticketTypes.find((t) => t.type === newType)!
+          return {
+            ...ticket,
+            type: newType,
+            price: typeInfo.price,
+          }
+        }
+        return ticket
+      }),
+    )
+  }
+
   const updateQuantity = (id: string, increment: boolean) => {
     setTickets(
       tickets.map((ticket) => {
@@ -64,6 +91,13 @@ export default function OrderPage() {
     return tickets.reduce((total, ticket) => total + ticket.price * ticket.quantity, 0)
   }
 
+  const handleCheckoutSubmit = async (data: any) => {
+    // Handle the checkout submission
+    console.log('Checkout data:', data)
+    setIsCheckoutOpen(false)
+    // Add your payment processing logic here
+  }
+
   return (
     <>
       <OrderHeader />
@@ -78,6 +112,8 @@ export default function OrderPage() {
             tickets={tickets}
             onUpdateQuantity={updateQuantity}
             onRemoveTicket={removeTicket}
+            onUpdateTicketType={updateTicketType}
+            ticketTypes={ticketTypes}
           />
 
           <div className="space-y-6">
@@ -88,7 +124,7 @@ export default function OrderPage() {
                 size="lg"
                 className="w-full"
                 disabled={tickets.length === 0 || calculateTotal() === 0}
-                onClick={() => alert("Proceeding to checkout...")}
+                onClick={() => setIsCheckoutOpen(true)}
               >
                 Continue to Checkout
               </Button>
@@ -104,6 +140,13 @@ export default function OrderPage() {
           </div>
         </div>
       </div>
+
+      <CheckoutForm
+        open={isCheckoutOpen}
+        onOpenChange={setIsCheckoutOpen}
+        total={calculateTotal()}
+        onSubmit={handleCheckoutSubmit}
+      />
     </>
   )
 }

@@ -4,18 +4,27 @@ export interface Movie {
   imageUrl: string
   trailerUrl?: string
   price?: number
-  category?: string
+  category: string
   cast?: string[]
   director?: string
   producer?: string
   synopsis?: string
   reviews?: Review[]
   rating?: MPAARating
-  releaseDate: Date | string
-  showTimes: string[]
+  releaseDate: string
+  showTimes?: {
+    showTimeId: number
+    movieId: number
+    showDate: string
+    showTime: string
+    screenNumber: number
+    availableSeats: number
+    price: number
+  }[]
   status?: "Currently Running" | "Coming Soon" | "Ended"
   isCurrentlyRunning: boolean
   description: string
+  genres?: string[]
 }
 
 export interface Review {

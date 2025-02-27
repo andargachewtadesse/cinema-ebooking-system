@@ -1,0 +1,9 @@
+cinema/Movie.class
+cinema/Main.class
+cinema/ShowTime.class
+cinema/config/CustomErrorController.class
+cinema/config/WebConfig.class
+cinema/MovieDAO.class
+cinema/DataInitializer.class
+cinema/MovieController.class
+cinema/DatabaseConnection.class
