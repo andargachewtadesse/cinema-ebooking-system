@@ -9,10 +9,12 @@ export function OrderHeader() {
           YourSite
         </Link>
 
+        <Link href="/profile" className="text-2xl font-bold">
         <Avatar className="h-8 w-8 cursor-pointer">
           <AvatarImage src="/placeholder-avatar.png" alt="User" />
           <AvatarFallback>U</AvatarFallback>
         </Avatar>
+        </Link>
       </div>
     </header>
   )
