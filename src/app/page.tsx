@@ -14,7 +14,7 @@ export default function Home() {
     const fetchMovies = async () => {
       setIsLoading(true)
       try {
-        // Add a cache-busting parameter to force a fresh fetch
+        // force a fresh fetch
         const response = await fetch(`/api/movies?t=${Date.now()}`)
         const data = await response.json()
         console.log('Fetched movies for homepage:', data)
@@ -30,7 +30,7 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    // After setting movies, log the categories for debugging
+    // debugging
     if (movies.length > 0) {
       console.log('Movie categories:', movies.map(m => ({
         title: m.title,

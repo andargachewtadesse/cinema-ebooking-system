@@ -26,18 +26,18 @@ public class MovieController {
     @PostMapping
     public ResponseEntity<?> createMovie(@RequestBody Movie movie) {
         try {
-            // Debug the incoming request
+            // Debug 
             System.out.println("MovieController: Received movie with title: " + movie.getTitle());
             System.out.println("MovieController: MPAA Rating: " + movie.getMpaaRating());
             System.out.println("MovieController: Status: " + movie.getStatus());
             
-            // If mpaa_rating is null, set a default
+            // set a default
             if (movie.getMpaaRating() == null) {
                 System.out.println("MovieController: Setting default MPAA rating");
                 movie.setMpaaRating("PG");
             }
             
-            // If status is null, set a default
+            //set a default
             if (movie.getStatus() == null) {
                 System.out.println("MovieController: Setting default status");
                 movie.setStatus("Coming Soon");
@@ -96,7 +96,7 @@ public class MovieController {
             System.out.println("MovieController: Received DELETE request for movie ID: " + id);
             int movieId = Integer.parseInt(id);
             
-            // Use a direct JDBC approach to delete
+            
             try {
                 String deleteQuery = "DELETE FROM movies WHERE movie_id = ?";
                 int rowsAffected = jdbcTemplate.update(deleteQuery, movieId);
@@ -156,7 +156,7 @@ public class MovieController {
         return sw.toString();
     }
 
-    // Test endpoint to verify the controller is working
+    
     @GetMapping("/health")
     public ResponseEntity<String> healthCheck() {
         return ResponseEntity.ok("MovieController is working!");
@@ -165,7 +165,7 @@ public class MovieController {
     @GetMapping("/db-health")
     public ResponseEntity<String> checkDatabaseConnection() {
         try {
-            // Simple query to check database connectivity
+            
             Integer result = jdbcTemplate.queryForObject("SELECT 1", Integer.class);
             return ResponseEntity.ok("Database connection is working. Result: " + result);
         } catch (Exception e) {

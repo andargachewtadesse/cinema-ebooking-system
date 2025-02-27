@@ -67,7 +67,7 @@ public class MovieDAO {
     }
     
     public int insertMovie(Movie movie) throws SQLException {
-        // Debug the incoming movie object
+        // Debug 
         System.out.println("MovieDAO: Inserting movie with title: " + movie.getTitle());
         System.out.println("MovieDAO: MPAA Rating: " + movie.getMpaaRating());
         System.out.println("MovieDAO: Status: " + movie.getStatus());
@@ -90,7 +90,7 @@ public class MovieDAO {
             ps.setString(8, movie.getTrailer_picture());
             ps.setString(9, movie.getTrailer_video());
             
-            // Handle potential null values
+            //  null values
             if (movie.getMpaaRating() == null) {
                 System.out.println("MovieDAO: Warning - mpaa_rating is null, using default");
                 ps.setString(10, "PG"); // Default value
@@ -113,7 +113,7 @@ public class MovieDAO {
 
     public boolean deleteMovie(int movieId) {
         try {
-            // Simple direct delete - the ON DELETE CASCADE should handle related records
+            
             String deleteMovieQuery = "DELETE FROM movies WHERE movie_id = ?";
             int rowsAffected = jdbcTemplate.update(deleteMovieQuery, movieId);
             System.out.println("MovieDAO: Delete movie query affected " + rowsAffected + " rows");
@@ -184,7 +184,7 @@ public class MovieDAO {
                 return m;
             });
             
-            // Only load showtimes for currently running movies
+            
             if ("Currently Running".equals(movie.getStatus())) {
                 loadShowTimesForMovie(movie);
             } else {

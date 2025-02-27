@@ -6,7 +6,7 @@ export function OrderHeader() {
     <header className="bg-background border-b">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link href="/" className="text-2xl font-bold">
-          YourSite
+        Bulldawgs Cinema
         </Link>
 
         <Link href="/profile" className="text-2xl font-bold">

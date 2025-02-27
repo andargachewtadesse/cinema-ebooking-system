@@ -17,7 +17,7 @@ const mockPromotions = [
     validUntil: "2025-08-31",
     status: "Active",
   },
-  // Add more mock promotions as needed
+
 ]
 
 export default function PromotionsPage() {

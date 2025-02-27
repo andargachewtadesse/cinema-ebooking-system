@@ -61,12 +61,12 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Add debug logging
+    //debugging
     console.log('Rating value:', formData.get('rating'));
     console.log('Status from form:', formData.get('status'));
     console.log('Movie data being sent to backend:', movieData);
     
-    // Send to Java backend
+    
     const response = await fetch(JAVA_API_URL, {
       method: 'POST',
       headers: {

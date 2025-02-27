@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 import fetch from 'node-fetch';
 
-// Make sure this URL is correct and the Java server is running
+
 const JAVA_API_URL = 'http://localhost:8080/api/movies';
 
 // Add GET handler
@@ -42,9 +42,7 @@ export async function GET() {
         title: movie.title,
         imageUrl: movie.trailer_picture,
         trailerUrl: movie.trailer_video,
-        // Use the status directly from the database
         status: movie.status,
-        // Use status for category filtering on the frontend
         category: movie.status, // This determines where it appears on the main page
         showTimes: movie.showTimes || [],
         price: movie.showTimes?.[0]?.price || 'N/A',
@@ -55,7 +53,6 @@ export async function GET() {
         producer: movie.producer,
         cast: movie.cast ? movie.cast.split(', ') : [],
         synopsis: movie.synopsis,
-        // Make sure we always have a category value for genres
         originalCategory: movie.category || 'General'
       };
     });
@@ -79,13 +76,12 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     console.log('Received data:', data);
 
-    // Handle poster file separately if needed
-    // For now, we'll just use an empty string or a placeholder
+
     const movieData = {
       ...data,
       // Ensure cast is a string, not an array
       cast: Array.isArray(data.cast) ? data.cast.join(', ') : data.cast,
-      // Use a placeholder for trailer_picture until we implement proper file upload
+      // placeholder for trailer_picture
       trailer_picture: data.trailer_picture && data.trailer_picture.startsWith('blob:') 
         ? 'placeholder_image.jpg' 
         : data.trailer_picture || '',
@@ -112,7 +108,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error in POST /api/movies:', error);
     
-    // If it's a SyntaxError from JSON parsing, return a more specific error
+    // better error handling
     if (error instanceof SyntaxError) {
       return NextResponse.json(
         { error: 'Invalid JSON format: ' + error.message },

@@ -27,7 +27,7 @@ const MoviePage = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Movie times with unique seat availability (stored in state)
+  // Movie times 
   const [movieTimes, setMovieTimes] = useState([
     { time: '10:00 AM', seats: Array.from({ length: 6 }, () => Array.from({ length: 8 }, () => Math.random() > 0.5)) },
     { time: '1:00 PM', seats: Array.from({ length: 6 }, () => Array.from({ length: 8 }, () => Math.random() > 0.5)) },

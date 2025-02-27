@@ -16,7 +16,7 @@ interface Movie {
   imageUrl: string;
 }
 
-// Mock data for testing
+// Mock data 
 const mockMovie: Movie = {
   _id: '1',
   title: 'Inception',
@@ -34,7 +34,7 @@ const MoviePage = () => {
   const [selectedSeats, setSelectedSeats] = useState<{ row: number; col: number }[]>([]); // Track selected seats
   const [selectedTime, setSelectedTime] = useState<string | null>(null); // Track selected movie time
 
-  // Movie times with unique seat availability (stored in state)
+  // Movie times 
   const [movieTimes, setMovieTimes] = useState([
     { time: '10:00 AM', seats: Array.from({ length: 6 }, () => Array.from({ length: 8 }, () => Math.random() > 0.5)) },
     { time: '1:00 PM', seats: Array.from({ length: 6 }, () => Array.from({ length: 8 }, () => Math.random() > 0.5)) },
@@ -43,7 +43,7 @@ const MoviePage = () => {
     { time: '10:00 PM', seats: Array.from({ length: 6 }, () => Array.from({ length: 8 }, () => Math.random() > 0.5)) },
   ]);
 
-  // Handle seat selection
+  // seat selection
   const toggleSeat = (row: number, col: number) => {
     const seat = { row, col };
     setSelectedSeats((prev) =>

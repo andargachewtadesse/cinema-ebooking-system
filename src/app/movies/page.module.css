@@ -1,47 +1,47 @@
-/* Container for the entire page */
+
 .container {
-    max-width: 100%; /* Full width */
+    max-width: 100%; 
     margin: 0 auto;
     font-family: 'Poppins', sans-serif;
     min-height: 100vh;
     position: relative;
-    background-image: url('../../../public/hero.svg'); /* Add your background image path here */
-    background-size: cover; /* Ensure the image covers the entire container */
-    background-position: center; /* Center the image */
-    background-repeat: no-repeat; /* Prevent the image from repeating */ 
+    background-image: url('../../../public/hero.svg'); 
+    background-size: cover; 
+    background-position: center; 
+    background-repeat: no-repeat; 
     
   }
   
-  /* Trailer Container */
+  
   .trailerContainer {
     margin-bottom: 40px;
     display: flex;
     justify-content: center;
     background-color: #333;
     align-items: center;
-    height: 70vh; /* Set a fixed height for the trailer */
+    height: 70vh; 
   }
   
   .trailer {
     width: 100%;
-    max-width: 1200px; /* Wider trailer */
+    max-width: 1200px; 
     height: 100%;
     border: none;
     padding: 10px;
     border-radius: 12px;
   }
   
-  /* Movie Card */
+  
   .card {
     display: flex;
-    background-color: rgba(255, 255, 255, 0.95); /* Semi-transparent white background */
+    background-color: rgba(255, 255, 255, 0.95); 
     border-radius: 12px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     overflow: hidden;
     margin: auto;
     padding: 20px;
-    width: 100%; /* Full width */
-    max-width: 97%; /* Remove max-width restriction */
+    width: 100%; 
+    max-width: 97%; 
     transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
   
@@ -82,7 +82,7 @@
     line-height: 1.6;
   }
   
-  /* Checkout Button */
+  
   .checkoutButton {
     display: block;
     width: 100%;
@@ -103,7 +103,7 @@
     background-color: #0056b3;
   }
   
-  /* Movie Times Row */
+  
   .movieTimes {
     display: flex;
     justify-content: center;
@@ -127,7 +127,7 @@
   }
   
   .timeButtonSelected {
-    background-color: #007BFF; /* Highlight selected time */
+    background-color: #007BFF; 
   }
   
   /* Seat Selection Grid */
@@ -159,7 +159,7 @@
   }
   
   .seatAvailable {
-    background-color: #ccc; /* Gray for available seats */
+    background-color: #ccc; 
   }
   
   .seatAvailable:hover {
@@ -167,15 +167,15 @@
   }
   
   .seatUnavailable {
-    background-color: #ff4757; /* Red for unavailable seats */
+    background-color: #ff4757; 
     cursor: not-allowed;
   }
   
   .seatSelected {
-    background-color: #007BFF; /* Blue for selected seats */
+    background-color: #007BFF; 
   }
   
-  /* Checkout Section */
+  
   .checkoutSection {
     text-align: center;
     margin: 20px 0;

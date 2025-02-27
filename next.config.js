@@ -16,7 +16,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: '*.amazonaws.com',  // If you plan to use S3 later
+        hostname: '*.amazonaws.com',  
       }
     ],
   },

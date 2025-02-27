@@ -10,7 +10,7 @@ interface MovieCardProps {
 }
 
 export function MovieCard({ movie, isLoggedIn = false }: MovieCardProps) {
-  // Split genres string into array (assuming genres are comma-separated)
+  // Split genres string into array 
   const genres = movie.originalCategory?.split(',').map(g => g.trim()).filter(Boolean) || []
 
   return (

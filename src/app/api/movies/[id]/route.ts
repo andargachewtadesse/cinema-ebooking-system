@@ -92,7 +92,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Get the ID from URL directly to avoid params.id issue
+    
     const pathname = request.nextUrl.pathname;
     const id = pathname.split('/').pop();
     
@@ -102,7 +102,7 @@ export async function DELETE(
     
     console.log(`Attempting to delete movie with ID: ${id}`);
     
-    // Make the request to the Java backend with explicit URL
+    
     const response = await fetch(`http://localhost:8080/api/movies/${id}`, {
       method: 'DELETE',
       headers: {

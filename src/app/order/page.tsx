@@ -51,7 +51,7 @@ export default function OrderPage() {
     },
   ])
 
-  // Add new function to handle ticket type changes
+  // handle ticket type changes
   const updateTicketType = (id: string, newType: string) => {
     setTickets(
       tickets.map((ticket) => {
@@ -92,10 +92,10 @@ export default function OrderPage() {
   }
 
   const handleCheckoutSubmit = async (data: any) => {
-    // Handle the checkout submission
+    // checkout submission
     console.log('Checkout data:', data)
     setIsCheckoutOpen(false)
-    // Add your payment processing logic here
+    // payment processing logic
   }
 
   return (

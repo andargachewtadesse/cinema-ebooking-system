@@ -16,46 +16,7 @@ import { useRouter } from 'next/navigation'
 const MPAA_RATINGS: MPAARating[] = ["G", "PG", "PG-13", "R", "NC-17"]
 const MOVIE_STATUS = ["Currently Running", "Coming Soon", "No Longer Running"]
 
-// Mock data
 
-const mockMovies: Movie[] = [
-  {
-    id: "1",
-    title: "The Shawshank Redemption",
-    status: "Currently Running",
-    showTimes: ["2:00 PM", "5:00 PM", "8:00 PM"],
-    price: 9.99,
-    releaseDate: "1994-09-23",
-    trailerUrl: "https://www.youtube.com/watch?v=PLl99DlL5b4",
-    category: "Drama",
-    rating: "R",
-    director: "Frank Darabont",
-    producer: "Niki Marvin",
-    cast: ["Tim Robbins", "Morgan Freeman", "Bob Gunton"],
-    synopsis: "Two imprisoned men bond over a number of years, finding solace and eventual redemption through acts of common decency.",
-    imageUrl: "",
-    isCurrentlyRunning: true,
-    description: "Two imprisoned men bond over a number of years..."
-  },
-  {
-    id: "2",
-    title: "The Godfather",
-    status: "Currently Running",
-    showTimes: ["3:00 PM", "6:00 PM", "9:00 PM"],
-    price: 10.99,
-    releaseDate: "1972-03-24",
-    trailerUrl: "https://www.youtube.com/watch?v=sY1S34973zA",
-    category: "Crime",
-    rating: "R",
-    director: "Francis Ford Coppola",
-    producer: "Albert S. Ruddy",
-    cast: ["Marlon Brando", "Al Pacino", "James Caan"],
-    synopsis: "The aging patriarch of an organized crime dynasty transfers control of his clandestine empire to his reluctant son.",
-    imageUrl: "",
-    isCurrentlyRunning: true,
-    description: "The aging patriarch of an organized crime dynasty..."
-  },
-]
 
 function MovieForm({
   movie,
@@ -310,7 +271,7 @@ export default function AdminMoviesPage() {
     fetchMovies()
   }, [])
 
-  // Handle delete
+  
   const handleDeleteMovie = async (movieId: string) => {
     try {
       console.log(`Attempting to delete movie with ID: ${movieId}`);
