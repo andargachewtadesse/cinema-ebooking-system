@@ -1,10 +1,10 @@
 package cinema;
 
-import java.sql.Date;
+
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.time.LocalDate;
 
 public class Movie {
     private int movieId;

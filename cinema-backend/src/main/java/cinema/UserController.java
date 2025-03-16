@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private final UserDAO userDAO;
-
+    
     @Autowired
     public UserController(UserDAO userDAO) {
         this.userDAO = userDAO;
