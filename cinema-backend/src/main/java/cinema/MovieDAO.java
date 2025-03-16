@@ -1,14 +1,17 @@
 package cinema;
 
-import org.springframework.stereotype.Component;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.math.BigDecimal;
+import org.springframework.stereotype.Component;
 
 @Component
 public class MovieDAO {
@@ -23,6 +26,7 @@ public class MovieDAO {
         try {
             String query = "SELECT * FROM movies";
             List<Movie> movies = jdbcTemplate.query(query, (rs, rowNum) -> {
+                
                 Movie movie = new Movie();
                 movie.setMovieId(rs.getInt("movie_id"));
                 movie.setTitle(rs.getString("title"));
