@@ -166,6 +166,7 @@ public class UserController {
         }
     }   
 
+    // User Login function
     public ResponseEntity<?> loginUser(@RequestBody User loginRequest) {
 
         String username = loginRequest.getUsername();
@@ -175,7 +176,7 @@ public class UserController {
         boolean isValid = userDAO.validateUserLogin(username, password);
 
         if (isValid) {
-            return ResponseEntity.ok("Login successful");
+            return ResponseEntity.ok("success");
         } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
         }
