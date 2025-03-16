@@ -1,37 +1,118 @@
-# cinema-ebooking-system
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bulldawgs Cinema
 
-## Getting Started
+A full-stack movie ticket booking application built with Next.js, Spring Boot, and MySQL.
 
-First, run the development server:
+## Prerequisites
 
+- Node.js (v18 or higher)
+- Java JDK (v17 or higher)
+- Maven
+- MySQL
+
+## Setup Instructions
+
+### 1. Database Setup
+
+1. Start MySQL and log in:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+mysql -u root -p
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Create the database:
+```sql
+CREATE DATABASE cinemadb;
+USE cinemadb;
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Create the necessary tables:
+```sql
+CREATE TABLE movies (
+  movie_id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  category VARCHAR(255),
+  cast TEXT,
+  director VARCHAR(255),
+  producer VARCHAR(255),
+  synopsis TEXT,
+  reviews TEXT,
+  trailer_picture VARCHAR(255),
+  trailer_video VARCHAR(255),
+  mpaa_rating VARCHAR(10),
+  status VARCHAR(50)
+);
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+CREATE TABLE show_times (
+  show_time_id INT AUTO_INCREMENT PRIMARY KEY,
+  movie_id INT,
+  show_date DATE,
+  show_time TIME,
+  screen_number INT,
+  available_seats INT,
+  price DECIMAL(10,2),
+  FOREIGN KEY (movie_id) REFERENCES movies(movie_id) ON DELETE CASCADE
+);
+```
 
-## Learn More
+### 2. Backend Setup (Spring Boot)
 
-To learn more about Next.js, take a look at the following resources:
+1. Navigate to the backend directory:
+```bash
+cd cinema-backend
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2. Update database credentials if needed:
+   - Open `src/main/resources/application.properties`
+   - The default configuration is:
+```properties
+spring.datasource.url=jdbc:mysql://localhost:3306/cinemadb?useSSL=false&allowPublicKeyRetrieval=true
+spring.datasource.username=root
+spring.datasource.password=${MYSQL_PASSWORD:password}
+```
+   - You can either set the MYSQL_PASSWORD environment variable or directly replace the password
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3. Build the Spring Boot application:
+```bash
+mvn clean package
+```
 
-## Deploy on Vercel
+4. Run the application with your MySQL password:
+```bash
+MYSQL_PASSWORD=your_password java -jar target/cinema-1.0-SNAPSHOT.jar
+```
+   - Replace `your_password` with your actual MySQL password
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The backend server will start on `http://localhost:8080`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 3. Frontend Setup (Next.js)
+
+1. Navigate to the frontend directory:
+```bash
+cd ../
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Start the development server:
+```bash
+npm run dev
+```
+
+The frontend application will be available at `http://localhost:3000`
+
+## Features
+
+- Browse movies
+- View movie details and trailers
+- Select seats
+- Book tickets
+- Admin panel for managing movies and showtimes
+
+## Tech Stack
+
+- **Frontend**: Next.js, TypeScript, Tailwind CSS
+- **Backend**: Spring Boot, Java
+- **Database**: MySQL
+
