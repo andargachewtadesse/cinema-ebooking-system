@@ -73,7 +73,7 @@ public class UserDAO {
         return keyHolder.getKey().intValue();
     }
 
-    public boolean deleteMovie(int user_id) {
+    public boolean deleteUser(int user_id) {
         try {
             
             String deleteMovieQuery = "DELETE FROM user WHERE user_id = ?";
@@ -86,4 +86,67 @@ public class UserDAO {
             throw new RuntimeException("Failed to delete user with ID: " + user_id, e);
         }
     }
+
+    public boolean updateUserEmail(int user_id, String newEmail) {
+        try {
+            // Debugging
+            System.out.println("UserDAO: Updating email for user with ID: " + user_id);
+    
+            // SQL query to update email
+            String updateQuery = "UPDATE user SET email = ? WHERE user_id = ?";
+    
+            // Executing the update query
+            int rowsAffected = jdbcTemplate.update(updateQuery, newEmail, user_id);
+    
+            // Log the number of rows affected
+            System.out.println("UserDAO: Update query affected " + rowsAffected + " rows");
+    
+            // Return true if the user was updated (i.e., at least one row was affected)
+            return rowsAffected > 0;
+        } catch (Exception e) {
+            System.out.println("UserDAO: Error updating email for user with ID " + user_id + ": " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to update email for user with ID: " + user_id, e);
+        }
+    }
+    
+    public boolean updateUserName(int user_id, String newFirstName, String newLastName) {
+        try {
+            // Debugging
+            System.out.println("UserDAO: Updating first name and last name for user with ID: " + user_id);
+    
+            // SQL query to update first name and last name
+            String updateQuery = "UPDATE user SET first_name = ?, last_name = ? WHERE user_id = ?";
+    
+            // Executing the update query
+            int rowsAffected = jdbcTemplate.update(updateQuery, newFirstName, newLastName, user_id);
+    
+            // Log the number of rows affected
+            System.out.println("UserDAO: Update query affected " + rowsAffected + " rows");
+    
+            // Return true if the user was updated (i.e., at least one row was affected)
+            return rowsAffected > 0;
+        } catch (Exception e) {
+            System.out.println("UserDAO: Error updating first name and last name for user with ID " + user_id + ": " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to update first name and last name for user with ID: " + user_id, e);
+        }
+    }
+    
+    // User Login validate
+    public boolean validateUserLogin(String username, String password) {
+        try {
+            // Query to get the password from the database
+            String query = "SELECT password FROM user WHERE username = ?";
+            String storedPassword = jdbcTemplate.queryForObject(query, String.class, username);
+
+            // Compare the provided password with the stored password
+            return password.equals(storedPassword);
+        } catch (Exception e) {
+            System.out.println("Error during login validation: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
 }
