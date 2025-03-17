@@ -3,7 +3,8 @@ import { useRouter } from 'next/navigation';
 import React from 'react';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { CheckCircle2 } from "lucide-react";
 
 const Confirmation: React.FC = () => {
   const router = useRouter();
@@ -25,25 +26,26 @@ const Confirmation: React.FC = () => {
       </header>
 
       <div className="flex justify-center items-center min-h-[60vh]">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center">Registration Successful!</CardTitle>
-            <CardDescription className="text-center">
-              Your account has been created
-            </CardDescription>
-          </CardHeader>
+        <Card className="w-full max-w-md p-8 text-center">
+          <div className="mb-6">
+            <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto" />
+          </div>
 
-          <CardContent className="space-y-4">
-            <div className="text-center">
-              <p className="text-gray-700 mt-2">Your account has been created successfully.</p>
-              <p className="text-gray-700">You can now log in using your credentials.</p>
-            </div>
+          <CardTitle className="text-2xl font-bold mb-2">Registration Successful!</CardTitle>
+          
+          <CardContent className="p-0 mb-6">
+            <p className="text-muted-foreground">
+              Your account has been created successfully.
+            </p>
+            <p className="text-muted-foreground">
+              You can now log in using your credentials.
+            </p>
           </CardContent>
 
-          <CardFooter className="flex justify-center pt-6">
+          <CardFooter className="flex justify-center p-0">
             <Button 
               onClick={() => router.push('/login')}
-              className="bg-black text-white hover:bg-gray-800 px-8"
+              className="w-full bg-black text-white hover:bg-gray-800"
             >
               Go to Login
             </Button>
