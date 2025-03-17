@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Progress } from "@/components/ui/progress"
+import { useRouter } from 'next/navigation'
 
 export default function SignupPage() {
   const [step, setStep] = useState(1)
@@ -53,12 +54,14 @@ export default function SignupPage() {
     }>
   >([])
 
-  // Add state for password strength
+  // Add state for password
   const [passwordStrength, setPasswordStrength] = useState(0)
   const [passwordErrors, setPasswordErrors] = useState<string[]>([])
 
   // Verification
   const [verificationCode, setVerificationCode] = useState("")
+
+  const router = useRouter()
 
   const handlePersonalInfoSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -170,7 +173,9 @@ export default function SignupPage() {
 
     // verify the code with the backend
     setError("")
-    // Redirect to login  after successful verification
+    
+    // Add this line to redirect to the confirmation page
+    router.push('/signup/confirmation')
   }
 
   const renderStepIndicator = () => {

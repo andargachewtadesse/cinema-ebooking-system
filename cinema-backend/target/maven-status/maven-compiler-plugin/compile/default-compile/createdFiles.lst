@@ -1,3 +1,5 @@
+cinema/CardDAO.class
+cinema/CardController.class
 cinema/config/CustomErrorController.class
 cinema/config/WebConfig.class
 cinema/MovieDAO.class
@@ -8,5 +10,6 @@ cinema/Main.class
 cinema/User.class
 cinema/ShowTime.class
 cinema/UserDAO.class
+cinema/Card.class
 cinema/DataInitializer.class
 cinema/UserController.class
