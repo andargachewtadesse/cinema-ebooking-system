@@ -140,6 +140,7 @@ public class UserDAO {
             String query = "SELECT password FROM user WHERE email = ?";
             String storedPassword = jdbcTemplate.queryForObject(query, String.class, email);
 
+<<<<<<< HEAD
             // Compare the provided password with the stored password
             
             if (password.equals(storedPassword)){ //Change user status to active with if login successful
@@ -147,6 +148,9 @@ public class UserDAO {
                 jdbcTemplate.update(query, email);
             }
             
+=======
+            System.out.println("DDDDDDDDDDDD"+ storedPassword);
+>>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d
             // Compare the provided password with the stored password
             return password.equals(storedPassword);
 
@@ -157,6 +161,7 @@ public class UserDAO {
         }
     }
 
+<<<<<<< HEAD
     public boolean hasActiveUser() {
         try {
             // Query to check if there are any active users (status_id = 1)
@@ -174,4 +179,6 @@ public class UserDAO {
         }
     }
 
+=======
+>>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d
 }

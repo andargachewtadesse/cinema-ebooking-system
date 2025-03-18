@@ -9,24 +9,33 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+<<<<<<< HEAD
 import org.springframework.jdbc.core.JdbcTemplate;
+=======
+>>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d
 import org.springframework.stereotype.Component;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
 
+<<<<<<< HEAD
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+=======
+>>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d
     @Autowired
     private MovieDAO movieDAO;
 
     @Override
     public void run(String... args) throws Exception {
+<<<<<<< HEAD
 
         updateUserStatusToInactive(); //update user status;
 
+=======
+>>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d
         System.out.println("DataInitializer: Starting to populate showtimes...");
         
         // Get all movies
@@ -64,6 +73,7 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
+<<<<<<< HEAD
     public void updateUserStatusToInactive() {
         try {
             String updateQuery = "UPDATE user SET status_id = 2"; // Assuming 2 means Inactive
@@ -75,4 +85,6 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
+=======
+>>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d
 } 

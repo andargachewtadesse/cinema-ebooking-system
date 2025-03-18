@@ -143,6 +143,7 @@ public class UserController {
     }
 
     // User Login function
+<<<<<<< HEAD
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody User loginRequest) {
         String email = loginRequest.getEmail();
@@ -181,6 +182,28 @@ public class UserController {
                              .body(Map.of("error", "Error checking for active users"));
         }
     }
+=======
+@PostMapping("/login")
+public ResponseEntity<?> loginUser(@RequestBody User loginRequest) {
+    String email = loginRequest.getEmail();
+    String password = loginRequest.getPassword();
+    
+    boolean isValid = userDAO.validateUserLogin(email, password);
+
+    if (isValid) {
+        // Return JSON response with a success message and user info
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Login successful");
+        response.put("email", email);
+
+        return ResponseEntity.ok(response);
+    } else {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                             .body(Map.of("error", "Invalid username or password"));
+    }
+}
+
+>>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d
 
 
     // Health check for UserController

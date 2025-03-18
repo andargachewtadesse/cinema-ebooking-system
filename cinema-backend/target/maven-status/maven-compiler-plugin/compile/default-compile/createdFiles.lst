@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 cinema\UserDAO.class
 cinema\DatabaseConnection.class
 cinema\ShowTime.class
@@ -13,3 +14,20 @@ cinema\Card.class
 cinema\MovieController.class
 cinema\CardController.class
 cinema\User.class
+=======
+cinema/CardDAO.class
+cinema/CardController.class
+cinema/config/CustomErrorController.class
+cinema/config/WebConfig.class
+cinema/MovieDAO.class
+cinema/MovieController.class
+cinema/DatabaseConnection.class
+cinema/Movie.class
+cinema/Main.class
+cinema/User.class
+cinema/ShowTime.class
+cinema/UserDAO.class
+cinema/Card.class
+cinema/DataInitializer.class
+cinema/UserController.class
+>>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d

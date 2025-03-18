@@ -58,7 +58,10 @@ public class CardDAO {
                 card.setCardNumber(rs.getString("card_number"));
                 card.setCvv(rs.getString("cvv"));
                 card.setCardAddress(rs.getString("card_address"));
+<<<<<<< HEAD
                 card.setExpirationDate(rs.getString("expiration_date"));
+=======
+>>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d
                 card.setCustomerId(rs.getInt("customer_id"));
 
                 return card;

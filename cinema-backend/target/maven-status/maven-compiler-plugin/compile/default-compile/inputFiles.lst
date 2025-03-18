@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 E:\project\cinema-ebooking-system-main\cinema-backend\src\main\java\cinema\CardDAO.java
 E:\project\cinema-ebooking-system-main\cinema-backend\src\main\java\cinema\config\WebConfig.java
 E:\project\cinema-ebooking-system-main\cinema-backend\src\main\java\cinema\UserDAO.java
@@ -13,3 +14,20 @@ E:\project\cinema-ebooking-system-main\cinema-backend\src\main\java\cinema\ShowT
 E:\project\cinema-ebooking-system-main\cinema-backend\src\main\java\cinema\Card.java
 E:\project\cinema-ebooking-system-main\cinema-backend\src\main\java\cinema\CardController.java
 E:\project\cinema-ebooking-system-main\cinema-backend\src\main\java\cinema\config\CustomErrorController.java
+=======
+/Users/andytadesse/cinema-ebooking-system/cinema-backend/src/main/java/cinema/UserDAO.java
+/Users/andytadesse/cinema-ebooking-system/cinema-backend/src/main/java/cinema/config/WebConfig.java
+/Users/andytadesse/cinema-ebooking-system/cinema-backend/src/main/java/cinema/CardController.java
+/Users/andytadesse/cinema-ebooking-system/cinema-backend/src/main/java/cinema/CardDAO.java
+/Users/andytadesse/cinema-ebooking-system/cinema-backend/src/main/java/cinema/Card.java
+/Users/andytadesse/cinema-ebooking-system/cinema-backend/src/main/java/cinema/UserController.java
+/Users/andytadesse/cinema-ebooking-system/cinema-backend/src/main/java/cinema/DatabaseConnection.java
+/Users/andytadesse/cinema-ebooking-system/cinema-backend/src/main/java/cinema/ShowTime.java
+/Users/andytadesse/cinema-ebooking-system/cinema-backend/src/main/java/cinema/Movie.java
+/Users/andytadesse/cinema-ebooking-system/cinema-backend/src/main/java/cinema/User.java
+/Users/andytadesse/cinema-ebooking-system/cinema-backend/src/main/java/cinema/MovieController.java
+/Users/andytadesse/cinema-ebooking-system/cinema-backend/src/main/java/cinema/config/CustomErrorController.java
+/Users/andytadesse/cinema-ebooking-system/cinema-backend/src/main/java/cinema/Main.java
+/Users/andytadesse/cinema-ebooking-system/cinema-backend/src/main/java/cinema/MovieDAO.java
+/Users/andytadesse/cinema-ebooking-system/cinema-backend/src/main/java/cinema/DataInitializer.java
+>>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d

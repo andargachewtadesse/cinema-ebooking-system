@@ -8,6 +8,7 @@ public class Card{
     private String cardNumber;
     private String cvv;
     private String cardAddress;
+<<<<<<< HEAD
     private String expiration_date;
     private int customerId;
 
@@ -15,12 +16,20 @@ public class Card{
     public Card(int id, String cardholderName, String cardNumber, String cvv, 
     String cardAddress, String expiration_date, int customerId) {
         
+=======
+    private int customerId;
+
+    public Card(int id, String cardholderName, String cardNumber, String cvv, String cardAddress, int customerId) {
+>>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d
         this.id = id;
         this.cardholderName = cardholderName;
         this.cardNumber = cardNumber;
         this.cvv = cvv;
         this.cardAddress = cardAddress;
+<<<<<<< HEAD
         this.expiration_date = expiration_date;
+=======
+>>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d
         this.customerId = customerId;
     }
 
@@ -48,10 +57,13 @@ public class Card{
         return cardAddress;
     }
 
+<<<<<<< HEAD
     public String getExpirationDate(){
         return expiration_date;
     }
 
+=======
+>>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d
     public int getCustomerId() {
         return customerId;
     }
@@ -77,10 +89,13 @@ public class Card{
         this.cardAddress = cardAddress;
     }
 
+<<<<<<< HEAD
     public void setExpirationDate(String expiration_date){
         this.expiration_date = expiration_date;
     }
 
+=======
+>>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d
     public void setCustomerId(int customerId) {
         this.customerId = customerId;
     }
@@ -93,7 +108,10 @@ public class Card{
                 ", cardNumber='" + cardNumber + '\'' +
                 ", cvv='" + cvv + '\'' +
                 ", cardAddress='" + cardAddress + '\'' +
+<<<<<<< HEAD
                 ", expiration date='" + expiration_date + '\'' +
+=======
+>>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d
                 ", customerId=" + customerId +
                 '}';
     }
