@@ -1,88 +1,72 @@
 'use client';
 
-import { useState } from 'react';
-import styles from './page.module.css'; // Import the CSS Module
+import { useState, useEffect } from 'react';
+import styles from './page.module.css';
 import { OrderHeader } from '@/components/order/OrderHeader';
 
-interface PaymentMethod {
-  id: number;
-  cardNumber: string;
-  expiration: string;
-  cardholder: string;
-  CVV: string;
+interface User {
+  firstName: string;
+  lastName: string;
+  email: string;
 }
 
 const Profile = () => {
-  // Mock user data
-  const [user, setUser] = useState({
-    name: 'John Doe',
-    email: 'johndoe@example.com',
-    paymentMethods: [
-      { id: 1, cardNumber: 'Visa **** 1234', expiration: '12/25', cardholder: 'John Doe' },
-    ],
-    previousOrders: [
-      { movie: 'Inception', date: '2024-02-20', seats: ['A1', 'A2'] },
-      { movie: 'Interstellar', date: '2024-02-18', seats: ['B5', 'B6'] },
-    ],
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [updatedUser, setUpdatedUser] = useState<User | null>(null);
 
-  const [hoveredPayment, setHoveredPayment] = useState<number | null>(null);
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const [newPayment, setNewPayment] = useState<PaymentMethod>({
-    id: Date.now(),
-    cardNumber: '',
-    expiration: '',
-    cardholder: '',
-    CVV: '',
-  });
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/api/users/profileLoad');
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data);
+          setUpdatedUser(data);
+        } else {
+          console.error('Failed to fetch user profile');
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
 
-  const [editing, setEditing] = useState(false); // Track edit mode
-  const [updatedUser, setUpdatedUser] = useState({ ...user }); // Temporary changes during editing
+    fetchUserProfile();
+  }, []);
 
-  // Handle input changes
+  if (!user) {
+    return <div>Loading...</div>;
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setUpdatedUser((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setUpdatedUser((prev) => (prev ? { ...prev, [name]: value } : prev));
   };
 
-  // Save changes
-  const handleSave = () => {
-    setUser(updatedUser); // Save updated user data
-    setEditing(false); // Exit edit mode
-  };
+  const handleSave = async () => {
+    if (!updatedUser) return;
 
-  // Cancel editing
-  const handleCancel = () => {
-    setUpdatedUser({ ...user }); // Reset to original user data
-    setEditing(false); // Exit edit mode
-  };
+    try {
+      const response = await fetch('http://localhost:8080/api/users/', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedUser),
+      });
 
-  // Format card number as "Visa **** 1234 - MM/YY"
-  const formatCardDisplay = (cardNumber: string, expiration: string) => {
-    const lastFour = cardNumber.slice(-4);
-    return `Visa **** ${lastFour} - ${expiration}`;
-  };
-
-  const handleDeletePayment = (id: number) => {
-    if (confirm('Are you sure you want to delete this payment method?')) {
-      setUser((prev) => ({
-        ...prev,
-        paymentMethods: prev.paymentMethods.filter((payment) => payment.id !== id),
-      }));
+      if (response.ok) {
+        setUser(updatedUser);
+        setEditing(false);
+      } else {
+        console.error('Failed to update user profile');
+      }
+    } catch (error) {
+      console.error('Error updating user profile:', error);
     }
   };
 
-  const handleAddPayment = () => {
-    const formattedCard = formatCardDisplay(newPayment.cardNumber, newPayment.expiration);
-    setUser((prev) => ({
-      ...prev,
-      paymentMethods: [...prev.paymentMethods, { ...newPayment, id: Date.now(), cardNumber: formattedCard }],
-    }));
-    setShowPaymentForm(false);
-    setNewPayment({ id: Date.now(), cardNumber: '', expiration: '', cardholder: '', CVV: '' });
+  const handleCancel = () => {
+    setUpdatedUser({ ...user });
+    setEditing(false);
   };
 
   return (
@@ -93,164 +77,63 @@ const Profile = () => {
 
         {/* User Info */}
         <div className="mb-4">
-          <label className="font-semibold">Name:</label>
+          <label className="font-semibold">First Name:</label>
           {editing ? (
             <input
               type="text"
-              name="name"
-              value={updatedUser.name}
+              name="firstName"
+              value={updatedUser?.firstName || ''}
               onChange={handleChange}
               className="border p-2 w-full"
             />
           ) : (
-            <p className="p-2 border">{user.name}</p>
+            <p className="p-2 border">{user.firstName}</p>
+          )}
+        </div>
+
+        <div className="mb-4">
+          <label className="font-semibold">Last Name:</label>
+          {editing ? (
+            <input
+              type="text"
+              name="lastName"
+              value={updatedUser?.lastName || ''}
+              onChange={handleChange}
+              className="border p-2 w-full"
+            />
+          ) : (
+            <p className="p-2 border">{user.lastName}</p>
           )}
         </div>
 
         <div className="mb-4">
           <label className="font-semibold">Email:</label>
-          {editing ? (
-            <input
-              type="email"
-              name="email"
-              value={updatedUser.email}
-              onChange={handleChange}
-              className="border p-2 w-full"
-            />
-          ) : (
-            <p className="p-2 border">{user.email}</p>
-          )}
+          <p className="p-2 border">{user.email}</p> {/* Email is read-only */}
         </div>
 
-        {/* Edit Button (Right After Email Input) */}
+        {/* Edit Button */}
         <div className="mb-4">
           {editing ? (
             <div className="flex gap-4">
-              <button
-                className={styles.buttonSuccess}
-                onClick={handleSave}
-              >
+              <button className={styles.buttonSuccess} onClick={handleSave}>
                 Save
               </button>
-              <button
-                className={styles.cancelButton}
-                onClick={handleCancel}
-              >
+              <button className={styles.cancelButton} onClick={handleCancel}>
                 Cancel
               </button>
             </div>
           ) : (
-            <button
-              className={styles.buttonPrimary}
-              onClick={() => setEditing(true)}
-            >
-              Edit Name & Email
+            <button className={styles.buttonPrimary} onClick={() => setEditing(true)}>
+              Edit Name
             </button>
           )}
         </div>
 
-        {/* Payments Section */}
-        <div className={styles.mb6}>
-          <h2 className={styles.label}>Payment Methods</h2>
-          <div className={styles.spaceY2}>
-            {user.paymentMethods.map((payment) => (
-              <div
-                key={payment.id}
-                className={styles.paymentMethod}
-                onMouseEnter={() => setHoveredPayment(payment.id)}
-                onMouseLeave={() => setHoveredPayment(null)}
-              >
-                <p>{payment.cardNumber}</p>
-                {hoveredPayment === payment.id && (
-                  <div className={styles.hoverActions}>
-                    <button className={styles.buttonPrimary}>Edit</button>
-                    <button
-                      className={styles.buttonDanger}
-                      onClick={() => handleDeletePayment(payment.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <button
-            className={styles.buttonPrimary}
-            onClick={() => setShowPaymentForm(true)}
-          >
-            Add Payment Method
-          </button>
-
-          {/* Add Payment Form */}
-          {showPaymentForm && (
-            <div className={`${styles.p4} ${styles.border} ${styles.rounded}`}>
-              <h3 className={styles.label}>New Payment Method</h3>
-              <input
-                type="text"
-                placeholder="Cardholder's Name"
-                value={newPayment.cardholder}
-                onChange={(e) => setNewPayment({ ...newPayment, cardholder: e.target.value })}
-                className={styles.inputField}
-              />
-              <input
-                type="text"
-                placeholder="Card Number"
-                value={newPayment.cardNumber}
-                onChange={(e) => setNewPayment({ ...newPayment, cardNumber: e.target.value })}
-                className={styles.inputField}
-              />
-              <input
-                type="text"
-                placeholder="Expiration Date (MM/YY)"
-                value={newPayment.expiration}
-                onChange={(e) => setNewPayment({ ...newPayment, expiration: e.target.value })}
-                className={styles.inputField}
-              />
-              <input
-                type="text"
-                placeholder="CVV"
-                value={newPayment.CVV}
-                onChange={(e) => setNewPayment({ ...newPayment, CVV: e.target.value })}
-                className={styles.inputField}
-              />
-
-              <div className={styles.flex}>
-                <button
-                  className={styles.buttonSuccess}
-                  onClick={handleAddPayment}
-                >
-                  Save Payment
-                </button>
-                <button
-                  className={styles.cancelButton}
-                  onClick={() => setShowPaymentForm(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Previous Orders */}
-        <div className={styles.mb6}>
-          <h2 className={styles.label}>Previous Orders</h2>
-          {user.previousOrders.length > 0 ? (
-            <ul className={styles.previousOrders}>
-              {user.previousOrders.map((order, index) => (
-                <li key={index} className={styles.orderItem}>
-                  <p><strong>Movie:</strong> {order.movie}</p>
-                  <p><strong>Date:</strong> {order.date}</p>
-                  <p><strong>Seats:</strong> {order.seats.join(', ')}</p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className={styles.p2}>No previous orders.</p>
-          )}
-        </div>
+        {/* Payment Methods (Commented Out) */}
+        {/* <div className="mb-4">
+          <h2 className="font-semibold">Payment Methods</h2>
+          <p>Card details are currently hidden.</p>
+        </div> */}
       </div>
     </>
   );
