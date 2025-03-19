@@ -49,19 +49,22 @@ public class CardController {
     }
 
     // Get all cards
-    @GetMapping
-    public ResponseEntity<List<Card>> getAllCards() {
+    @GetMapping("/activeCards")
+    public ResponseEntity<List<Card>> getAllActiveCards() {
         try {
-            System.out.println("CardController: Fetching all cards");
-            List<Card> cards = cardDAO.getAllCards();
-            System.out.println("CardController: Found " + cards.size() + " cards");
-            return ResponseEntity.ok(cards);
+            List<Card> cards = cardDAO.getAllCardsForActiveUser();
+        
+            if (cards.isEmpty()) {
+                return ResponseEntity.noContent().build(); // Return 204 if no cards are found
+            }
+        
+            return ResponseEntity.ok(cards);  // Return list of cards if found
         } catch (Exception e) {
-            System.out.println("CardController: Error fetching cards: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+
 
     // Delete a card by card ID
     @DeleteMapping("/{id}")

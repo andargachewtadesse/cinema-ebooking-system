@@ -1,15 +1,7 @@
-"use client"
-
-<<<<<<< HEAD
 import { useState, useEffect } from "react"
-=======
-import { useState } from "react"
->>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d
 import Link from "next/link"
-import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 
-<<<<<<< HEAD
 export function Header() {
   const [isSearchExpanded, setIsSearchExpanded] = useState(false)
   const [isActiveUser, setIsActiveUser] = useState(false)
@@ -28,11 +20,6 @@ export function Header() {
 
     checkActiveUser()
   }, [])
-=======
-
-export function Header() {
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false)
->>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d
 
   return (
     <header className="bg-background border-b">
@@ -42,11 +29,15 @@ export function Header() {
         </Link>
 
         <div className="flex items-center space-x-4">
-<<<<<<< HEAD
           {isActiveUser ? (
-            <Button variant="default" asChild className="bg-black text-white hover:bg-black/90">
-              <Link href="/profile">Profile</Link>
-            </Button>
+            <>
+              <Button variant="default" asChild className="bg-black text-white hover:bg-black/90">
+                <Link href="/profile">Profile</Link>
+              </Button>
+              <Button variant="default" asChild className="bg-red-600 text-white hover:bg-red-500">
+                <Link href="/">Logout</Link>
+              </Button>
+            </>
           ) : (
             <>
               <Button variant="ghost" asChild className="text-base">
@@ -57,21 +48,9 @@ export function Header() {
               </Button>
             </>
           )}
-=======
-
-          <Button variant="ghost" asChild className="text-base">
-            <Link href="/login">Login</Link>
-          </Button>
-          <Button variant="default" asChild className="bg-black text-white hover:bg-black/90">
-            <Link href="/register">Sign Up</Link>
-          </Button>
->>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d
         </div>
       </div>
     </header>
   )
 }
-<<<<<<< HEAD
-=======
 
->>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d
