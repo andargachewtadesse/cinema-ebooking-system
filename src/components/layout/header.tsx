@@ -1,8 +1,5 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 
 export function Header() {
@@ -33,9 +30,14 @@ export function Header() {
 
         <div className="flex items-center space-x-4">
           {isActiveUser ? (
-            <Button variant="default" asChild className="bg-black text-white hover:bg-black/90">
-              <Link href="/profile">Profile</Link>
-            </Button>
+            <>
+              <Button variant="default" asChild className="bg-black text-white hover:bg-black/90">
+                <Link href="/profile">Profile</Link>
+              </Button>
+              <Button variant="default" asChild className="bg-red-600 text-white hover:bg-red-500">
+                <Link href="/logout">Logout</Link>
+              </Button>
+            </>
           ) : (
             <>
               <Button variant="ghost" asChild className="text-base">
@@ -51,3 +53,4 @@ export function Header() {
     </header>
   )
 }
+
