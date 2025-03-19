@@ -9,22 +9,27 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class CardDAO {
 
     private final JdbcTemplate jdbcTemplate;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     @Autowired
     public CardDAO(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
+        this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
     // Add a new card
     public int insertCard(Card card) throws SQLException {
         // Debug
         System.out.println("CardDAO: Inserting card with cardholder name: " + card.getCardholderName());
+        String encryptedCardNumber = passwordEncoder.encode(card.getCardNumber());
+        String encryptedCvv = passwordEncoder.encode(card.getCvv());
 
         String sql = "INSERT INTO card (cardholder_name, card_number, cvv, card_address, customer_id) " +
                      "VALUES (?, ?, ?, ?, ?)";
@@ -34,8 +39,8 @@ public class CardDAO {
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, card.getCardholderName());
-            ps.setString(2, card.getCardNumber());
-            ps.setString(3, card.getCvv());
+            ps.setString(2, encryptedCardNumber);
+            ps.setString(3, encryptedCvv);
             ps.setString(4, card.getCardAddress());
             ps.setInt(5, card.getCustomerId());
 
@@ -55,13 +60,11 @@ public class CardDAO {
                 Card card = new Card();
                 card.setId(rs.getInt("id"));
                 card.setCardholderName(rs.getString("cardholder_name"));
-                card.setCardNumber(rs.getString("card_number"));
-                card.setCvv(rs.getString("cvv"));
+
+                String encryptedCardNumber = rs.getString("card_number");
+                String encryptedCvv = rs.getString("cvv");
+
                 card.setCardAddress(rs.getString("card_address"));
-<<<<<<< HEAD
-                card.setExpirationDate(rs.getString("expiration_date"));
-=======
->>>>>>> 4f988932ba154c0caf1635cd79e3e13531863b2d
                 card.setCustomerId(rs.getInt("customer_id"));
 
                 return card;
