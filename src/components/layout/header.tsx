@@ -35,7 +35,7 @@ export function Header() {
                 <Link href="/profile">Profile</Link>
               </Button>
               <Button variant="default" asChild className="bg-red-600 text-white hover:bg-red-500">
-                <Link href="/logout">Logout</Link>
+                <Link href="/">Logout</Link>
               </Button>
             </>
           ) : (

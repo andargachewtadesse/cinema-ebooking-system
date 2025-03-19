@@ -56,6 +56,19 @@ public class UserDAO {
         }
     }
 
+    public String getUserEmailByStatusId() {
+        try {
+            // Query to get the email of the user whose status_id is 2
+            String query = "SELECT email FROM user WHERE status_id = 1";  // Assuming we want only one user
+            return jdbcTemplate.queryForObject(query, String.class);
+        } catch (Exception e) {
+            System.out.println("UserDAO: Error retrieving email where status_id = 2: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
+
     public User getUserProfileById(Integer id) {
         try {
             String query = "SELECT * FROM user WHERE user_id = ?";

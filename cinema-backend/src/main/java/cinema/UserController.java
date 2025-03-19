@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -301,6 +300,7 @@ public class UserController {
     // User Logout function
     @PostMapping("/logout")
     public ResponseEntity<?> logoutUser(@RequestBody Map<String, String> payload) {
+
         String email = payload.get("email");
         
         if (email == null) {
@@ -334,6 +334,30 @@ public class UserController {
                              .body(Map.of("error", "Error checking for active users"));
         }
     }
+
+    @GetMapping("/userEmail")
+    public ResponseEntity<Map<String, Object>> getActiveUserEmail() {
+        try {
+            // Call the method from UserDAO to get the email of the user with status_id = 2
+            String email = userDAO.getUserEmailByStatusId();
+        
+            if (email == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "No active user found with status_id = 2"));
+            }
+        
+            Map<String, Object> response = new HashMap<>();
+            response.put("email", email);
+        
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            System.out.println("UserController: Error retrieving active user email: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                             .body(Map.of("error", "Error retrieving active user email"));
+        }
+    }
+
 
     @GetMapping("/profileLoad")
     public ResponseEntity<Map<String, Object>> getActiveUserProfile() {
