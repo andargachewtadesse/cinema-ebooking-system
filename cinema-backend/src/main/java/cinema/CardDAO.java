@@ -3,6 +3,7 @@ package cinema;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collections;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,12 +16,15 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class CardDAO {
 
+    private final UserDAO userDAO;
     private final JdbcTemplate jdbcTemplate;
     private final BCryptPasswordEncoder passwordEncoder;
 
+
     @Autowired
-    public CardDAO(JdbcTemplate jdbcTemplate) {
+    public CardDAO(JdbcTemplate jdbcTemplate,UserDAO userDAO) {
         this.jdbcTemplate = jdbcTemplate;
+        this.userDAO = userDAO;
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
 
@@ -60,10 +64,10 @@ public class CardDAO {
                 Card card = new Card();
                 card.setId(rs.getInt("id"));
                 card.setCardholderName(rs.getString("cardholder_name"));
-
                 String encryptedCardNumber = rs.getString("card_number");
                 String encryptedCvv = rs.getString("cvv");
-
+                card.setCardNumber(encryptedCardNumber);
+                card.setCvv(encryptedCvv);
                 card.setCardAddress(rs.getString("card_address"));
                 card.setCustomerId(rs.getInt("customer_id"));
 
@@ -78,6 +82,48 @@ public class CardDAO {
             throw new RuntimeException("Failed to fetch all cards", e);
         }
     }
+
+    public List<Card> getAllCardsForActiveUser() {
+        try {
+            // Get the active user ID
+            Integer activeUserId = userDAO.getActiveUserId();
+            
+            if (activeUserId == null) {
+                System.out.println("No active user found");
+                return Collections.emptyList(); // Return an empty list if no active user is found
+            }
+            
+            // Query to get all cards for the active user
+            String query = "SELECT * FROM card WHERE customerId = ?";
+            
+            // Use query method with a lambda expression for the row mapper
+            List<Card> cards = jdbcTemplate.query(query, 
+                new Object[]{activeUserId}, 
+                (rs, rowNum) -> {
+                    // Create new Card object and map the result set to its fields
+                    Card card = new Card();
+                    card.setId(rs.getInt("id"));
+                    card.setCardNumber(rs.getString("cardNumber"));  // Map cardNumber from the result set
+                    String encryptedCardNumber = rs.getString("card_number");
+                    String encryptedCvv = rs.getString("cvv");
+                    card.setCardNumber(encryptedCardNumber);
+                    card.setCvv(encryptedCvv);
+                    card.setCardAddress(rs.getString("cardAddress"));  // Map cardAddress from the result set
+                    
+                    return card;
+                });
+    
+            return cards;
+        
+        } catch (Exception e) {
+            System.out.println("CardDAO: Error in getAllCardsForActiveUser: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to fetch cards for active user", e);
+        }
+    }
+    
+    
+    
 
     // Delete a card by card ID
     public boolean deleteCard(int cardId) {
