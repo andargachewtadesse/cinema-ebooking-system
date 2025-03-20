@@ -1,500 +1,367 @@
-'use client';
+"use client"
 
-import { useState, useEffect } from 'react';
-import styles from './page.module.css';
-import { OrderHeader } from '@/components/order/OrderHeader';
+import { useState } from "react"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Separator } from "@/components/ui/separator"
+import { CreditCard, User, MapPin, Lock, PlusCircle, Edit, Trash2 } from "lucide-react"
+import { OrderHeader } from "@/components/order/OrderHeader"
 
-interface User {
-  firstName: string;
-  lastName: string;
-  email: string;
-}
+export default function Profile() {
+  const [editingPersonal, setEditingPersonal] = useState(false)
+  const [editingAddress, setEditingAddress] = useState(false)
 
-interface PaymentMethod {
-  cardNumber: string;
-  expiration_date: string;
-  cvv: string;
-  cardholderName: string;
-  cardAddress: string; // Optional field
-}
+  const [user, setUser] = useState({
+    firstName: "Virgil",
+    lastName: "Kon",
+    email: "sotorot419@erapk.com",
+  })
 
-const Profile = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [editing, setEditing] = useState(false);
-  const [updatedUser, setUpdatedUser] = useState<User | null>(null);
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const [newPayment, setNewPayment] = useState<PaymentMethod>({
-    cardNumber: '',
-    expiration_date: '',
-    cvv: '',
-    cardholderName: '',
-    cardAddress: '',
-  });
+  const [address, setAddress] = useState({
+    street: "Hoooland St",
+    city: "Athens",
+    state: "GA",
+    zipCode: "30601",
+  })
 
-  // Manage editing a payment method
-  const [editingPaymentId, setEditingPaymentId] = useState<String | null>(null);
-  const [editedCardAddress, setEditedCardAddress] = useState<string>('');
+  const [paymentMethods, setPaymentMethods] = useState([
+    {
+      id: 1,
+      cardHolder: "Virgil Kon",
+      cardNumber: "$2a$10$s.ruQ.TkI0AlyhFskEVHe3dvmMh8XTEoUkz53aZ6FgWa63uiXBG2",
+      address: "Hoooland St, Athens, GA 30601",
+    },
+    {
+      id: 2,
+      cardHolder: "Virgil Kon",
+      cardNumber: "$2a$10$PcCVaVvc4UOX5Nh5YY5AdOe3ixyMFgWqQenZ6ioW0pbuETr/t4aP6",
+      address: "Hoooland St, Athens, GA 30601",
+    },
+  ])
 
-  const [changingPassword, setChangingPassword] = useState(false);  // To toggle the password change form visibility
-  const [oldPassword, setOldPassword] = useState('');        // Track current password
-  const [newPassword, setNewPassword] = useState('');                // Track new password
-  const [confirmPassword, setConfirmPassword] = useState('');        // Track confirm new password
-  const [passwordChangeError, setPasswordChangeError] = useState('');
-
-  // Fetch user data
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const userResponse = await fetch('http://localhost:8080/api/users/profileLoad');
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          setUser(userData);
-          setUpdatedUser(userData);
-        } else {
-          console.error('Failed to fetch user profile');
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-      }
-    };
-    fetchUserProfile();
-  }, []);
-
-  // Fetch payment methods
-  useEffect(() => {
-    const fetchPaymentMethods = async () => {
-      try {
-        const paymentResponse = await fetch('http://localhost:8080/api/cards/activeCards');
-        if (paymentResponse.ok) {
-          const paymentData = await paymentResponse.json();
-          setPaymentMethods(paymentData);
-        } else {
-          console.error('Failed to fetch payment methods');
-        }
-      } catch (error) {
-        console.error('Error fetching payment methods:', error);
-      }
-    };
-    fetchPaymentMethods();
-  }, []);
-
-  if (!user) {
-    return <div>Loading...</div>;
+  const maskCardNumber = (cardNumber) => {
+    // Show only last 4 characters
+    return "•••• •••• •••• " + cardNumber.slice(-4)
   }
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setUpdatedUser((prev) => (prev ? { ...prev, [name]: value } : prev));
-  };
-
-  const handleSave = async () => {
-    if (!updatedUser) return;
-
-    try {
-      const response = await fetch('http://localhost:8080/api/users/update-details', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: updatedUser.email,
-          firstName: updatedUser.firstName,
-          lastName: updatedUser.lastName,
-        }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log(result.message);  // "User details updated successfully"
-        setUser(updatedUser);        // Update the state with the new details
-        setEditing(false);           // Disable editing mode
-      } else {
-        const error = await response.json();
-        console.error(error.error || 'Failed to update user details');
-      }
-    } catch (error) {
-      console.error('Error updating user profile:', error);
-    }
-  };
-
-
-  const handleCancel = () => {
-    setUpdatedUser({ ...user });
-    setEditing(false);
-  };
-
-  const handleChangePassword = async () => {
-    if (newPassword !== confirmPassword) {
-      setPasswordChangeError("Passwords don't match."); // Set error if passwords don't match
-      return;
-    }
-
-    try {
-      const response = await fetch('http://localhost:8080/api/users/change-password', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: user.email,
-          oldPassword,
-          newPassword,
-        }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log(result.message); // "Password updated successfully"
-        setChangingPassword(false); // Close the change password form
-        setPasswordChangeError(''); // Reset any errors
-      } else {
-        const error = await response.json();
-        setPasswordChangeError(error.error || 'Failed to change password');
-      }
-    } catch (error) {
-      console.error('Error changing password:', error);
-      setPasswordChangeError('An error occurred while changing the password.');
-    }
-  };
-
-
-  const handleAddPayment = async () => {
-    if (
-      newPayment.cardNumber &&
-      newPayment.cardholderName &&
-      newPayment.expiration_date &&
-      newPayment.cvv &&
-      newPayment.cardAddress
-    ) {
-      try {
-        const response = await fetch('http://localhost:8080/api/cards/add', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(newPayment),
-        });
-
-        if (response.ok) {
-          const cardData = await response.json();
-          setPaymentMethods((prev) => [
-            ...prev,
-            cardData, // Add the new card returned from the server
-          ]);
-          setShowPaymentForm(false);
-          setNewPayment({
-            cardNumber: '',
-            expiration_date: '',
-            cvv: '',
-            cardholderName: '',
-            cardAddress: '',
-          });
-        } else {
-          const errorMessage = await response.text();
-          alert(errorMessage); // Display the error message from the server
-        }
-      } catch (error) {
-        console.error('Error adding payment:', error);
-        alert('An error occurred while adding the payment method.');
-      }
-    } else {
-      alert('Please fill all the payment details.');
-    }
-  };
-
-  const handleDeletePayment = async (cardNumber: string) => {
-    try {
-      const response = await fetch(`http://localhost:8080/api/cards/${cardNumber}`, {
-        method: 'DELETE',
-      });
-  
-      if (response.ok) {
-        console.log(`Successfully deleted card with ID: ${cardNumber}`);
-        setPaymentMethods((prev) => prev.filter((payment) => payment.cardNumber !== cardNumber));
-      } else if (response.status === 404) {
-        console.error(`No card found with ID: ${cardNumber}`);
-        alert("Card not found. It may have already been deleted.");
-      } else {
-        const errorMessage = await response.text();
-        console.error(`Error deleting card: ${errorMessage}`);
-        alert(`Failed to delete card: ${errorMessage}`);
-      }
-    } catch (error) {
-      console.error('Error deleting payment method:', error);
-      alert('An unexpected error occurred while deleting the payment method.');
-    }
-  };
-  
-
-  const handleEditCardAddress = (cardNumber: String, cardAddress: string) => {
-    setEditingPaymentId(cardNumber);
-    setEditedCardAddress(cardAddress || ''); // pre-fill the address for editing
-  };
-
-  const handleSaveCardAddress = (cardNumber: string) => {
-    // Send the updated card address to the backend for saving
-    fetch(`http://localhost:8080/api/cards/edit/${cardNumber}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(editedCardAddress),
-    })
-      .then((response) => {
-        if (response.ok) {
-          // Update the local paymentMethods state to reflect the change
-          setPaymentMethods((prev) =>
-            prev.map((payment) =>
-              payment.cardNumber === cardNumber ? { ...payment, cardAddress: editedCardAddress } : payment
-            )
-          );
-          setEditingPaymentId(null);
-        } else {
-          alert('Failed to update the card address.');
-        }
-      })
-      .catch((error) => {
-        console.error('Error updating card address:', error);
-        alert('An error occurred while updating the card address.');
-      });
-  };
-  
-
-  const handleCancelCardAddress = () => {
-    setEditingPaymentId(null);
-    setEditedCardAddress('');
-  };
 
   return (
     <>
       <OrderHeader />
-      <div className={styles.container}>
-        <h1 className={styles.title}>User Profile</h1>
-
-        {/* User Info */}
-        <div className="mb-4">
-          <h2 className="font-semibold">User Information</h2>
-          <div className="mb-4">
-            <label className="font-semibold">First Name:</label>
-            {editing ? (
-              <input
-                type="text"
-                name="firstName"
-                value={updatedUser?.firstName || ''}
-                onChange={handleChange}
-                className="border p-2 w-full"
-              />
-            ) : (
-              <p className="p-2 border">{user.firstName}</p>
-            )}
+      <div className="container mx-auto py-8 px-4 max-w-5xl">
+        <div className="mb-8 flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-8">
+          <div className="h-24 w-24 flex items-center justify-center bg-muted rounded-full">
+            <User className="h-12 w-12 text-muted-foreground" />
           </div>
-
-          <div className="mb-4">
-            <label className="font-semibold">Last Name:</label>
-            {editing ? (
-              <input
-                type="text"
-                name="lastName"
-                value={updatedUser?.lastName || ''}
-                onChange={handleChange}
-                className="border p-2 w-full"
-              />
-            ) : (
-              <p className="p-2 border">{user.lastName}</p>
-            )}
-          </div>
-
-          <div className="mb-4">
-            <label className="font-semibold">Email:</label>
-            <p className="p-2 border">{user.email}</p> {/* Email is read-only */}
-          </div>
-
-          {/* Edit Buttons */}
-          <div className="mb-4">
-            {editing ? (
-              <div className="flex gap-4">
-                <button className={styles.buttonSuccess} onClick={handleSave}>
-                  Save
-                </button>
-                <button className={styles.cancelButton} onClick={handleCancel}>
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <div className="flex gap-4">
-                <button className={styles.buttonPrimary} onClick={() => setEditing(true)}>
-                  Edit Name
-                </button>
-                {/* New Change Password Button */}
-                <button className={styles.buttonPrimary} onClick={() => setChangingPassword(true)}>
-                  Change Password
-                </button>
-              </div>
-            )}
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {user.firstName} {user.lastName}
+            </h1>
+            <p className="text-muted-foreground">{user.email}</p>
           </div>
         </div>
 
-        {/* Change Password Form */}
-        {changingPassword && (
-          <div className={`${styles.p4} ${styles.border} ${styles.rounded}`}>
-            <h3 className={styles.label}>Change Password</h3>
-            {passwordChangeError && <p className="text-red-500">{passwordChangeError}</p>} {/* Error message */}
-            <input
-              type="password"
-              placeholder="Old Password"
-              value={oldPassword}
-              onChange={(e) => setOldPassword(e.target.value)}
-              className={styles.inputField}
-            />
-            <input
-              type="password"
-              placeholder="New Password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className={styles.inputField}
-            />
-            <input
-              type="password"
-              placeholder="Confirm New Password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className={styles.inputField}
-            />
-            <div className={styles.flex}>
-              <button className={styles.buttonSuccess} onClick={handleChangePassword}>
-                Save Password
-              </button>
-              <button
-                className={styles.cancelButton}
-                onClick={() => setChangingPassword(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-    
-  
+        <Tabs defaultValue="personal" className="w-full">
+          <TabsList className="grid grid-cols-3 w-full md:w-[400px] mb-8">
+            <TabsTrigger value="personal" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">Personal Info</span>
+            </TabsTrigger>
+            <TabsTrigger value="address" className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              <span className="hidden sm:inline">Address</span>
+            </TabsTrigger>
+            <TabsTrigger value="payment" className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              <span className="hidden sm:inline">Payment</span>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Payment Methods */}
-        <div className="mb-4">
-          <h2 className="font-semibold">Payment Methods</h2>
-          {paymentMethods.length > 0 ? (
-            paymentMethods.map((payment) => (
-              <div key={payment.cardNumber} className={`${styles.cardBox} mb-4`}>
-                <div className={styles.cardInfo}>
-                  <p>Card Holder: {payment.cardholderName}</p>
-                  <p>Card Number: {payment.cardNumber}</p>
-                  {/* Billing Address Editable */}
-                  {editingPaymentId === payment.cardNumber ? (
-                    <div>
-                      <input
-                        type="text"
-                        value={editedCardAddress}
-                        onChange={(e) => setEditedCardAddress(e.target.value)}
-                        placeholder="Billing Address"
-                        className="border p-2 w-full"
+          <TabsContent value="personal">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Personal Information</CardTitle>
+                  <CardDescription>Manage your personal details and account settings</CardDescription>
+                </div>
+                {!editingPersonal && (
+                  <Button onClick={() => setEditingPersonal(true)} variant="outline" className="flex items-center gap-2">
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input
+                        id="firstName"
+                        value={user.firstName}
+                        onChange={(e) => setUser({ ...user, firstName: e.target.value })}
+                        readOnly={!editingPersonal}
+                        className={!editingPersonal ? "opacity-70" : ""}
                       />
-                      <div className="flex gap-4 mt-2">
-                        <button
-                          className={styles.buttonSuccess}
-                          onClick={() => handleSaveCardAddress(payment.cardNumber)}
-                        >
-                          Save Address
-                        </button>
-                        <button
-                          className={styles.cancelButton}
-                          onClick={handleCancelCardAddress}
-                        >
-                          Cancel
-                        </button>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input
+                        id="lastName"
+                        value={user.lastName}
+                        onChange={(e) => setUser({ ...user, lastName: e.target.value })}
+                        readOnly={!editingPersonal}
+                        className={!editingPersonal ? "opacity-70" : ""}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" value={user.email} readOnly className="opacity-70" />
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Security</h3>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="flex items-center gap-2">
+                        <Lock className="h-4 w-4" />
+                        Change Password
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Change Password</DialogTitle>
+                        <DialogDescription>Enter your current password and a new password.</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="current">Current Password</Label>
+                          <Input id="current" type="password" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="new">New Password</Label>
+                          <Input id="new" type="password" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="confirm">Confirm New Password</Label>
+                          <Input id="confirm" type="password" />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button type="submit">Save Changes</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardContent>
+              {editingPersonal && (
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" onClick={() => setEditingPersonal(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={() => setEditingPersonal(false)}>Save Changes</Button>
+                </CardFooter>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="address">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Address Information</CardTitle>
+                  <CardDescription>Manage your shipping and billing address</CardDescription>
+                </div>
+                {!editingAddress && (
+                  <Button onClick={() => setEditingAddress(true)} variant="outline" className="flex items-center gap-2">
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="street">Street Address</Label>
+                    <Input
+                      id="street"
+                      value={address.street}
+                      onChange={(e) => setAddress({ ...address, street: e.target.value })}
+                      readOnly={!editingAddress}
+                      className={!editingAddress ? "opacity-70" : ""}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        id="city"
+                        value={address.city}
+                        onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                        readOnly={!editingAddress}
+                        className={!editingAddress ? "opacity-70" : ""}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="state">State</Label>
+                      <Input
+                        id="state"
+                        value={address.state}
+                        onChange={(e) => setAddress({ ...address, state: e.target.value })}
+                        readOnly={!editingAddress}
+                        className={!editingAddress ? "opacity-70" : ""}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="zipCode">ZIP Code</Label>
+                      <Input
+                        id="zipCode"
+                        value={address.zipCode}
+                        onChange={(e) => setAddress({ ...address, zipCode: e.target.value })}
+                        readOnly={!editingAddress}
+                        className={!editingAddress ? "opacity-70" : ""}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              {editingAddress && (
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" onClick={() => setEditingAddress(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={() => setEditingAddress(false)}>Save Address</Button>
+                </CardFooter>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="payment">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Payment Methods</CardTitle>
+                  <CardDescription>Manage your payment methods and billing details</CardDescription>
+                </div>
+                {paymentMethods.length < 3 && (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="flex items-center gap-2">
+                        <PlusCircle className="h-4 w-4" />
+                        Add Payment Method
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add Payment Method</DialogTitle>
+                        <DialogDescription>Enter your card details to add a new payment method.</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="cardHolder">Card Holder</Label>
+                          <Input id="cardHolder" placeholder="Name on card" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="cardNumber">Card Number</Label>
+                          <Input id="cardNumber" placeholder="1234 5678 9012 3456" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="expiry">Expiry Date</Label>
+                            <Input id="expiry" placeholder="MM/YY" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="cvc">CVC</Label>
+                            <Input id="cvc" placeholder="123" />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="billingAddress">Billing Address</Label>
+                          <Input id="billingAddress" placeholder="Enter your billing address" />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button type="submit">Add Payment Method</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {paymentMethods.map((method) => (
+                  <div key={method.id} className="flex flex-col md:flex-row gap-4 p-4 border rounded-lg">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="h-5 w-5 text-muted-foreground" />
+                        <span className="font-medium">{maskCardNumber(method.cardNumber)}</span>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        <div>{method.cardHolder}</div>
+                        <div>{method.address}</div>
                       </div>
                     </div>
-                  ) : (
-                    payment.cardAddress && <p>Address: {payment.cardAddress}</p>
-                  )}
-                </div>
-
-                <div className={styles.cardActions}>
-                  <button
-                    className={styles.buttonDanger}
-                    onClick={() => handleDeletePayment(payment.cardNumber)}
-                  >
-                    Delete
-                  </button>
-                  <button
-                    className={styles.buttonPrimary}
-                    onClick={() => handleEditCardAddress(payment.cardNumber, payment.cardAddress || '')}
-                  >
-                    Edit Address
-                  </button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <p>No payment methods available.</p>
-          )}
-
-          <button
-            className={styles.buttonPrimary}
-            onClick={() => setShowPaymentForm(true)}
-          >
-            Add Payment Method
-          </button>
-
-          {/* Add Payment Form */}
-          {showPaymentForm && (
-            <div className={`${styles.p4} ${styles.border} ${styles.rounded}`}>
-              <h3 className={styles.label}>New Payment Method</h3>
-              <input
-                type="text"
-                placeholder="Cardholder's Name"
-                value={newPayment.cardholderName}
-                onChange={(e) => setNewPayment({ ...newPayment, cardholderName: e.target.value })}
-                className={styles.inputField}
-              />
-              <input
-                type="text"
-                placeholder="Card Number"
-                value={newPayment.cardNumber}
-                onChange={(e) => setNewPayment({ ...newPayment, cardNumber: e.target.value })}
-                className={styles.inputField}
-              />
-              <input
-                type="text"
-                placeholder="Expiration Date (MM/YY)"
-                value={newPayment.expiration_date}
-                onChange={(e) => setNewPayment({ ...newPayment, expiration_date: e.target.value })}
-                className={styles.inputField}
-              />
-              <input
-                type="text"
-                placeholder="CVV"
-                value={newPayment.cvv}
-                onChange={(e) => setNewPayment({ ...newPayment, cvv: e.target.value })}
-                className={styles.inputField}
-              />
-              <input
-                type="text"
-                placeholder="Card Address"
-                value={newPayment.cardAddress || ''}
-                onChange={(e) => setNewPayment({ ...newPayment, cardAddress: e.target.value })}
-                className={styles.inputField}
-              />
-
-              <div className={styles.flex}>
-                <button className={styles.buttonSuccess} onClick={handleAddPayment}>
-                  Save Payment
-                </button>
-                <button
-                  className={styles.cancelButton}
-                  onClick={() => setShowPaymentForm(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+                    <div className="flex items-center gap-2 self-end md:self-center">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <Edit className="h-4 w-4" />
+                            <span className="hidden sm:inline">Edit</span>
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Edit Payment Method</DialogTitle>
+                            <DialogDescription>Update your card details or billing address.</DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="editCardHolder">Card Holder</Label>
+                              <Input id="editCardHolder" defaultValue={method.cardHolder} />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="editAddress">Billing Address</Label>
+                              <Input id="editAddress" defaultValue={method.address} />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button type="submit">Save Changes</Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                      <Button variant="destructive" size="sm" className="flex items-center gap-2">
+                        <Trash2 className="h-4 w-4" />
+                        <span className="hidden sm:inline">Delete</span>
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {paymentMethods.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">No payment methods added yet.</div>
+                )}
+                {paymentMethods.length >= 3 && (
+                  <div className="text-sm text-muted-foreground mt-2">Maximum of 3 payment methods allowed.</div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </>
-  );
-};
-export default Profile;
+  )
+}
+

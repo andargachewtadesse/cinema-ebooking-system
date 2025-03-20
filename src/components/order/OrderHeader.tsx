@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { User } from "lucide-react"
 
 export function OrderHeader() {
   return (
@@ -11,8 +12,9 @@ export function OrderHeader() {
 
         <Link href="/profile" className="text-2xl font-bold">
         <Avatar className="h-8 w-8 cursor-pointer">
-          <AvatarImage src="/placeholder-avatar.png" alt="User" />
-          <AvatarFallback>U</AvatarFallback>
+          <AvatarFallback>
+            <User className="h-4 w-4 text-muted-foreground" />
+          </AvatarFallback>
         </Avatar>
         </Link>
       </div>
