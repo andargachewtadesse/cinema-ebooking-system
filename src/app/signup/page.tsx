@@ -72,6 +72,20 @@ export default function SignupPage() {
       return
     }
 
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address")
+      return
+    }
+
+    // Phone number validation - must be exactly 10 digits
+    const phoneClean = phone.replace(/\D/g, "")
+    if (phoneClean.length !== 10) {
+      setError("Phone number must be 10 digits")
+      return
+    }
+
     if (password !== confirmPassword) {
       setError("Passwords do not match")
       return
@@ -113,16 +127,26 @@ export default function SignupPage() {
           return
         }
 
-        // Basic card number validation
-        if (method.cardNumber.replace(/\s/g, "").length !== 16) {
-          setError("Please enter a valid 16-digit card number")
+        // Improved card number validation - remove spaces and check length
+        const cardNumClean = method.cardNumber.replace(/\s/g, "")
+        if (!/^\d{16}$/.test(cardNumClean)) {
+          setError("Card number must be exactly 16 digits")
           return
         }
 
-        // Basic CVV validation
-        if (method.cvv.length < 3 || method.cvv.length > 4) {
-          setError("Please enter a valid CVV")
-          return
+        // Improved CVV validation based on card type
+        if (method.cardType === "amex") {
+          // American Express uses 4-digit CVV
+          if (!/^\d{4}$/.test(method.cvv)) {
+            setError("American Express cards require a 4-digit CVV")
+            return
+          }
+        } else {
+          // Other card types use 3-digit CVV
+          if (!/^\d{3}$/.test(method.cvv)) {
+            setError("Please enter a valid 3-digit CVV")
+            return
+          }
         }
 
         // Validate billing address if not same as shipping
@@ -356,6 +380,42 @@ export default function SignupPage() {
     )
   }
 
+  // Add a helper function to format card number with spaces
+  const formatCardNumber = (value: string): string => {
+    const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "")
+    const matches = v.match(/\d{4,16}/g)
+    const match = matches && matches[0] || ""
+    const parts = []
+    
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4))
+    }
+    
+    if (parts.length) {
+      return parts.join(" ")
+    } else {
+      return value
+    }
+  }
+
+  // Add this to handle card number input
+  const handleCardNumberChange = (id: string, value: string) => {
+    const formattedValue = formatCardNumber(value)
+    updatePaymentMethod(id, "cardNumber", formattedValue)
+  }
+
+  // Add a helper function to format phone number
+  const formatPhoneNumber = (value: string): string => {
+    const phoneNumber = value.replace(/\D/g, "")
+    const phoneNumberLength = phoneNumber.length
+    
+    if (phoneNumberLength < 4) return phoneNumber
+    if (phoneNumberLength < 7) {
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`
+    }
+    return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="flex items-center justify-between mb-12">
@@ -427,9 +487,11 @@ export default function SignupPage() {
                     type="tel"
                     placeholder="(123) 456-7890"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
+                    maxLength={14}
                     required
                   />
+                  <p className="text-xs text-gray-500">Format: (123) 456-7890</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -625,8 +687,10 @@ export default function SignupPage() {
                               id={`cardNumber-${method.id}`}
                               placeholder="1234 5678 9012 3456"
                               value={method.cardNumber}
-                              onChange={(e) => updatePaymentMethod(method.id, "cardNumber", e.target.value)}
+                              onChange={(e) => handleCardNumberChange(method.id, e.target.value)}
+                              maxLength={19}
                             />
+                            <p className="text-xs text-gray-500">16 digits required</p>
                           </div>
 
                           <div className="grid grid-cols-3 gap-4">
@@ -678,10 +742,17 @@ export default function SignupPage() {
                               <Label htmlFor={`cvv-${method.id}`}>CVV</Label>
                               <Input
                                 id={`cvv-${method.id}`}
-                                placeholder="123"
+                                placeholder={method.cardType === "amex" ? "1234" : "123"}
                                 value={method.cvv}
-                                onChange={(e) => updatePaymentMethod(method.id, "cvv", e.target.value)}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(/\D/g, "")
+                                  updatePaymentMethod(method.id, "cvv", value)
+                                }}
+                                maxLength={method.cardType === "amex" ? 4 : 3}
                               />
+                              <p className="text-xs text-gray-500">
+                                {method.cardType === "amex" ? "4 digits (Amex)" : "3 digits"}
+                              </p>
                             </div>
                           </div>
 

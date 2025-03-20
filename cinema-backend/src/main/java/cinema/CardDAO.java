@@ -32,7 +32,13 @@ public class CardDAO {
         // Debugging log
         System.out.println("CardDAO: Inserting card for cardholder: " + card.getCardholderName());
 
-        String encryptedCardNumber = passwordEncoder.encode(card.getCardNumber());
+        // Extract and encrypt card number parts
+        String cardNumber = card.getCardNumber();
+        String lastFourDigits = cardNumber.length() > 4 ? cardNumber.substring(cardNumber.length() - 4) : cardNumber;
+        String cardPrefix = cardNumber.length() > 4 ? cardNumber.substring(0, cardNumber.length() - 4) : "";
+        String encryptedPrefix = passwordEncoder.encode(cardPrefix);
+        String storedCardNumber = encryptedPrefix + ":" + lastFourDigits;
+        
         String encryptedCvv = passwordEncoder.encode(card.getCvv());
 
         String sql = "INSERT INTO card (cardholder_name, card_number, cvv, card_address, expiration_date, customer_id) " +
@@ -43,7 +49,7 @@ public class CardDAO {
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, card.getCardholderName());
-            ps.setString(2, encryptedCardNumber);
+            ps.setString(2, storedCardNumber);
             ps.setString(3, encryptedCvv);
             ps.setString(4, card.getCardAddress());
             ps.setString(5, card.getExpirationDate());
@@ -99,7 +105,15 @@ public class CardDAO {
                     Card card = new Card();
                     card.setId(rs.getInt("id"));
                     card.setCardholderName(rs.getString("cardholder_name"));
-                    card.setCardNumber(rs.getString("card_number"));
+                    
+                    // Process the stored card number to extract the last 4 digits
+                    String storedCardNum = rs.getString("card_number");
+                    String lastFourDigits = "****";
+                    if (storedCardNum != null && storedCardNum.contains(":")) {
+                        lastFourDigits = storedCardNum.substring(storedCardNum.lastIndexOf(":") + 1);
+                    }
+                    card.setCardNumber("****-****-****-" + lastFourDigits);
+                    
                     card.setCardAddress(rs.getString("card_address"));
                     card.setExpirationDate(rs.getString("expiration_date"));
                     card.setCustomerId(rs.getInt("customer_id"));
@@ -173,7 +187,13 @@ public class CardDAO {
         // Debugging log
         System.out.println("CardDAO: Inserting card for cardholder: " + card.getCardholderName() + " with user ID: " + userId);
 
-        String encryptedCardNumber = passwordEncoder.encode(card.getCardNumber());
+        // Extract and encrypt card number parts
+        String cardNumber = card.getCardNumber();
+        String lastFourDigits = cardNumber.length() > 4 ? cardNumber.substring(cardNumber.length() - 4) : cardNumber;
+        String cardPrefix = cardNumber.length() > 4 ? cardNumber.substring(0, cardNumber.length() - 4) : "";
+        String encryptedPrefix = passwordEncoder.encode(cardPrefix);
+        String storedCardNumber = encryptedPrefix + ":" + lastFourDigits;
+        
         String encryptedCvv = passwordEncoder.encode(card.getCvv());
 
         String sql = "INSERT INTO card (cardholder_name, card_number, cvv, card_address, expiration_date, customer_id) " +
@@ -184,7 +204,7 @@ public class CardDAO {
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, card.getCardholderName());
-            ps.setString(2, encryptedCardNumber);
+            ps.setString(2, storedCardNumber);
             ps.setString(3, encryptedCvv);
             ps.setString(4, card.getCardAddress());
             ps.setString(5, card.getExpirationDate());
