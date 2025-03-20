@@ -80,7 +80,7 @@ export function Header() {
                 <Link href="/login">Login</Link>
               </Button>
               <Button variant="default" asChild className="bg-black text-white hover:bg-black/90">
-                <Link href="/register">Sign Up</Link>
+                <Link href="/signup">Sign Up</Link>
               </Button>
             </>
           )}

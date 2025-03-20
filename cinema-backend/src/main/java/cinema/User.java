@@ -12,6 +12,12 @@ public class User implements Serializable {
     private int status_id; // 1 for active, 2 for inactive
     private boolean promotionSubscription;
     private String verificationCode;
+    
+    // Address fields (all optional)
+    private String streetAddress;
+    private String city;
+    private String state;
+    private String zipCode;
 
     public User(int user_id,String password, String firstName, String lastName, 
                 String email, int status_id, boolean promotionSubscription) {
@@ -95,6 +101,39 @@ public class User implements Serializable {
         this.verificationCode = verificationCode;
     }
 
+    // New getters and setters for address fields
+    public String getStreetAddress() {
+        return streetAddress;
+    }
+
+    public void setStreetAddress(String streetAddress) {
+        this.streetAddress = streetAddress;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public String getZipCode() {
+        return zipCode;
+    }
+
+    public void setZipCode(String zipCode) {
+        this.zipCode = zipCode;
+    }
+
     @Override
     public String toString() {
         return "User{" +
@@ -104,6 +143,10 @@ public class User implements Serializable {
                 ", email='" + email + '\'' +
                 ", status_id=" + status_id +
                 ", promotionSubscription=" + promotionSubscription +
+                ", streetAddress='" + streetAddress + '\'' +
+                ", city='" + city + '\'' +
+                ", state='" + state + '\'' +
+                ", zipCode='" + zipCode + '\'' +
                 '}';
     }
 }

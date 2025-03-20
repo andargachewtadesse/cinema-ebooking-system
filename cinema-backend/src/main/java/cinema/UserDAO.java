@@ -70,7 +70,6 @@ public class UserDAO {
     
 
     public User getUserProfileById(Integer id) {
-
         try {
             String query = "SELECT * FROM user WHERE user_id = ?";
             
@@ -86,6 +85,13 @@ public class UserDAO {
                     user.setStatusId(rs.getInt("status_id"));
                     user.setPromotionSubscription(rs.getBoolean("promotion_subscription"));
                     user.setVerificationCode(rs.getString("verification_code"));
+                    
+                    // Get address fields
+                    user.setStreetAddress(rs.getString("street_address"));
+                    user.setCity(rs.getString("city"));
+                    user.setState(rs.getString("state"));
+                    user.setZipCode(rs.getString("zip_code"));
+                    
                     return user;
                 },
                 id
@@ -142,21 +148,29 @@ public class UserDAO {
         String encryptedPassword = passwordEncoder.encode(user.getPassword());
         
         String sql = "INSERT INTO user (password, first_name, last_name, " +
-                     "email, status_id, promotion_subscription, verification_code) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
+                     "email, status_id, promotion_subscription, verification_code, " +
+                     "street_address, city, state, zip_code) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         KeyHolder keyHolder = new GeneratedKeyHolder();
         
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-
-            ps.setString(2, encryptedPassword);
-            ps.setString(3, user.getFirstName());
-            ps.setString(4, user.getLastName());
-            ps.setString(5, user.getEmail());
-            ps.setInt(6, 2); // Status inactive until verified
-            ps.setBoolean(7, user.getPromotionSubscription());
-            ps.setString(8, verificationCode);
+            
+            // Remove username parameter and adjust all indexes
+            ps.setString(1, encryptedPassword);
+            ps.setString(2, user.getFirstName());
+            ps.setString(3, user.getLastName());
+            ps.setString(4, user.getEmail());
+            ps.setInt(5, 2); // Status inactive until verified
+            ps.setBoolean(6, user.getPromotionSubscription());
+            ps.setString(7, verificationCode);
+            
+            // Address fields (can be null)
+            ps.setString(8, user.getStreetAddress());
+            ps.setString(9, user.getCity());
+            ps.setString(10, user.getState());
+            ps.setString(11, user.getZipCode());
             
             return ps;
         }, keyHolder);
@@ -168,7 +182,6 @@ public class UserDAO {
             emailService.sendVerificationEmail(user.getEmail(), verificationCode);
         } catch (Exception e) {
             System.err.println("Warning: Failed to send verification email: " + e.getMessage());
-            // Log but don't propagate the exception
         }
         
         return userId;
@@ -427,4 +440,24 @@ public class UserDAO {
         }
     }
     
+    public boolean updateUserAddress(int userId, String streetAddress, String city, String state, String zipCode) {
+        try {
+            String query = "UPDATE user SET street_address = ?, city = ?, state = ?, zip_code = ? WHERE user_id = ?";
+            
+            int rowsAffected = jdbcTemplate.update(
+                query,
+                streetAddress,
+                city,
+                state,
+                zipCode,
+                userId
+            );
+            
+            return rowsAffected > 0;
+        } catch (Exception e) {
+            System.out.println("UserDAO: Error updating user address: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

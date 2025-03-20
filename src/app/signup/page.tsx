@@ -96,7 +96,7 @@ export default function SignupPage() {
     setStep(3)
   }
 
-  const handlePaymentSubmit = (e: React.FormEvent) => {
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     // Validate payment information if user added any
@@ -135,32 +135,51 @@ export default function SignupPage() {
       }
     }
 
-    // Simulate sending verification code - update to connect to backend later
-    console.log("Registration data:", {
-      personal: { firstName, lastName, email, phone, subscribeToPromotions },
-      address: street ? { street, city, state, zipCode } : null,
-      payment: paymentMethods.map((method) => ({
-        cardType: method.cardType,
-        cardNumber: "xxxx-xxxx-xxxx-" + method.cardNumber.slice(-4),
-        expiration: `${method.expirationMonth}/${method.expirationYear}`,
-        billingAddressSame: method.billingAddressSame,
-        billingAddress: !method.billingAddressSame
-          ? {
-              street: method.billingStreet,
-              city: method.billingCity,
-              state: method.billingState,
-              zipCode: method.billingZipCode,
-            }
-          : null,
-      })),
-    })
+    try {
+      // Create user data object
+      const userData = {
+        firstName: firstName,
+        lastName: lastName,
+        email: email,
+        phone: phone,
+        password: password,
+        promotionSubscription: subscribeToPromotions,
+        address: street ? {
+          street: street,
+          city: city,
+          state: state,
+          zipCode: zipCode
+        } : null,
+        // Add payment methods if needed by your backend
+        // paymentMethods: paymentMethods.map(...),
+      }
 
-    setError("")
-    setVerificationSent(true)
-    setStep(4)
+      // Send signup request to API
+      const response = await fetch('/api/users/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        setError(errorData.error || "Registration failed. Please try again.")
+        return
+      }
+
+      // Signup successful, proceed to verification step
+      setError("")
+      setVerificationSent(true)
+      setStep(4)
+    } catch (error) {
+      console.error("Signup error:", error)
+      setError("An error occurred during registration. Please try again.")
+    }
   }
 
-  const handleVerificationSubmit = (e: React.FormEvent) => {
+  const handleVerificationSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!verificationCode) {
@@ -168,14 +187,34 @@ export default function SignupPage() {
       return
     }
 
-    // Simulate verification code check
-    console.log("Verifying code:", verificationCode)
+    try {
+      // Send verification request to the backend
+      const response = await fetch('/api/users/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          verificationCode: verificationCode
+        }),
+      })
 
-    // verify the code with the backend
-    setError("")
-    
-    // Add this line to redirect to the confirmation page
-    router.push('/signup/confirmation')
+      if (!response.ok) {
+        const errorData = await response.json()
+        setError(errorData.error || "Verification failed. Please check your code and try again.")
+        return
+      }
+
+      // Verification successful
+      setError("")
+      
+      // Redirect to the confirmation page
+      router.push('/signup/confirmation')
+    } catch (error) {
+      console.error("Verification error:", error)
+      setError("An error occurred during verification. Please try again.")
+    }
   }
 
   const renderStepIndicator = () => {

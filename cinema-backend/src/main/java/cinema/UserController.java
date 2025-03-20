@@ -32,10 +32,18 @@ public class UserController {
     }
 
     // CREATE User
-    @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody User user) {
+    @PostMapping("/signup")
+    public ResponseEntity<?> registerUser(@RequestBody Map<String, Object> userData) {
         try {
-            System.out.println("UserController: Received request to register user with Email: " + user.getEmail());
+            System.out.println("UserController: Received request to register user");
+            
+            // Extract user data
+            User user = new User();
+            user.setFirstName((String) userData.get("firstName"));
+            user.setLastName((String) userData.get("lastName"));
+            user.setEmail((String) userData.get("email"));
+            user.setPassword((String) userData.get("password"));
+            user.setPromotionSubscription((Boolean) userData.getOrDefault("promotionSubscription", false));
             
             // Check if email already exists
             User existingUser = userDAO.getUserByEmail(user.getEmail());
@@ -43,7 +51,16 @@ public class UserController {
                 return ResponseEntity.badRequest().body(Map.of("error", "Email already registered"));
             }
             
-            // Insert user using UserDAO
+            // Extract address data if present
+            Map<String, Object> addressData = (Map<String, Object>) userData.get("address");
+            if (addressData != null) {
+                user.setStreetAddress((String) addressData.get("street"));
+                user.setCity((String) addressData.get("city"));
+                user.setState((String) addressData.get("state"));
+                user.setZipCode((String) addressData.get("zipCode"));
+            }
+            
+            // Insert user
             int userId = userDAO.insertUser(user);
             user.setUserId(userId);
             
@@ -427,5 +444,35 @@ public class UserController {
     @GetMapping("/health")
     public ResponseEntity<String> healthCheck() {
         return ResponseEntity.ok("UserController is working!");
+    }
+
+    @PutMapping("/{id}/address")
+    public ResponseEntity<?> updateUserAddress(@PathVariable String id, @RequestBody Map<String, String> addressData) {
+        try {
+            System.out.println("UserController: Received PUT request to update address for user ID: " + id);
+            int userId = Integer.parseInt(id);
+            
+            String streetAddress = addressData.get("streetAddress");
+            String city = addressData.get("city");
+            String state = addressData.get("state");
+            String zipCode = addressData.get("zipCode");
+            
+            boolean success = userDAO.updateUserAddress(userId, streetAddress, city, state, zipCode);
+            
+            if (success) {
+                System.out.println("UserController: Successfully updated address for user with ID: " + id);
+                return ResponseEntity.ok(Map.of("message", "Address updated successfully"));
+            } else {
+                System.out.println("UserController: No user found with ID: " + id);
+                return ResponseEntity.notFound().build();
+            }
+        } catch (NumberFormatException e) {
+            System.out.println("UserController: Invalid ID format: " + id);
+            return ResponseEntity.badRequest().body("Invalid user ID format");
+        } catch (Exception e) {
+            System.out.println("UserController: Unexpected error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error: " + e.getMessage());
+        }
     }
 }
