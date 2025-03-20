@@ -86,22 +86,30 @@ const Profile = () => {
     if (!updatedUser) return;
 
     try {
-      const response = await fetch('http://localhost:8080/api/users/', {
+      const response = await fetch('http://localhost:8080/api/users/update-details', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedUser),
+        body: JSON.stringify({
+          email: updatedUser.email,
+          firstName: updatedUser.firstName,
+          lastName: updatedUser.lastName,
+        }),
       });
 
       if (response.ok) {
-        setUser(updatedUser);
-        setEditing(false);
+        const result = await response.json();
+        console.log(result.message);  // "User details updated successfully"
+        setUser(updatedUser);        // Update the state with the new details
+        setEditing(false);           // Disable editing mode
       } else {
-        console.error('Failed to update user profile');
+        const error = await response.json();
+        console.error(error.error || 'Failed to update user details');
       }
     } catch (error) {
       console.error('Error updating user profile:', error);
     }
   };
+
 
   const handleCancel = () => {
     setUpdatedUser({ ...user });
@@ -152,23 +160,63 @@ const Profile = () => {
     }
   };
 
-  const handleDeletePayment = (cardNumber: String) => {
-    setPaymentMethods((prev) => prev.filter((payment) => payment.cardNumber !== cardNumber));
+  const handleDeletePayment = async (cardNumber: string) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/cards/${cardNumber}`, {
+        method: 'DELETE',
+      });
+  
+      if (response.ok) {
+        console.log(`Successfully deleted card with ID: ${cardNumber}`);
+        setPaymentMethods((prev) => prev.filter((payment) => payment.cardNumber !== cardNumber));
+      } else if (response.status === 404) {
+        console.error(`No card found with ID: ${cardNumber}`);
+        alert("Card not found. It may have already been deleted.");
+      } else {
+        const errorMessage = await response.text();
+        console.error(`Error deleting card: ${errorMessage}`);
+        alert(`Failed to delete card: ${errorMessage}`);
+      }
+    } catch (error) {
+      console.error('Error deleting payment method:', error);
+      alert('An unexpected error occurred while deleting the payment method.');
+    }
   };
+  
 
   const handleEditCardAddress = (cardNumber: String, cardAddress: string) => {
     setEditingPaymentId(cardNumber);
     setEditedCardAddress(cardAddress || ''); // pre-fill the address for editing
   };
 
-  const handleSaveCardAddress = (cardNumber: String) => {
-    setPaymentMethods((prev) =>
-      prev.map((payment) =>
-        payment.cardNumber === cardNumber ? { ...payment, cardAddress: editedCardAddress } : payment
-      )
-    );
-    setEditingPaymentId(null);
+  const handleSaveCardAddress = (cardNumber: string) => {
+    // Send the updated card address to the backend for saving
+    fetch(`http://localhost:8080/api/cards/edit/${cardNumber}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(editedCardAddress),
+    })
+      .then((response) => {
+        if (response.ok) {
+          // Update the local paymentMethods state to reflect the change
+          setPaymentMethods((prev) =>
+            prev.map((payment) =>
+              payment.cardNumber === cardNumber ? { ...payment, cardAddress: editedCardAddress } : payment
+            )
+          );
+          setEditingPaymentId(null);
+        } else {
+          alert('Failed to update the card address.');
+        }
+      })
+      .catch((error) => {
+        console.error('Error updating card address:', error);
+        alert('An error occurred while updating the card address.');
+      });
   };
+  
 
   const handleCancelCardAddress = () => {
     setEditingPaymentId(null);

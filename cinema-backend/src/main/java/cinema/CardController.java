@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -70,25 +71,24 @@ public class CardController {
 
 
 
-    // Delete a card by card ID
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteCard(@PathVariable String id) {
+    // Delete a card by cardNumber
+    @DeleteMapping("/{cardNumber}")
+    public ResponseEntity<?> deleteCard(@PathVariable String cardNumber) {
         try {
-            System.out.println("CardController: Received DELETE request for card ID: " + id);
-            int cardId = Integer.parseInt(id);
+            System.out.println("CardController: Received DELETE request for card ID: " + cardNumber);
 
-            boolean isDeleted = cardDAO.deleteCard(cardId);
+            boolean isDeleted = cardDAO.deleteCard(cardNumber);
 
             if (isDeleted) {
-                System.out.println("CardController: Successfully deleted card with ID: " + id);
+                System.out.println("CardController: Successfully deleted card with ID: " + cardNumber);
                 return ResponseEntity.ok().build();
             } else {
-                System.out.println("CardController: No card found with ID: " + id);
+                System.out.println("CardController: No card found with ID: " + cardNumber);
                 return ResponseEntity.notFound().build();
             }
 
         } catch (NumberFormatException e) {
-            System.out.println("CardController: Invalid ID format: " + id);
+            System.out.println("CardController: Invalid ID format: " + cardNumber);
             return ResponseEntity.badRequest().body("Invalid card ID format");
         } catch (Exception e) {
             System.out.println("CardController: Unexpected error: " + e.getMessage());
@@ -97,6 +97,27 @@ public class CardController {
                     .body("Unexpected error: " + e.getMessage());
         }
     }
+
+    // Edit card address by card number
+    @PutMapping("/edit/{cardNumber}")
+    public ResponseEntity<?> editCardAddress(@PathVariable String cardNumber, @RequestBody String newAddress) {
+        try {
+            System.out.println("CardController: Received PUT request to update address for card number: " + cardNumber);
+
+            boolean isUpdated = cardDAO.updateCardAddress(cardNumber, newAddress);
+
+            if (isUpdated) {
+                return ResponseEntity.ok().body("Card address updated successfully.");
+            } else {
+                return ResponseEntity.badRequest().body("Card not found with card number: " + cardNumber);
+            }
+        } catch (Exception e) {
+            System.out.println("CardController: Error updating card address: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update card address.");
+        }
+    }
+
 
     // Health check
     @GetMapping("/health")

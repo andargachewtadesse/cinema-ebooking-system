@@ -117,18 +117,32 @@ public List<Card> getAllCardsForActiveUser() {
 
 
     // Delete a card by card ID
-    public boolean deleteCard(int cardId) {
+    public boolean deleteCard(String cardNum) {
         try {
-            String deleteQuery = "DELETE FROM card WHERE id = ?";
-            int rowsAffected = jdbcTemplate.update(deleteQuery, cardId);
+            String deleteQuery = "DELETE FROM card WHERE cardNumber = ?";
+            int rowsAffected = jdbcTemplate.update(deleteQuery, cardNum);
             System.out.println("CardDAO: Delete card query affected " + rowsAffected + " rows");
             return rowsAffected > 0;
         } catch (Exception e) {
             System.out.println("CardDAO: Error deleting card: " + e.getMessage());
             e.printStackTrace();
-            throw new RuntimeException("Failed to delete card with ID: " + cardId, e);
+            throw new RuntimeException("Failed to delete card with cardNumber: " + cardNum, e);
         }
     }
+
+    public boolean updateCardAddress(String cardNum, String newAddress) {
+        try {
+            String updateQuery = "UPDATE card SET cardAddress = ? WHERE cardNumber = ?";
+            int rowsAffected = jdbcTemplate.update(updateQuery, newAddress, cardNum);
+            System.out.println("CardDAO: Update card address affected " + rowsAffected + " rows");
+            return rowsAffected > 0;
+        } catch (Exception e) {
+            System.out.println("CardDAO: Error updating card address: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to update address for card with cardNumber: " + cardNum, e);
+        }
+    }
+    
 
     // Utility method to mask card number (Show only last 4 digits)
     private String maskCardNumber(String cardNumber) {

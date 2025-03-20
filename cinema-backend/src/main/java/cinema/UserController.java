@@ -188,6 +188,7 @@ public class UserController {
     }
 
     
+    
     // PUT update user password
     @PutMapping("/{id}/password")
     public ResponseEntity<?> updateUserPassword(@PathVariable String id, @RequestBody Map<String, String> passwords) {
@@ -231,7 +232,34 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error: " + e.getMessage());
         }
     }
-    
+
+    @PutMapping("/update-details")
+    public ResponseEntity<?> updateUserDetails(@RequestBody Map<String, String> userDetails) {
+        try {
+            // Extract the email, first name, and last name from the request body
+            String email = userDetails.get("email");
+            String newFirstName = userDetails.get("firstName");
+            String newLastName = userDetails.get("lastName");
+        
+            if (email == null || newFirstName == null || newLastName == null) {
+                return ResponseEntity.badRequest().body("Email, first name, and last name are required");
+            }
+
+            // Call the UserDAO method to update user details
+            boolean success = userDAO.updateUserDetails(email, newFirstName, newLastName);
+
+            if (success) {
+                return ResponseEntity.ok(Map.of("message", "User details updated successfully"));
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User not found with the provided email"));
+            }
+        } catch (Exception e) {
+            System.out.println("UserController: Error updating user details: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error updating user details: " + e.getMessage());
+        }
+    }
+
     // PUT update promotion subscription
     @PutMapping("/{id}/promotion")
     public ResponseEntity<?> updatePromotionSubscription(@PathVariable String id, @RequestBody Map<String, Boolean> payload) {

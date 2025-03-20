@@ -230,6 +230,38 @@ public class UserDAO {
         }
     }
 
+    public boolean updateUserDetails(String email, String newFirstName, String newLastName) {
+        try {
+            // Fetch the user by email
+            User user = getUserByEmail(email);
+            
+            // Check if the user exists
+            if (user != null) {
+                // Prepare the SQL update query
+                String updateQuery = "UPDATE user SET first_name = ?, last_name = ? WHERE email = ?";
+                
+                // Execute the update query
+                int rowsAffected = jdbcTemplate.update(updateQuery, newFirstName, newLastName, email);
+                
+                // Check if the update was successful
+                if (rowsAffected > 0) {
+                    return true; // Successfully updated
+                } else {
+                    return false; // No rows affected, something went wrong
+                }
+            }
+            
+            // If user is not found, return false
+            return false;
+        } catch (Exception e) {
+            // Log the error and print stack trace
+            System.out.println("UserDAO: Error in updateUserDetails: " + e.getMessage());
+            e.printStackTrace();
+            return false; // Return false if an exception occurs
+        }
+    }
+    
+
     public boolean resetPassword(String email, String resetToken, String newPassword) {
         try {
             // Verify token
