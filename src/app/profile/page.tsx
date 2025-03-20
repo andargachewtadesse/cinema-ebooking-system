@@ -18,10 +18,16 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { CreditCard, User, MapPin, Lock, PlusCircle, Edit, Trash2 } from "lucide-react"
 import { OrderHeader } from "@/components/order/OrderHeader"
+import { useUserProfile } from "@/hooks/useUserProfile"
+import { usePaymentCards } from "@/hooks/usePaymentCards"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function Profile() {
   const [editingPersonal, setEditingPersonal] = useState(false)
   const [editingAddress, setEditingAddress] = useState(false)
+  
+  const { profile, loading: profileLoading, error: profileError } = useUserProfile();
+  const { cards, loading: cardsLoading, error: cardsError } = usePaymentCards();
 
   const [user, setUser] = useState({
     firstName: "Virgil",
@@ -56,6 +62,37 @@ export default function Profile() {
     return "•••• •••• •••• " + cardNumber.slice(-4)
   }
 
+  if (profileLoading) {
+    return (
+      <>
+        <OrderHeader />
+        <div className="container mx-auto py-8 px-4 max-w-5xl">
+          <div className="flex items-center space-x-4 mb-8">
+            <Skeleton className="h-24 w-24 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-[250px]" />
+              <Skeleton className="h-4 w-[200px]" />
+            </div>
+          </div>
+          <Skeleton className="h-[600px] w-full" />
+        </div>
+      </>
+    )
+  }
+
+  if (profileError) {
+    return (
+      <>
+        <OrderHeader />
+        <div className="container mx-auto py-8 px-4 max-w-5xl">
+          <div className="p-4 bg-red-50 text-red-500 rounded-md">
+            {profileError}
+          </div>
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
       <OrderHeader />
@@ -66,9 +103,9 @@ export default function Profile() {
           </div>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
-              {user.firstName} {user.lastName}
+              {profile?.firstName} {profile?.lastName}
             </h1>
-            <p className="text-muted-foreground">{user.email}</p>
+            <p className="text-muted-foreground">{profile?.email}</p>
           </div>
         </div>
 
@@ -109,8 +146,8 @@ export default function Profile() {
                       <Label htmlFor="firstName">First Name</Label>
                       <Input
                         id="firstName"
-                        value={user.firstName}
-                        onChange={(e) => setUser({ ...user, firstName: e.target.value })}
+                        value={profile?.firstName || ""}
+                        onChange={(e) => setEditingPersonal(true)}
                         readOnly={!editingPersonal}
                         className={!editingPersonal ? "opacity-70" : ""}
                       />
@@ -119,8 +156,8 @@ export default function Profile() {
                       <Label htmlFor="lastName">Last Name</Label>
                       <Input
                         id="lastName"
-                        value={user.lastName}
-                        onChange={(e) => setUser({ ...user, lastName: e.target.value })}
+                        value={profile?.lastName || ""}
+                        onChange={(e) => setEditingPersonal(true)}
                         readOnly={!editingPersonal}
                         className={!editingPersonal ? "opacity-70" : ""}
                       />
@@ -128,7 +165,7 @@ export default function Profile() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" value={user.email} readOnly className="opacity-70" />
+                    <Input id="email" type="email" value={profile?.email || ""} readOnly className="opacity-70" />
                   </div>
                 </div>
 
@@ -200,8 +237,8 @@ export default function Profile() {
                     <Label htmlFor="street">Street Address</Label>
                     <Input
                       id="street"
-                      value={address.street}
-                      onChange={(e) => setAddress({ ...address, street: e.target.value })}
+                      value={profile?.streetAddress || ""}
+                      onChange={(e) => setEditingAddress(true)}
                       readOnly={!editingAddress}
                       className={!editingAddress ? "opacity-70" : ""}
                     />
@@ -211,8 +248,8 @@ export default function Profile() {
                       <Label htmlFor="city">City</Label>
                       <Input
                         id="city"
-                        value={address.city}
-                        onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                        value={profile?.city || ""}
+                        onChange={(e) => setEditingAddress(true)}
                         readOnly={!editingAddress}
                         className={!editingAddress ? "opacity-70" : ""}
                       />
@@ -221,8 +258,8 @@ export default function Profile() {
                       <Label htmlFor="state">State</Label>
                       <Input
                         id="state"
-                        value={address.state}
-                        onChange={(e) => setAddress({ ...address, state: e.target.value })}
+                        value={profile?.state || ""}
+                        onChange={(e) => setEditingAddress(true)}
                         readOnly={!editingAddress}
                         className={!editingAddress ? "opacity-70" : ""}
                       />
@@ -231,8 +268,8 @@ export default function Profile() {
                       <Label htmlFor="zipCode">ZIP Code</Label>
                       <Input
                         id="zipCode"
-                        value={address.zipCode}
-                        onChange={(e) => setAddress({ ...address, zipCode: e.target.value })}
+                        value={profile?.zipCode || ""}
+                        onChange={(e) => setEditingAddress(true)}
                         readOnly={!editingAddress}
                         className={!editingAddress ? "opacity-70" : ""}
                       />
@@ -258,7 +295,7 @@ export default function Profile() {
                   <CardTitle>Payment Methods</CardTitle>
                   <CardDescription>Manage your payment methods and billing details</CardDescription>
                 </div>
-                {paymentMethods.length < 3 && (
+                {cards.length < 3 && (
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button className="flex items-center gap-2">
@@ -303,58 +340,46 @@ export default function Profile() {
                 )}
               </CardHeader>
               <CardContent className="space-y-6">
-                {paymentMethods.map((method) => (
-                  <div key={method.id} className="flex flex-col md:flex-row gap-4 p-4 border rounded-lg">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="h-5 w-5 text-muted-foreground" />
-                        <span className="font-medium">{maskCardNumber(method.cardNumber)}</span>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        <div>{method.cardHolder}</div>
-                        <div>{method.address}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 self-end md:self-center">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                {cardsLoading ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-20 w-full" />
+                  </div>
+                ) : cardsError ? (
+                  <div className="text-center py-8 text-red-500">{cardsError}</div>
+                ) : cards.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">No payment methods added yet.</div>
+                ) : (
+                  <>
+                    {cards.map((card) => (
+                      <div key={card.id} className="flex flex-col md:flex-row gap-4 p-4 border rounded-lg">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="h-5 w-5 text-muted-foreground" />
+                            <span className="font-medium">{card.cardNumber}</span>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            <div>{card.cardholderName}</div>
+                            <div>{card.cardAddress}</div>
+                            {card.expirationDate && <div>Expires: {card.expirationDate}</div>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 self-end md:self-center">
+                          <Button disabled variant="outline" size="sm" className="flex items-center gap-2">
                             <Edit className="h-4 w-4" />
                             <span className="hidden sm:inline">Edit</span>
                           </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Edit Payment Method</DialogTitle>
-                            <DialogDescription>Update your card details or billing address.</DialogDescription>
-                          </DialogHeader>
-                          <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="editCardHolder">Card Holder</Label>
-                              <Input id="editCardHolder" defaultValue={method.cardHolder} />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="editAddress">Billing Address</Label>
-                              <Input id="editAddress" defaultValue={method.address} />
-                            </div>
-                          </div>
-                          <DialogFooter>
-                            <Button type="submit">Save Changes</Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                      <Button variant="destructive" size="sm" className="flex items-center gap-2">
-                        <Trash2 className="h-4 w-4" />
-                        <span className="hidden sm:inline">Delete</span>
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                {paymentMethods.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">No payment methods added yet.</div>
-                )}
-                {paymentMethods.length >= 3 && (
-                  <div className="text-sm text-muted-foreground mt-2">Maximum of 3 payment methods allowed.</div>
+                          <Button disabled variant="destructive" size="sm" className="flex items-center gap-2">
+                            <Trash2 className="h-4 w-4" />
+                            <span className="hidden sm:inline">Delete</span>
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {cards.length >= 3 && (
+                      <div className="text-sm text-muted-foreground mt-2">Maximum of 3 payment methods allowed.</div>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
