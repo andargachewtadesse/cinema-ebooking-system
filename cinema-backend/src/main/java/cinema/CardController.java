@@ -3,6 +3,7 @@ package cinema;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -69,7 +70,36 @@ public class CardController {
         }
     }
 
-
+    // Add a new card with specific user ID
+    @PostMapping("/add-with-user")
+    public ResponseEntity<?> addCardWithUser(@RequestBody Map<String, Object> payload) {
+        try {
+            Map<String, Object> cardData = (Map<String, Object>) payload.get("card");
+            Integer userId = (Integer) payload.get("userId");
+            
+            if (userId == null) {
+                return ResponseEntity.badRequest().body("User ID is required");
+            }
+            
+            // Create card from data
+            Card card = new Card();
+            card.setCardholderName((String) cardData.get("cardholderName"));
+            card.setCardNumber((String) cardData.get("cardNumber"));
+            card.setCvv((String) cardData.get("cvv"));
+            card.setCardAddress((String) cardData.get("cardAddress"));
+            card.setExpirationDate((String) cardData.get("expiration_date"));
+            card.setCustomerId(userId);
+            
+            // Insert card
+            int cardId = cardDAO.insertCardWithUserId(card, userId);
+            card.setId(cardId);
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(card);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Failed to add card: " + e.getMessage());
+        }
+    }
 
     // Delete a card by cardNumber
     @DeleteMapping("/{cardNumber}")

@@ -150,8 +150,6 @@ export default function SignupPage() {
           state: state,
           zipCode: zipCode
         } : null,
-        // Add payment methods if needed by your backend
-        // paymentMethods: paymentMethods.map(...),
       }
 
       // Send signup request to API
@@ -167,6 +165,49 @@ export default function SignupPage() {
         const errorData = await response.json()
         setError(errorData.error || "Registration failed. Please try again.")
         return
+      }
+
+      // Get the user ID from the response
+      const responseData = await response.json()
+      const userId = responseData.userId
+
+      // If there are payment methods, register them with the specific user ID
+      if (paymentMethods.length > 0 && userId) {
+        for (const method of paymentMethods) {
+          // Determine the billing address
+          const billingAddress = method.billingAddressSame
+            ? `${street}, ${city}, ${state} ${zipCode}`
+            : `${method.billingStreet}, ${method.billingCity}, ${method.billingState} ${method.billingZipCode}`
+
+          // Format expiration date
+          const expirationDate = `${method.expirationMonth}/${method.expirationYear.slice(-2)}`
+
+          // Prepare card data
+          const cardData = {
+            cardholderName: `${firstName} ${lastName}`,
+            cardNumber: method.cardNumber.replace(/\s/g, ""),
+            cvv: method.cvv,
+            cardAddress: billingAddress,
+            expiration_date: expirationDate,
+          }
+
+          // Send card registration request with user ID
+          const cardResponse = await fetch('/api/cards/register-with-user', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              cardData,
+              userId
+            }),
+          })
+
+          if (!cardResponse.ok) {
+            console.error("Failed to register payment method:", await cardResponse.text())
+            // Continue with verification even if card registration fails
+          }
+        }
       }
 
       // Signup successful, proceed to verification step
