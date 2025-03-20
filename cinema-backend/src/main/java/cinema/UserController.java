@@ -393,25 +393,6 @@ public class UserController {
     }
     }
 
-    // GET card count for user
-    @GetMapping("/{id}/cards/count")
-    public ResponseEntity<?> getCardCount(@PathVariable String id) {
-        try {
-            int userId = Integer.parseInt(id);
-            int cardCount = userDAO.countUserPaymentCards(userId);
-            
-            return ResponseEntity.ok(Map.of("count", cardCount));
-        } catch (NumberFormatException e) {
-            System.out.println("UserController: Invalid ID format: " + id);
-            return ResponseEntity.badRequest().body("Invalid user ID format");
-        } catch (Exception e) {
-            System.out.println("UserController: Error counting cards: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "Error counting cards"));
-        }
-    }
-
     // Health check for UserController
     @GetMapping("/health")
     public ResponseEntity<String> healthCheck() {

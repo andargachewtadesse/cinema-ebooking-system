@@ -59,7 +59,7 @@ public class UserDAO {
     public String getUserEmailByStatusId() {
         try {
             // Query to get the email of the user whose status_id is 2
-            String query = "SELECT email FROM user WHERE status_id = 1";  // Assuming we want only one user
+            String query = "SELECT email FROM user WHERE status_id = ";  // Assuming we want only one user
             return jdbcTemplate.queryForObject(query, String.class);
         } catch (Exception e) {
             System.out.println("UserDAO: Error retrieving email where status_id = 2: " + e.getMessage());
@@ -417,15 +417,4 @@ public class UserDAO {
         }
     }
     
-    public int countUserPaymentCards(int userId) {
-        try {
-            String query = "SELECT COUNT(*) FROM card WHERE customer_id = ?";
-            Integer count = jdbcTemplate.queryForObject(query, Integer.class, userId);
-            return count != null ? count : 0;
-        } catch (Exception e) {
-            System.out.println("UserDAO: Error counting payment cards: " + e.getMessage());
-            e.printStackTrace();
-            return 0;
-        }
-    }
 }

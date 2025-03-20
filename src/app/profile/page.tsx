@@ -11,11 +11,11 @@ interface User {
 }
 
 interface PaymentMethod {
-  id: number;
   cardNumber: string;
   expiration_date: string;
+  cvv: string;
   cardholderName: string;
-  cardAddress?: string; // Optional field
+  cardAddress: string; // Optional field
 }
 
 const Profile = () => {
@@ -25,13 +25,18 @@ const Profile = () => {
   const [updatedUser, setUpdatedUser] = useState<User | null>(null);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [newPayment, setNewPayment] = useState<PaymentMethod>({
-    id: Date.now(),
     cardNumber: '',
     expiration_date: '',
+    cvv: '',
     cardholderName: '',
+    cardAddress: '',
   });
 
-  // Fetch user data and payment methods on component mount
+  // Manage editing a payment method
+  const [editingPaymentId, setEditingPaymentId] = useState<String | null>(null);
+  const [editedCardAddress, setEditedCardAddress] = useState<string>('');
+
+  // Fetch user data
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -43,8 +48,17 @@ const Profile = () => {
         } else {
           console.error('Failed to fetch user profile');
         }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
+    };
+    fetchUserProfile();
+  }, []);
 
-        // Fetch active payment methods
+  // Fetch payment methods
+  useEffect(() => {
+    const fetchPaymentMethods = async () => {
+      try {
         const paymentResponse = await fetch('http://localhost:8080/api/cards/activeCards');
         if (paymentResponse.ok) {
           const paymentData = await paymentResponse.json();
@@ -53,11 +67,10 @@ const Profile = () => {
           console.error('Failed to fetch payment methods');
         }
       } catch (error) {
-        console.error('Error fetching profile or payment methods:', error);
+        console.error('Error fetching payment methods:', error);
       }
     };
-
-    fetchUserProfile();
+    fetchPaymentMethods();
   }, []);
 
   if (!user) {
@@ -95,22 +108,71 @@ const Profile = () => {
     setEditing(false);
   };
 
-  const handleAddPayment = () => {
-    setPaymentMethods((prev) => [
-      ...prev,
-      { ...newPayment, id: Date.now() },
-    ]);
-    setShowPaymentForm(false);
-    setNewPayment({
-      id: Date.now(),
-      cardNumber: '',
-      expiration_date: '',
-      cardholderName: '',
-    });
+  const handleAddPayment = async () => {
+    if (
+      newPayment.cardNumber &&
+      newPayment.cardholderName &&
+      newPayment.expiration_date &&
+      newPayment.cvv &&
+      newPayment.cardAddress
+    ) {
+      try {
+        const response = await fetch('http://localhost:8080/api/cards/add', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(newPayment),
+        });
+
+        if (response.ok) {
+          const cardData = await response.json();
+          setPaymentMethods((prev) => [
+            ...prev,
+            cardData, // Add the new card returned from the server
+          ]);
+          setShowPaymentForm(false);
+          setNewPayment({
+            cardNumber: '',
+            expiration_date: '',
+            cvv: '',
+            cardholderName: '',
+            cardAddress: '',
+          });
+        } else {
+          const errorMessage = await response.text();
+          alert(errorMessage); // Display the error message from the server
+        }
+      } catch (error) {
+        console.error('Error adding payment:', error);
+        alert('An error occurred while adding the payment method.');
+      }
+    } else {
+      alert('Please fill all the payment details.');
+    }
   };
 
-  const handleDeletePayment = (id: number) => {
-    setPaymentMethods((prev) => prev.filter((payment) => payment.id !== id));
+  const handleDeletePayment = (cardNumber: String) => {
+    setPaymentMethods((prev) => prev.filter((payment) => payment.cardNumber !== cardNumber));
+  };
+
+  const handleEditCardAddress = (cardNumber: String, cardAddress: string) => {
+    setEditingPaymentId(cardNumber);
+    setEditedCardAddress(cardAddress || ''); // pre-fill the address for editing
+  };
+
+  const handleSaveCardAddress = (cardNumber: String) => {
+    setPaymentMethods((prev) =>
+      prev.map((payment) =>
+        payment.cardNumber === cardNumber ? { ...payment, cardAddress: editedCardAddress } : payment
+      )
+    );
+    setEditingPaymentId(null);
+  };
+
+  const handleCancelCardAddress = () => {
+    setEditingPaymentId(null);
+    setEditedCardAddress('');
   };
 
   return (
@@ -121,56 +183,59 @@ const Profile = () => {
 
         {/* User Info */}
         <div className="mb-4">
-          <label className="font-semibold">First Name:</label>
-          {editing ? (
-            <input
-              type="text"
-              name="firstName"
-              value={updatedUser?.firstName || ''}
-              onChange={handleChange}
-              className="border p-2 w-full"
-            />
-          ) : (
-            <p className="p-2 border">{user.firstName}</p>
-          )}
-        </div>
+          <h2 className="font-semibold">User Information</h2>
+          <div className="mb-4">
+            <label className="font-semibold">First Name:</label>
+            {editing ? (
+              <input
+                type="text"
+                name="firstName"
+                value={updatedUser?.firstName || ''}
+                onChange={handleChange}
+                className="border p-2 w-full"
+              />
+            ) : (
+              <p className="p-2 border">{user.firstName}</p>
+            )}
+          </div>
 
-        <div className="mb-4">
-          <label className="font-semibold">Last Name:</label>
-          {editing ? (
-            <input
-              type="text"
-              name="lastName"
-              value={updatedUser?.lastName || ''}
-              onChange={handleChange}
-              className="border p-2 w-full"
-            />
-          ) : (
-            <p className="p-2 border">{user.lastName}</p>
-          )}
-        </div>
+          <div className="mb-4">
+            <label className="font-semibold">Last Name:</label>
+            {editing ? (
+              <input
+                type="text"
+                name="lastName"
+                value={updatedUser?.lastName || ''}
+                onChange={handleChange}
+                className="border p-2 w-full"
+              />
+            ) : (
+              <p className="p-2 border">{user.lastName}</p>
+            )}
+          </div>
 
-        <div className="mb-4">
-          <label className="font-semibold">Email:</label>
-          <p className="p-2 border">{user.email}</p> {/* Email is read-only */}
-        </div>
+          <div className="mb-4">
+            <label className="font-semibold">Email:</label>
+            <p className="p-2 border">{user.email}</p> {/* Email is read-only */}
+          </div>
 
-        {/* Edit Button */}
-        <div className="mb-4">
-          {editing ? (
-            <div className="flex gap-4">
-              <button className={styles.buttonSuccess} onClick={handleSave}>
-                Save
+          {/* Edit Button */}
+          <div className="mb-4">
+            {editing ? (
+              <div className="flex gap-4">
+                <button className={styles.buttonSuccess} onClick={handleSave}>
+                  Save
+                </button>
+                <button className={styles.cancelButton} onClick={handleCancel}>
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button className={styles.buttonPrimary} onClick={() => setEditing(true)}>
+                Edit Name
               </button>
-              <button className={styles.cancelButton} onClick={handleCancel}>
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button className={styles.buttonPrimary} onClick={() => setEditing(true)}>
-              Edit Name
-            </button>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Payment Methods */}
@@ -178,20 +243,52 @@ const Profile = () => {
           <h2 className="font-semibold">Payment Methods</h2>
           {paymentMethods.length > 0 ? (
             paymentMethods.map((payment) => (
-              <div key={payment.id} className={`${styles.cardBox} mb-4`}>
+              <div key={payment.cardNumber} className={`${styles.cardBox} mb-4`}>
                 <div className={styles.cardInfo}>
                   <p>Card Holder: {payment.cardholderName}</p>
                   <p>Card Number: {payment.cardNumber}</p>
-                  <p>Expires: {payment.expiration_date}</p>
-                  {payment.cardAddress && <p>Address: {payment.cardAddress}</p>}
+                  {/* Billing Address Editable */}
+                  {editingPaymentId === payment.cardNumber ? (
+                    <div>
+                      <input
+                        type="text"
+                        value={editedCardAddress}
+                        onChange={(e) => setEditedCardAddress(e.target.value)}
+                        placeholder="Billing Address"
+                        className="border p-2 w-full"
+                      />
+                      <div className="flex gap-4 mt-2">
+                        <button
+                          className={styles.buttonSuccess}
+                          onClick={() => handleSaveCardAddress(payment.cardNumber)}
+                        >
+                          Save Address
+                        </button>
+                        <button
+                          className={styles.cancelButton}
+                          onClick={handleCancelCardAddress}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    payment.cardAddress && <p>Address: {payment.cardAddress}</p>
+                  )}
                 </div>
 
                 <div className={styles.cardActions}>
                   <button
                     className={styles.buttonDanger}
-                    onClick={() => handleDeletePayment(payment.id)}
+                    onClick={() => handleDeletePayment(payment.cardNumber)}
                   >
                     Delete
+                  </button>
+                  <button
+                    className={styles.buttonPrimary}
+                    onClick={() => handleEditCardAddress(payment.cardNumber, payment.cardAddress || '')}
+                  >
+                    Edit Address
                   </button>
                 </div>
               </div>
@@ -230,6 +327,13 @@ const Profile = () => {
                 placeholder="Expiration Date (MM/YY)"
                 value={newPayment.expiration_date}
                 onChange={(e) => setNewPayment({ ...newPayment, expiration_date: e.target.value })}
+                className={styles.inputField}
+              />
+              <input
+                type="text"
+                placeholder="CVV"
+                value={newPayment.cvv}
+                onChange={(e) => setNewPayment({ ...newPayment, cvv: e.target.value })}
                 className={styles.inputField}
               />
               <input

@@ -20,9 +20,8 @@ public class CardDAO {
     private final JdbcTemplate jdbcTemplate;
     private final BCryptPasswordEncoder passwordEncoder;
 
-
     @Autowired
-    public CardDAO(JdbcTemplate jdbcTemplate,UserDAO userDAO) {
+    public CardDAO(JdbcTemplate jdbcTemplate, UserDAO userDAO) {
         this.jdbcTemplate = jdbcTemplate;
         this.userDAO = userDAO;
         this.passwordEncoder = new BCryptPasswordEncoder();
@@ -30,12 +29,13 @@ public class CardDAO {
 
     // Add a new card
     public int insertCard(Card card) throws SQLException {
-        // Debug
-        System.out.println("CardDAO: Inserting card with cardholder name: " + card.getCardholderName());
+        // Debugging log
+        System.out.println("CardDAO: Inserting card for cardholder: " + card.getCardholderName());
+
         String encryptedCardNumber = passwordEncoder.encode(card.getCardNumber());
         String encryptedCvv = passwordEncoder.encode(card.getCvv());
 
-        String sql = "INSERT INTO card (cardholder_name, card_number, cvv, card_address, customer_id) " +
+        String sql = "INSERT INTO card (cardholderName, cardNumber, cvv, cardAddress, customerId) " +
                      "VALUES (?, ?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -46,13 +46,11 @@ public class CardDAO {
             ps.setString(2, encryptedCardNumber);
             ps.setString(3, encryptedCvv);
             ps.setString(4, card.getCardAddress());
-            ps.setInt(5, card.getCustomerId());
-
+            ps.setInt(5, userDAO.getActiveUserId());
             return ps;
-
         }, keyHolder);
 
-        return keyHolder.getKey().intValue();  // Return the auto-generated card ID
+        return keyHolder.getKey().intValue();  // Return the generated card ID
     }
 
     // Get all cards
@@ -60,21 +58,16 @@ public class CardDAO {
         try {
             String query = "SELECT * FROM card";
 
-            List<Card> cards = jdbcTemplate.query(query, (rs, rowNum) -> {
+            return jdbcTemplate.query(query, (rs, rowNum) -> {
                 Card card = new Card();
                 card.setId(rs.getInt("id"));
-                card.setCardholderName(rs.getString("cardholder_name"));
-                String encryptedCardNumber = rs.getString("card_number");
-                String encryptedCvv = rs.getString("cvv");
-                card.setCardNumber(encryptedCardNumber);
-                card.setCvv(encryptedCvv);
+                card.setCardholderName(rs.getString("cardholderName"));
+                card.setCardNumber(maskCardNumber(rs.getString("cardNumber"))); // Mask card number
+                card.setCvv("***"); // Mask CVV
                 card.setCardAddress(rs.getString("card_address"));
-                card.setCustomerId(rs.getInt("customer_id"));
-
+                card.setCustomerId(rs.getInt("customerId"));
                 return card;
             });
-
-            return cards;
 
         } catch (Exception e) {
             System.out.println("CardDAO: Error in getAllCards: " + e.getMessage());
@@ -83,47 +76,45 @@ public class CardDAO {
         }
     }
 
-    public List<Card> getAllCardsForActiveUser() {
-        try {
-            // Get the active user ID
-            Integer activeUserId = userDAO.getActiveUserId();
-            
-            if (activeUserId == null) {
-                System.out.println("No active user found");
-                return Collections.emptyList(); // Return an empty list if no active user is found
-            }
-            
-            // Query to get all cards for the active user
-            String query = "SELECT * FROM card WHERE customerId = ?";
-            
-            // Use query method with a lambda expression for the row mapper
-            List<Card> cards = jdbcTemplate.query(query, 
-                new Object[]{activeUserId}, 
-                (rs, rowNum) -> {
-                    // Create new Card object and map the result set to its fields
-                    Card card = new Card();
-                    card.setId(rs.getInt("id"));
-                    card.setCardNumber(rs.getString("cardNumber"));  // Map cardNumber from the result set
-                    String encryptedCardNumber = rs.getString("card_number");
-                    String encryptedCvv = rs.getString("cvv");
-                    card.setCardNumber(encryptedCardNumber);
-                    card.setCvv(encryptedCvv);
-                    card.setCardAddress(rs.getString("cardAddress"));  // Map cardAddress from the result set
-                    
-                    return card;
-                });
-    
-            return cards;
+    // Get all cards for the active user
+    // Get all cards for the active user
+public List<Card> getAllCardsForActiveUser() {
+    try {
+        // Get the active user ID
+        Integer activeUserId = userDAO.getActiveUserId();
         
-        } catch (Exception e) {
-            System.out.println("CardDAO: Error in getAllCardsForActiveUser: " + e.getMessage());
-            e.printStackTrace();
-            throw new RuntimeException("Failed to fetch cards for active user", e);
+        if (activeUserId == null) {
+            System.out.println("No active user found");
+            return Collections.emptyList(); // Return an empty list if no active user is found
         }
+        
+        // Query to get all cards for the active user
+        String query = "SELECT * FROM card WHERE customerId = ?";
+        
+        // Use query method with a lambda expression for the row mapper
+        List<Card> cards = jdbcTemplate.query(query, 
+            new Object[]{activeUserId}, 
+            (rs, rowNum) -> {
+                // Create new Card object and map the result set to its fields
+                Card card = new Card();
+                card.setId(rs.getInt("id"));
+                card.setCardholderName(rs.getString("cardholderName")); // Use the correct column name
+                card.setCardNumber(rs.getString("cardNumber")); // Use the correct column name
+                card.setCardAddress(rs.getString("cardAddress")); // Use the correct column name
+                card.setExpirationDate(rs.getString("expiration_date")); // Use the correct column name
+                
+                return card;
+            });
+
+        return cards;
+    
+    } catch (Exception e) {
+        System.out.println("CardDAO: Error in getAllCardsForActiveUser: " + e.getMessage());
+        e.printStackTrace();
+        throw new RuntimeException("Failed to fetch cards for active user", e);
     }
-    
-    
-    
+}
+
 
     // Delete a card by card ID
     public boolean deleteCard(int cardId) {
@@ -138,4 +129,34 @@ public class CardDAO {
             throw new RuntimeException("Failed to delete card with ID: " + cardId, e);
         }
     }
+
+    // Utility method to mask card number (Show only last 4 digits)
+    private String maskCardNumber(String cardNumber) {
+        if (cardNumber == null || cardNumber.length() < 4) {
+            return "****";
+        }
+        return "**** **** **** " + cardNumber.substring(cardNumber.length() - 4);
+    }
+
+    public boolean countCard(){
+
+        Integer actUserId = userDAO.getActiveUserId();
+
+        try {
+            String query = "SELECT COUNT(*) FROM card WHERE customerId = ?";
+            Integer count = jdbcTemplate.queryForObject(query, Integer.class, actUserId);
+            
+            return count <= 3;
+            
+        } catch (Exception e) {
+            System.out.println("UserDAO: Error counting payment cards: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+
+    }
+
+
+    
+    
 }

@@ -32,10 +32,14 @@ public class CardController {
     }
 
     // Add a new card
-    @PostMapping
+    @PostMapping("/add")
     public ResponseEntity<?> addCard(@RequestBody Card card) {
         try {
-            // Debug
+    
+            if(cardDAO.countCard() == false){
+                return ResponseEntity.badRequest().body("Can't have more than 3 card");
+            }
+
             System.out.println("CardController: Received card with cardholder name: " + card.getCardholderName());
 
             // Insert the card
@@ -53,7 +57,7 @@ public class CardController {
     public ResponseEntity<List<Card>> getAllActiveCards() {
         try {
             List<Card> cards = cardDAO.getAllCardsForActiveUser();
-        
+
             if (cards.isEmpty()) {
                 return ResponseEntity.noContent().build(); // Return 204 if no cards are found
             }
