@@ -36,6 +36,12 @@ const Profile = () => {
   const [editingPaymentId, setEditingPaymentId] = useState<String | null>(null);
   const [editedCardAddress, setEditedCardAddress] = useState<string>('');
 
+  const [changingPassword, setChangingPassword] = useState(false);  // To toggle the password change form visibility
+  const [oldPassword, setOldPassword] = useState('');        // Track current password
+  const [newPassword, setNewPassword] = useState('');                // Track new password
+  const [confirmPassword, setConfirmPassword] = useState('');        // Track confirm new password
+  const [passwordChangeError, setPasswordChangeError] = useState('');
+
   // Fetch user data
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -115,6 +121,39 @@ const Profile = () => {
     setUpdatedUser({ ...user });
     setEditing(false);
   };
+
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      setPasswordChangeError("Passwords don't match."); // Set error if passwords don't match
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8080/api/users/change-password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.email,
+          oldPassword,
+          newPassword,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(result.message); // "Password updated successfully"
+        setChangingPassword(false); // Close the change password form
+        setPasswordChangeError(''); // Reset any errors
+      } else {
+        const error = await response.json();
+        setPasswordChangeError(error.error || 'Failed to change password');
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      setPasswordChangeError('An error occurred while changing the password.');
+    }
+  };
+
 
   const handleAddPayment = async () => {
     if (
@@ -267,7 +306,7 @@ const Profile = () => {
             <p className="p-2 border">{user.email}</p> {/* Email is read-only */}
           </div>
 
-          {/* Edit Button */}
+          {/* Edit Buttons */}
           <div className="mb-4">
             {editing ? (
               <div className="flex gap-4">
@@ -279,12 +318,60 @@ const Profile = () => {
                 </button>
               </div>
             ) : (
-              <button className={styles.buttonPrimary} onClick={() => setEditing(true)}>
-                Edit Name
-              </button>
+              <div className="flex gap-4">
+                <button className={styles.buttonPrimary} onClick={() => setEditing(true)}>
+                  Edit Name
+                </button>
+                {/* New Change Password Button */}
+                <button className={styles.buttonPrimary} onClick={() => setChangingPassword(true)}>
+                  Change Password
+                </button>
+              </div>
             )}
           </div>
         </div>
+
+        {/* Change Password Form */}
+        {changingPassword && (
+          <div className={`${styles.p4} ${styles.border} ${styles.rounded}`}>
+            <h3 className={styles.label}>Change Password</h3>
+            {passwordChangeError && <p className="text-red-500">{passwordChangeError}</p>} {/* Error message */}
+            <input
+              type="password"
+              placeholder="Old Password"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              className={styles.inputField}
+            />
+            <input
+              type="password"
+              placeholder="New Password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className={styles.inputField}
+            />
+            <input
+              type="password"
+              placeholder="Confirm New Password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className={styles.inputField}
+            />
+            <div className={styles.flex}>
+              <button className={styles.buttonSuccess} onClick={handleChangePassword}>
+                Save Password
+              </button>
+              <button
+                className={styles.cancelButton}
+                onClick={() => setChangingPassword(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+    
+  
 
         {/* Payment Methods */}
         <div className="mb-4">
@@ -410,5 +497,4 @@ const Profile = () => {
     </>
   );
 };
-
 export default Profile;

@@ -59,7 +59,7 @@ public class UserDAO {
     public String getUserEmailByStatusId() {
         try {
             // Query to get the email of the user whose status_id is 2
-            String query = "SELECT email FROM user WHERE status_id = ";  // Assuming we want only one user
+            String query = "SELECT email FROM user WHERE status_id = 2";  // Assuming we want only one user
             return jdbcTemplate.queryForObject(query, String.class);
         } catch (Exception e) {
             System.out.println("UserDAO: Error retrieving email where status_id = 2: " + e.getMessage());
@@ -70,6 +70,7 @@ public class UserDAO {
     
 
     public User getUserProfileById(Integer id) {
+
         try {
             String query = "SELECT * FROM user WHERE user_id = ?";
             
@@ -262,34 +263,41 @@ public class UserDAO {
     }
     
 
-    public boolean resetPassword(String email, String resetToken, String newPassword) {
+    public boolean changePassword(String email, String oldPassword, String newPassword) {
         try {
-            // Verify token
-            String verifyQuery = "SELECT * FROM user WHERE email = ? AND verification_code = ?";
-            List<User> users = jdbcTemplate.query(
+
+            String verifyQuery = "SELECT password FROM user WHERE email = ?";
+            List<String> passwords = jdbcTemplate.query(
                 verifyQuery, 
-                (rs, rowNum) -> {
-                    User user = new User();
-                    user.setUserId(rs.getInt("user_id"));
-                    return user;
-                },
-                email, resetToken
+                (rs, rowNum) -> rs.getString("password"),
+                email
             );
             
-            if (!users.isEmpty()) {
-                // Update password
-                String encryptedPassword = passwordEncoder.encode(newPassword);
-                String updateQuery = "UPDATE user SET password = ?, verification_code = NULL WHERE email = ?";
-                int rowsAffected = jdbcTemplate.update(updateQuery, encryptedPassword, email);
-                return rowsAffected > 0;
+            if (!passwords.isEmpty()) {
+                String storedPassword = passwords.get(0);
+    
+                // Verify that the old password matches the stored password (use passwordEncoder for comparison)
+                if (passwordEncoder.matches(oldPassword, storedPassword)) {
+                    // Encrypt the new password
+                    String encryptedPassword = passwordEncoder.encode(newPassword);
+                    
+                    // Update the password
+                    String updateQuery = "UPDATE user SET password = ? WHERE email = ?";
+                    int rowsAffected = jdbcTemplate.update(updateQuery, encryptedPassword, email);
+                    
+                    return rowsAffected > 0; // Return true if the password was successfully updated
+                } else {
+                    return false; // Old password doesn't match
+                }
             }
-            return false;
+            return false; // User not found
         } catch (Exception e) {
-            System.out.println("UserDAO: Error in resetPassword: " + e.getMessage());
+            System.out.println("UserDAO: Error in changePassword: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
     }
+    
 
     public boolean deleteUser(int user_id) {
         try {
@@ -304,29 +312,6 @@ public class UserDAO {
         }
     }
 
-    public boolean updateUserEmail(int user_id, String newEmail) {
-        try {
-            // Debugging
-            System.out.println("UserDAO: Updating email for user with ID: " + user_id);
-    
-            // SQL query to update email
-            String updateQuery = "UPDATE user SET email = ? WHERE user_id = ?";
-    
-            // Executing the update query
-            int rowsAffected = jdbcTemplate.update(updateQuery, newEmail, user_id);
-    
-            // Log the number of rows affected
-            System.out.println("UserDAO: Update query affected " + rowsAffected + " rows");
-    
-            // Return true if the user was updated (i.e., at least one row was affected)
-            return rowsAffected > 0;
-        } catch (Exception e) {
-            System.out.println("UserDAO: Error updating email for user with ID " + user_id + ": " + e.getMessage());
-            e.printStackTrace();
-            throw new RuntimeException("Failed to update email for user with ID: " + user_id, e);
-        }
-    }
-    
     public boolean updateUserPassword(int userId, String currentPassword, String newPassword) {
         try {
             // Get current password from database
@@ -369,7 +354,7 @@ public class UserDAO {
     public boolean validateUserLogin(String email, String password) {
         try {
             // Query to get the password from the database
-            String query = "SELECT password, status_id FROM user WHERE email = ?";
+            String query = "SELECT password FROM user WHERE email = ?";
             
             // Use queryForList instead of the deprecated query method
             List<Map<String, Object>> results = jdbcTemplate.queryForList(query, email);
@@ -379,13 +364,6 @@ public class UserDAO {
             }
             
             String storedPassword = (String) results.get(0).get("password");
-            int statusId = ((Number) results.get(0).get("status_id")).intValue();
-            
-            // Check if user is active
-            if (statusId != 1) {
-                System.out.println("User account is not active");
-                return false;
-            }
             
             // Verify password using BCrypt
             boolean passwordMatches = passwordEncoder.matches(password, storedPassword);

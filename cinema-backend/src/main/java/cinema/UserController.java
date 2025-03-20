@@ -97,26 +97,28 @@ public class UserController {
         }
     }
 
-    @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> payload) {
+    @PutMapping("/change-password")
+    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> payload) {
         try {
-            String email = payload.get("email");
-            String resetToken = payload.get("resetToken");
+            String email = payload.get("email"); // Assuming email is sent along with password change request
+            String oldPassword = payload.get("oldPassword");
             String newPassword = payload.get("newPassword");
+            System.out.println("+++++++++++++++++" + oldPassword + "+++++++++++++++++++++");
+            // Validate the old password and update with the new password
+            boolean passwordChanged = userDAO.changePassword(email, oldPassword, newPassword);
             
-            boolean resetSuccessful = userDAO.resetPassword(email, resetToken, newPassword);
-            
-            if (resetSuccessful) {
-                return ResponseEntity.ok(Map.of("message", "Password reset successful"));
+            if (passwordChanged) {
+                return ResponseEntity.ok(Map.of("message", "Password updated successfully"));
             } else {
-                return ResponseEntity.badRequest().body(Map.of("error", "Invalid reset token"));
+                return ResponseEntity.badRequest().body(Map.of("error", "Incorrect old password"));
             }
         } catch (Exception e) {
-            System.out.println("UserController: Error resetting password: " + e.getMessage());
+            System.out.println("UserController: Error changing password: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.badRequest().body("Failed to reset password: " + e.getMessage());
+            return ResponseEntity.badRequest().body("Failed to change password: " + e.getMessage());
         }
     }
+    
 
     // GET all users
     @GetMapping
