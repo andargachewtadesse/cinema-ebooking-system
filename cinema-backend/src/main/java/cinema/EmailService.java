@@ -33,6 +33,8 @@ public class EmailService {
                 "You have requested to reset your password. " +
                 "To reset your password, please use the following token:\n\n" +
                 resetToken + "\n\n" +
+                "Or click on this link to reset your password directly:\n" +
+                "http://localhost:3000/reset-password?email=" + to + "\n\n" +
                 "If you did not request this reset, please contact our support team immediately.\n\n" +
                 "Best Regards,\nCinema E-Booking Team");
         

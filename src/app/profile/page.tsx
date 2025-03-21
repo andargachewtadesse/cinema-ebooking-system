@@ -660,7 +660,7 @@ export default function Profile() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Address Information</CardTitle>
-                  <CardDescription>Manage your shipping and billing address</CardDescription>
+                  <CardDescription>Manage your address</CardDescription>
                 </div>
                 {!editingAddress && (
                   <Button onClick={() => setEditingAddress(true)} variant="outline" className="flex items-center gap-2">

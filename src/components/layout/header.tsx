@@ -1,61 +1,54 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { logout, getUser, isAuthenticated } from "@/utils/auth" 
 
 export function Header() {
   const [isSearchExpanded, setIsSearchExpanded] = useState(false)
   const [isActiveUser, setIsActiveUser] = useState(false)
 
+  // Check if user is active based on local authentication
+  const checkLocalAuth = () => {
+    const authenticated = isAuthenticated();
+    setIsActiveUser(authenticated);
+  };
 
   const handleLogout = async () => {
-    // Retrieve user info from localStorage (assuming it's stored as a stringified object)
-    const user = JSON.parse(localStorage.getItem("user") || "null");
-  
-    if (!user) {
-      console.error("No user found, please log in first.");
-      return;
-    }
-  
-    try {
-      const response = await fetch("http://localhost:8080/api/users/logout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email: user.email }), // Send email to the backend
-      });
-  
-      const data = await response.json();
-  
-      if (response.ok) {
-        console.log("Logout successful:", data);
-        // Clear the stored user data in localStorage (or cookies)
-        localStorage.removeItem("user"); // or handle cookies if you're using them
-        // Redirect to login page or home page
-        window.location.href = "/login";
-      } else {
-        console.error("Logout failed:", data.error || "Error during logout");
-      }
-    } catch (err) {
-      console.error("Logout error:", err);
-      // Optionally display an error message
-    }
+    await logout();
+    // No need to update state here as the page will redirect
   };
 
   useEffect(() => {
-    // Call the API to check if there's an active user
+    // First check local auth state
+    checkLocalAuth();
+    
+    // Then verify with the server
     const checkActiveUser = async () => {
       try {
-        const response = await fetch('http://localhost:8080/api/users/active')  // Adjust the API URL as needed
-        const data = await response.json()
-        setIsActiveUser(data.hasActiveUsers)
+        const response = await fetch('http://localhost:8080/api/users/active');
+        if (response.ok) {
+          const data = await response.json();
+          setIsActiveUser(data.hasActiveUsers && isAuthenticated());
+        }
       } catch (error) {
-        console.error("Error checking active user:", error)
+        console.error("Error checking active user:", error);
+        // Fall back to local auth state
+        checkLocalAuth();
       }
-    }
+    };
 
-    checkActiveUser()
-  }, [])
+    checkActiveUser();
+    
+    // Add event listener to detect storage changes (in case user logs out in another tab)
+    const handleStorageChange = () => {
+      checkLocalAuth();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   return (
     <header className="bg-background border-b">
@@ -70,8 +63,12 @@ export function Header() {
               <Button variant="default" asChild className="bg-black text-white hover:bg-black/90">
                 <Link href="/profile">Profile</Link>
               </Button>
-              <Button variant="default" asChild className="bg-red-600 text-white hover:bg-red-500" onClick={handleLogout}>
-                <Link href="/">Logout</Link>
+              <Button 
+                variant="default" 
+                className="bg-red-600 text-white hover:bg-red-500" 
+                onClick={handleLogout}
+              >
+                Logout
               </Button>
             </>
           ) : (
