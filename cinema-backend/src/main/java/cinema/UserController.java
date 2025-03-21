@@ -253,19 +253,20 @@ public class UserController {
     }
 
     @PutMapping("/update-details")
-    public ResponseEntity<?> updateUserDetails(@RequestBody Map<String, String> userDetails) {
+    public ResponseEntity<?> updateUserDetails(@RequestBody Map<String, Object> userDetails) {
         try {
             // Extract the email, first name, and last name from the request body
-            String email = userDetails.get("email");
-            String newFirstName = userDetails.get("firstName");
-            String newLastName = userDetails.get("lastName");
+            String email = (String) userDetails.get("email");
+            String newFirstName = (String) userDetails.get("firstName");
+            String newLastName = (String) userDetails.get("lastName");
+            Boolean promotionSubscription = (Boolean) userDetails.get("promotionSubscription");
         
             if (email == null || newFirstName == null || newLastName == null) {
                 return ResponseEntity.badRequest().body("Email, first name, and last name are required");
             }
 
             // Call the UserDAO method to update user details
-            boolean success = userDAO.updateUserDetails(email, newFirstName, newLastName);
+            boolean success = userDAO.updateUserDetails(email, newFirstName, newLastName, promotionSubscription);
 
             if (success) {
                 return ResponseEntity.ok(Map.of("message", "User details updated successfully"));
@@ -421,6 +422,7 @@ public class UserController {
                 response.put("firstName", activeUser.getFirstName());
                 response.put("lastName", activeUser.getLastName());
                 response.put("email", activeUser.getEmail());
+                response.put("promotionSubscription", activeUser.getPromotionSubscription());
                 // Add other user details as needed
                 
                 // Add the address fields to the response

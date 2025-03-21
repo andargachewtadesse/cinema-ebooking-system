@@ -21,6 +21,7 @@ import { OrderHeader } from "@/components/order/OrderHeader"
 import { useUserProfile } from "@/hooks/useUserProfile"
 import { usePaymentCards } from "@/hooks/usePaymentCards"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Checkbox } from "@/components/ui/checkbox"
 
 export default function Profile() {
   const [editingPersonal, setEditingPersonal] = useState(false)
@@ -31,7 +32,8 @@ export default function Profile() {
     streetAddress: "",
     city: "",
     state: "",
-    zipCode: ""
+    zipCode: "",
+    promotionSubscription: false
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [newCard, setNewCard] = useState({
@@ -62,7 +64,8 @@ export default function Profile() {
         streetAddress: profile.streetAddress || "",
         city: profile.city || "",
         state: profile.state || "",
-        zipCode: profile.zipCode || ""
+        zipCode: profile.zipCode || "",
+        promotionSubscription: profile.promotionSubscription === true
       });
     }
   }, [profile]);
@@ -87,6 +90,7 @@ export default function Profile() {
           email: profile.email,
           firstName: formData.firstName,
           lastName: formData.lastName,
+          promotionSubscription: formData.promotionSubscription
         }),
       });
 
@@ -94,14 +98,21 @@ export default function Profile() {
         throw new Error("Failed to update personal information");
       }
 
-      // Refresh the profile data
-      window.location.reload();
+      // Instead of reloading the page, update the profile data locally
+      updateProfileLocally({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        promotionSubscription: formData.promotionSubscription
+      });
+      
+      setEditingPersonal(false);
+      alert("Personal information updated successfully!");
+      
     } catch (error) {
       console.error("Error updating personal info:", error);
       alert("Failed to update personal information. Please try again.");
     } finally {
       setIsSubmitting(false);
-      setEditingPersonal(false);
     }
   };
 
@@ -426,6 +437,15 @@ export default function Profile() {
     }
   };
 
+  const handlePromotionChange = (checked) => {
+    if (!editingPersonal) return;
+    
+    setFormData(prev => ({
+      ...prev,
+      promotionSubscription: checked
+    }));
+  };
+
   if (profileLoading) {
     return (
       <>
@@ -530,6 +550,20 @@ export default function Profile() {
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input id="email" type="email" value={profile?.email || ""} readOnly className="opacity-70" />
+                  </div>
+                  <div className="flex items-center space-x-2 pt-2">
+                    <Checkbox 
+                      id="promotions" 
+                      checked={formData.promotionSubscription}
+                      onCheckedChange={handlePromotionChange}
+                      disabled={!editingPersonal && !isSubmitting}
+                    />
+                    <label
+                      htmlFor="promotions"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Subscribe to promotional offers
+                    </label>
                   </div>
                 </div>
 

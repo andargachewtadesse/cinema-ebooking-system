@@ -9,6 +9,7 @@ interface UserProfile {
   city: string;
   state: string;
   zipCode: string;
+  promotionSubscription: boolean;
 }
 
 export function useUserProfile() {
@@ -38,7 +39,8 @@ export function useUserProfile() {
         streetAddress: data.streetAddress || "",
         city: data.city || "",
         state: data.state || "",
-        zipCode: data.zipCode || ""
+        zipCode: data.zipCode || "",
+        promotionSubscription: Boolean(data.promotionSubscription)
       };
       
       // Set the profile with what we have so far

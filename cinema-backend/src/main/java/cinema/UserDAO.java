@@ -244,7 +244,7 @@ public class UserDAO {
         }
     }
 
-    public boolean updateUserDetails(String email, String newFirstName, String newLastName) {
+    public boolean updateUserDetails(String email, String newFirstName, String newLastName, Boolean promotionSubscription) {
         try {
             // Fetch the user by email
             User user = getUserByEmail(email);
@@ -252,10 +252,10 @@ public class UserDAO {
             // Check if the user exists
             if (user != null) {
                 // Prepare the SQL update query
-                String updateQuery = "UPDATE user SET first_name = ?, last_name = ? WHERE email = ?";
+                String updateQuery = "UPDATE user SET first_name = ?, last_name = ?, promotion_subscription = ? WHERE email = ?";
                 
                 // Execute the update query
-                int rowsAffected = jdbcTemplate.update(updateQuery, newFirstName, newLastName, email);
+                int rowsAffected = jdbcTemplate.update(updateQuery, newFirstName, newLastName, promotionSubscription, email);
                 
                 // Check if the update was successful
                 if (rowsAffected > 0) {
