@@ -58,11 +58,11 @@ public class UserDAO {
 
     public String getUserEmailByStatusId() {
         try {
-            // Query to get the email of the user whose status_id is 2
-            String query = "SELECT email FROM user WHERE status_id = 2";  // Assuming we want only one user
+            // Query to get the email of the user whose status_id is 1 (active)
+            String query = "SELECT email FROM user WHERE status_id = 1";
             return jdbcTemplate.queryForObject(query, String.class);
         } catch (Exception e) {
-            System.out.println("UserDAO: Error retrieving email where status_id = 2: " + e.getMessage());
+            System.out.println("UserDAO: Error retrieving email where status_id = 1: " + e.getMessage());
             e.printStackTrace();
             return null;
         }

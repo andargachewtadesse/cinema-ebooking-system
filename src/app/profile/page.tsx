@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,37 +25,223 @@ import { Skeleton } from "@/components/ui/skeleton"
 export default function Profile() {
   const [editingPersonal, setEditingPersonal] = useState(false)
   const [editingAddress, setEditingAddress] = useState(false)
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    streetAddress: "",
+    city: "",
+    state: "",
+    zipCode: ""
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [newCard, setNewCard] = useState({
+    cardholderName: "",
+    cardNumber: "",
+    expirationDate: "",
+    cvv: "",
+    cardAddress: ""
+  })
   
-  const { profile, loading: profileLoading, error: profileError } = useUserProfile();
-  const { cards, loading: cardsLoading, error: cardsError } = usePaymentCards();
+  const { profile, loading: profileLoading, error: profileError, updateProfileLocally } = useUserProfile();
+  const { cards, loading: cardsLoading, error: cardsError, refreshCards } = usePaymentCards();
 
-  const [user, setUser] = useState({
-    firstName: "Virgil",
-    lastName: "Kon",
-    email: "sotorot419@erapk.com",
-  })
+  // Update form data when profile is loaded
+  useEffect(() => {
+    if (profile) {
+      console.log("Profile data loaded:", profile);
+      setFormData({
+        firstName: profile.firstName || "",
+        lastName: profile.lastName || "",
+        streetAddress: profile.streetAddress || "",
+        city: profile.city || "",
+        state: profile.state || "",
+        zipCode: profile.zipCode || ""
+      });
+    }
+  }, [profile]);
 
-  const [address, setAddress] = useState({
-    street: "Hoooland St",
-    city: "Athens",
-    state: "GA",
-    zipCode: "30601",
-  })
+  const handlePersonalInfoChange = (e) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [id]: value
+    }));
+  };
 
-  const [paymentMethods, setPaymentMethods] = useState([
-    {
-      id: 1,
-      cardHolder: "Virgil Kon",
-      cardNumber: "$2a$10$s.ruQ.TkI0AlyhFskEVHe3dvmMh8XTEoUkz53aZ6FgWa63uiXBG2",
-      address: "Hoooland St, Athens, GA 30601",
-    },
-    {
-      id: 2,
-      cardHolder: "Virgil Kon",
-      cardNumber: "$2a$10$PcCVaVvc4UOX5Nh5YY5AdOe3ixyMFgWqQenZ6ioW0pbuETr/t4aP6",
-      address: "Hoooland St, Athens, GA 30601",
-    },
-  ])
+  const savePersonalInfo = async () => {
+    try {
+      setIsSubmitting(true);
+      const response = await fetch("http://localhost:8080/api/users/update-details", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: profile.email,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update personal information");
+      }
+
+      // Refresh the profile data
+      window.location.reload();
+    } catch (error) {
+      console.error("Error updating personal info:", error);
+      alert("Failed to update personal information. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+      setEditingPersonal(false);
+    }
+  };
+
+  const saveAddressInfo = async () => {
+    try {
+      setIsSubmitting(true);
+      
+      console.log("Updating address with data:", formData);
+      
+      // Use the email from the profile data that's already loaded
+      if (!profile || !profile.email) {
+        throw new Error("Profile data not available");
+      }
+      
+      const userEmail = profile.email;
+      console.log("Using email from profile:", userEmail);
+      
+      // Add debugging to see the actual request payload
+      const requestBody = {
+        email: userEmail,
+        streetAddress: formData.streetAddress,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode
+      };
+      console.log("Sending request body:", requestBody);
+      
+      // Now use the email to update the user
+      const updateResponse = await fetch("http://localhost:8080/api/users/update-address", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+      
+      if (!updateResponse.ok) {
+        const errorText = await updateResponse.text();
+        console.error("Server response:", errorText);
+        throw new Error(`Failed to update address: ${errorText}`);
+      }
+      
+      const responseData = await updateResponse.json();
+      console.log("Server response:", responseData);
+      
+      // Update the profile data in state (without reloading)
+      updateProfileLocally({
+        streetAddress: formData.streetAddress,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode
+      });
+      
+      alert("Address updated successfully!");
+    } catch (error) {
+      console.error("Error updating address info:", error);
+      alert(`Failed to update address information: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+      setEditingAddress(false);
+    }
+  };
+
+  const handleCardInputChange = (e) => {
+    const { id, value } = e.target;
+    setNewCard(prev => ({
+      ...prev,
+      [id]: value
+    }));
+  };
+
+  const addPaymentMethod = async () => {
+    try {
+      setIsSubmitting(true);
+      
+      // Validate form
+      if (!newCard.cardholderName || !newCard.cardNumber || !newCard.expirationDate || !newCard.cvv) {
+        alert("Please fill out all required fields");
+        return;
+      }
+
+      // Use the billing address if provided, otherwise use profile address
+      const cardAddress = newCard.cardAddress || 
+        `${profile.streetAddress}, ${profile.city}, ${profile.state} ${profile.zipCode}`;
+      
+      const response = await fetch("http://localhost:8080/api/cards/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cardholderName: newCard.cardholderName,
+          cardNumber: newCard.cardNumber,
+          cvv: newCard.cvv,
+          cardAddress: cardAddress,
+          expirationDate: newCard.expirationDate
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add payment method");
+      }
+
+      // Refresh the cards data
+      refreshCards();
+      
+      // Reset form and close dialog
+      setNewCard({
+        cardholderName: "",
+        cardNumber: "",
+        expirationDate: "",
+        cvv: "",
+        cardAddress: ""
+      });
+      
+      // Close dialog by clicking the "ESC" key
+      document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'Escape'}));
+      
+    } catch (error) {
+      console.error("Error adding payment method:", error);
+      alert("Failed to add payment method. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const deletePaymentMethod = async (cardId) => {
+    if (!confirm("Are you sure you want to delete this payment method?")) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`http://localhost:8080/api/cards/${cardId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete payment method");
+      }
+
+      // Refresh the cards data
+      refreshCards();
+    } catch (error) {
+      console.error("Error deleting payment method:", error);
+      alert("Failed to delete payment method. Please try again.");
+    }
+  };
 
   const maskCardNumber = (cardNumber) => {
     // Show only last 4 characters
@@ -146,8 +332,8 @@ export default function Profile() {
                       <Label htmlFor="firstName">First Name</Label>
                       <Input
                         id="firstName"
-                        value={profile?.firstName || ""}
-                        onChange={(e) => setEditingPersonal(true)}
+                        value={formData.firstName}
+                        onChange={handlePersonalInfoChange}
                         readOnly={!editingPersonal}
                         className={!editingPersonal ? "opacity-70" : ""}
                       />
@@ -156,8 +342,8 @@ export default function Profile() {
                       <Label htmlFor="lastName">Last Name</Label>
                       <Input
                         id="lastName"
-                        value={profile?.lastName || ""}
-                        onChange={(e) => setEditingPersonal(true)}
+                        value={formData.lastName}
+                        onChange={handlePersonalInfoChange}
                         readOnly={!editingPersonal}
                         className={!editingPersonal ? "opacity-70" : ""}
                       />
@@ -211,7 +397,12 @@ export default function Profile() {
                   <Button variant="outline" onClick={() => setEditingPersonal(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={() => setEditingPersonal(false)}>Save Changes</Button>
+                  <Button 
+                    onClick={savePersonalInfo} 
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Saving..." : "Save Changes"}
+                  </Button>
                 </CardFooter>
               )}
             </Card>
@@ -234,11 +425,11 @@ export default function Profile() {
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="street">Street Address</Label>
+                    <Label htmlFor="streetAddress">Street Address</Label>
                     <Input
-                      id="street"
-                      value={profile?.streetAddress || ""}
-                      onChange={(e) => setEditingAddress(true)}
+                      id="streetAddress"
+                      value={formData.streetAddress}
+                      onChange={handlePersonalInfoChange}
                       readOnly={!editingAddress}
                       className={!editingAddress ? "opacity-70" : ""}
                     />
@@ -248,8 +439,8 @@ export default function Profile() {
                       <Label htmlFor="city">City</Label>
                       <Input
                         id="city"
-                        value={profile?.city || ""}
-                        onChange={(e) => setEditingAddress(true)}
+                        value={formData.city}
+                        onChange={handlePersonalInfoChange}
                         readOnly={!editingAddress}
                         className={!editingAddress ? "opacity-70" : ""}
                       />
@@ -258,8 +449,8 @@ export default function Profile() {
                       <Label htmlFor="state">State</Label>
                       <Input
                         id="state"
-                        value={profile?.state || ""}
-                        onChange={(e) => setEditingAddress(true)}
+                        value={formData.state}
+                        onChange={handlePersonalInfoChange}
                         readOnly={!editingAddress}
                         className={!editingAddress ? "opacity-70" : ""}
                       />
@@ -268,8 +459,8 @@ export default function Profile() {
                       <Label htmlFor="zipCode">ZIP Code</Label>
                       <Input
                         id="zipCode"
-                        value={profile?.zipCode || ""}
-                        onChange={(e) => setEditingAddress(true)}
+                        value={formData.zipCode}
+                        onChange={handlePersonalInfoChange}
                         readOnly={!editingAddress}
                         className={!editingAddress ? "opacity-70" : ""}
                       />
@@ -282,7 +473,12 @@ export default function Profile() {
                   <Button variant="outline" onClick={() => setEditingAddress(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={() => setEditingAddress(false)}>Save Address</Button>
+                  <Button 
+                    onClick={saveAddressInfo}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Saving..." : "Save Address"}
+                  </Button>
                 </CardFooter>
               )}
             </Card>
@@ -310,30 +506,61 @@ export default function Profile() {
                       </DialogHeader>
                       <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                          <Label htmlFor="cardHolder">Card Holder</Label>
-                          <Input id="cardHolder" placeholder="Name on card" />
+                          <Label htmlFor="cardholderName">Card Holder</Label>
+                          <Input 
+                            id="cardholderName" 
+                            placeholder="Name on card" 
+                            value={newCard.cardholderName}
+                            onChange={handleCardInputChange}
+                          />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="cardNumber">Card Number</Label>
-                          <Input id="cardNumber" placeholder="1234 5678 9012 3456" />
+                          <Input 
+                            id="cardNumber" 
+                            placeholder="1234 5678 9012 3456" 
+                            value={newCard.cardNumber}
+                            onChange={handleCardInputChange}
+                          />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="expiry">Expiry Date</Label>
-                            <Input id="expiry" placeholder="MM/YY" />
+                            <Label htmlFor="expirationDate">Expiry Date</Label>
+                            <Input 
+                              id="expirationDate" 
+                              placeholder="MM/YY" 
+                              value={newCard.expirationDate}
+                              onChange={handleCardInputChange}
+                            />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="cvc">CVC</Label>
-                            <Input id="cvc" placeholder="123" />
+                            <Label htmlFor="cvv">CVC</Label>
+                            <Input 
+                              id="cvv" 
+                              placeholder="123" 
+                              value={newCard.cvv}
+                              onChange={handleCardInputChange}
+                            />
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="billingAddress">Billing Address</Label>
-                          <Input id="billingAddress" placeholder="Enter your billing address" />
+                          <Label htmlFor="cardAddress">Billing Address</Label>
+                          <Input 
+                            id="cardAddress" 
+                            placeholder="Enter your billing address (or leave blank to use profile address)" 
+                            value={newCard.cardAddress}
+                            onChange={handleCardInputChange}
+                          />
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button type="submit">Add Payment Method</Button>
+                        <Button 
+                          type="submit" 
+                          onClick={addPaymentMethod}
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting ? "Adding..." : "Add Payment Method"}
+                        </Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
@@ -356,7 +583,7 @@ export default function Profile() {
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center gap-2">
                             <CreditCard className="h-5 w-5 text-muted-foreground" />
-                            <span className="font-medium">{card.cardNumber}</span>
+                            <span className="font-medium">{maskCardNumber(card.cardNumber)}</span>
                           </div>
                           <div className="text-sm text-muted-foreground">
                             <div>{card.cardholderName}</div>
@@ -369,7 +596,8 @@ export default function Profile() {
                             <Edit className="h-4 w-4" />
                             <span className="hidden sm:inline">Edit</span>
                           </Button>
-                          <Button disabled variant="destructive" size="sm" className="flex items-center gap-2">
+                          <Button variant="destructive" size="sm" className="flex items-center gap-2" 
+                            onClick={() => deletePaymentMethod(card.id)}>
                             <Trash2 className="h-4 w-4" />
                             <span className="hidden sm:inline">Delete</span>
                           </Button>

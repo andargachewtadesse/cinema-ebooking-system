@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { usePaymentCards } from "./usePaymentCards";
 
 interface UserProfile {
@@ -17,91 +17,69 @@ export function useUserProfile() {
   const [error, setError] = useState<string | null>(null);
   const { cards, loading: cardsLoading } = usePaymentCards();
 
-  useEffect(() => {
-    async function fetchUserProfile() {
-      try {
-        setLoading(true);
-        const response = await fetch("http://localhost:8080/api/users/profileLoad");
-        
-        if (!response.ok) {
-          throw new Error("Failed to fetch profile data");
-        }
-        
-        const data = await response.json();
-        
-        // Create basic profile with user data
-        let userProfile = {
-          firstName: data.firstName || "",
-          lastName: data.lastName || "",
-          email: data.email || "",
-          streetAddress: "",
-          city: "",
-          state: "",
-          zipCode: ""
-        };
-        
-        setProfile(userProfile);
-      } catch (err) {
-        console.error("Error fetching user profile:", err);
-        setError("Failed to load profile data. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchUserProfile();
-  }, []);
-
-  // Secondary effect to fetch address from address API endpoint
-  useEffect(() => {
-    if (profile && profile.email && !profile.streetAddress) {
-      async function fetchUserAddress() {
-        try {
-          // Try to get address from a direct API call
-          const response = await fetch("http://localhost:8080/api/users/userAddress");
-          
-          if (response.ok) {
-            const addressData = await response.json();
-            
-            setProfile(prev => ({
-              ...prev!,
-              streetAddress: addressData.streetAddress || "",
-              city: addressData.city || "",
-              state: addressData.state || "",
-              zipCode: addressData.zipCode || ""
-            }));
-          } else {
-            // No direct address API, try to extract from card address
-            if (cards && cards.length > 0 && cards[0].cardAddress) {
-              // Assuming address format: "Street, City, State ZIP"
-              const addressParts = cards[0].cardAddress.split(', ');
-              if (addressParts.length >= 3) {
-                const street = addressParts[0];
-                const city = addressParts[1];
-                // Last part might be "State ZIP"
-                const stateZipParts = addressParts[2].split(' ');
-                const state = stateZipParts[0];
-                const zip = stateZipParts.length > 1 ? stateZipParts[1] : "";
-                
-                setProfile(prev => ({
-                  ...prev!,
-                  streetAddress: street,
-                  city: city,
-                  state: state,
-                  zipCode: zip
-                }));
-              }
-            }
-          }
-        } catch (err) {
-          console.error("Error fetching user address:", err);
-          // We don't set the main error since the profile still loaded
-        }
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      setLoading(true);
+      // First, fetch the basic profile
+      const response = await fetch("http://localhost:8080/api/users/profileLoad");
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch profile data");
       }
       
-      fetchUserAddress();
+      const data = await response.json();
+      console.log("Profile data from API:", data);
+      
+      // Create basic profile with user data
+      let userProfile: UserProfile = {
+        firstName: data.firstName || "",
+        lastName: data.lastName || "",
+        email: data.email || "",
+        streetAddress: data.streetAddress || "",
+        city: data.city || "",
+        state: data.state || "",
+        zipCode: data.zipCode || ""
+      };
+      
+      // Set the profile with what we have so far
+      setProfile(userProfile);
+      
+    } catch (err) {
+      console.error("Error fetching user profile:", err);
+      setError("Failed to load profile data. Please try again later.");
+    } finally {
+      setLoading(false);
     }
-  }, [profile, cards]);
+  }, []);
 
-  return { profile, loading: loading || cardsLoading, error };
+  useEffect(() => {
+    fetchUserProfile();
+  }, [fetchUserProfile]);
+
+  // Add a function to update the profile locally (without API call)
+  const updateProfileLocally = useCallback((updatedFields: Partial<UserProfile>) => {
+    setProfile(prevProfile => {
+      if (!prevProfile) return null;
+      
+      // Create a new object with the updated fields
+      const newProfile = {...prevProfile, ...updatedFields};
+      
+      console.log("Profile updated locally:", newProfile);
+      
+      return newProfile;
+    });
+  }, []);
+
+  // Add a function to refresh the profile data
+  const refreshProfile = useCallback(() => {
+    fetchUserProfile();
+  }, [fetchUserProfile]);
+
+  return { 
+    profile, 
+    loading: loading || cardsLoading, 
+    error, 
+    updateProfileLocally,
+    refreshProfile
+  };
 } 

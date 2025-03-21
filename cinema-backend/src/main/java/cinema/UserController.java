@@ -423,6 +423,12 @@ public class UserController {
                 response.put("email", activeUser.getEmail());
                 // Add other user details as needed
                 
+                // Add the address fields to the response
+                response.put("streetAddress", activeUser.getStreetAddress());
+                response.put("city", activeUser.getCity());
+                response.put("state", activeUser.getState());
+                response.put("zipCode", activeUser.getZipCode());
+                
                 return ResponseEntity.ok(response);
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -469,6 +475,53 @@ public class UserController {
         } catch (NumberFormatException e) {
             System.out.println("UserController: Invalid ID format: " + id);
             return ResponseEntity.badRequest().body("Invalid user ID format");
+        } catch (Exception e) {
+            System.out.println("UserController: Unexpected error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error: " + e.getMessage());
+        }
+    }
+
+    @PutMapping("/update-address")
+    public ResponseEntity<?> updateUserAddressByEmail(@RequestBody Map<String, String> addressData) {
+        try {
+            System.out.println("UserController: Received PUT request to update address for user email: " + addressData.get("email"));
+            
+            String email = addressData.get("email");
+            String streetAddress = addressData.get("streetAddress");
+            String city = addressData.get("city");
+            String state = addressData.get("state");
+            String zipCode = addressData.get("zipCode");
+            
+            if (email == null) {
+                return ResponseEntity.badRequest().body("Email is required");
+            }
+            
+            // Log the address data for debugging
+            System.out.println("Email: " + email);
+            System.out.println("Street Address: " + streetAddress);
+            System.out.println("City: " + city);
+            System.out.println("State: " + state);
+            System.out.println("ZIP Code: " + zipCode);
+            
+            // Get the user ID using the email
+            User user = userDAO.getUserByEmail(email);
+            
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with email: " + email);
+            }
+            
+            int userId = user.getUserId();
+            
+            boolean success = userDAO.updateUserAddress(userId, streetAddress, city, state, zipCode);
+            
+            if (success) {
+                System.out.println("UserController: Successfully updated address for user with email: " + email);
+                return ResponseEntity.ok(Map.of("message", "Address updated successfully"));
+            } else {
+                System.out.println("UserController: Failed to update address for user with email: " + email);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update address");
+            }
         } catch (Exception e) {
             System.out.println("UserController: Unexpected error: " + e.getMessage());
             e.printStackTrace();
