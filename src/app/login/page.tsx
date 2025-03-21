@@ -192,6 +192,9 @@ export default function LoginPage() {
                     Sign up
                   </Link>
                 </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  Admin user? <Link href="/admin/login" className="text-blue-600 hover:underline">Login here</Link>
+                </p>
               </CardFooter>
             </TabsContent>
 
