@@ -22,6 +22,7 @@ import { useUserProfile } from "@/hooks/useUserProfile"
 import { usePaymentCards } from "@/hooks/usePaymentCards"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Progress } from "@/components/ui/progress"
 
 export default function Profile() {
   const [editingPersonal, setEditingPersonal] = useState(false)
@@ -54,9 +55,14 @@ export default function Profile() {
   const { profile, loading: profileLoading, error: profileError, updateProfileLocally } = useUserProfile();
   const { cards, loading: cardsLoading, error: cardsError, refreshCards } = usePaymentCards();
   
-  const [oldPassword, setOldPassword] = useState('');        // Track current password
-  const [newPassword, setNewPassword] = useState('');                // Track new password
-  const [confirmPassword, setConfirmPassword] = useState('');        // Track confirm new password
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmNewPassword, setConfirmNewPassword] = useState("")
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [passwordStrength, setPasswordStrength] = useState(0)
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([])
+  const [passwordChanging, setPasswordChanging] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
 
   // Update form data when profile is loaded
   useEffect(() => {
@@ -180,33 +186,109 @@ export default function Profile() {
     }
   };
 
+  const calculatePasswordStrength = (password: string): number => {
+    if (!password) return 0
+
+    let strength = 0
+
+    // Length check
+    if (password.length >= 8) strength += 25
+
+    // Character type checks
+    if (/[A-Z]/.test(password)) strength += 25
+    if (/[0-9]/.test(password)) strength += 25
+    if (/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) strength += 25
+
+    return strength
+  }
+
+  const validatePassword = (password: string): string[] => {
+    const errors: string[] = []
+
+    if (password.length < 8) {
+      errors.push("Password must be at least 8 characters long")
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      errors.push("Password must contain at least one uppercase letter")
+    }
+
+    if (!/[0-9]/.test(password)) {
+      errors.push("Password must contain at least one number")
+    }
+
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
+      errors.push("Password must contain at least one special character")
+    }
+
+    return errors
+  }
+
   const handleChangePassword = async () => {
-    if (newPassword !== confirmPassword) {
-      return "Password Don't Match";
+    setPasswordChanging(true)
+    setError("") // Clear previous errors
+    setSuccess("") // Clear previous success message
+    
+    // Check if new password and confirm password match
+    if (newPassword !== confirmNewPassword) {
+      setError("New passwords do not match")
+      setPasswordChanging(false)
+      return
+    }
+    
+    // Validate password strength
+    const errors = validatePassword(newPassword)
+    if (errors.length > 0) {
+      setError("New password does not meet security requirements")
+      setPasswordChanging(false)
+      return
     }
 
     try {
+      // Change the endpoint to the correct backend URL
       const response = await fetch('http://localhost:8080/api/users/change-password', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          oldPassword,
-          newPassword,
+          oldPassword: currentPassword,
+          newPassword: newPassword
         }),
-      });
+      })
+
+      // Check if the response is JSON
+      const contentType = response.headers.get("content-type")
+      if (!contentType || !contentType.includes("application/json")) {
+        // If it's not JSON, get the text to see the actual error
+        const text = await response.text()
+        console.error("Non-JSON response:", text)
+        throw new Error("The server returned an invalid response")
+      }
+
+      const data = await response.json()
 
       if (response.ok) {
-        const result = await response.json();
-        console.log(result.message); // "Password updated successfully"
-    
+        setSuccess("Password changed successfully")
+        // Reset password fields
+        setCurrentPassword("")
+        setNewPassword("")
+        setConfirmNewPassword("")
+        setPasswordStrength(0)
+        setPasswordErrors([])
+        
+        // Close the dialog after successful password change
+        document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'Escape'}))
       } else {
-        console.error('Error changing password:');
-
+        setError(data.error || "Failed to change password")
       }
-    } catch (error) {
-      console.error('Error changing password:', error);
+    } catch (err) {
+      console.error("Password change error:", err)
+      setError("An error occurred. Please try again.")
     }
-  };
+    
+    setPasswordChanging(false)
+  }
 
   const validateCardInput = () => {
     let isValid = true;
@@ -615,26 +697,94 @@ export default function Profile() {
                         <DialogTitle>Change Password</DialogTitle>
                         <DialogDescription>Enter your current password and a new password.</DialogDescription>
                       </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="current">Current Password</Label>
-                          <Input id="current" type="password"value={oldPassword}
-                          onChange={(e) => setOldPassword(e.target.value)} />
+                      <div className="space-y-6">
+                        {error && (
+                          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded">
+                            {error}
+                          </div>
+                        )}
+                        {success && (
+                          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded">
+                            {success}
+                          </div>
+                        )}
+                        
+                        <div className="space-y-1">
+                          <Label htmlFor="current-password">Current Password</Label>
+                          <Input 
+                            id="current-password" 
+                            type="password" 
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                          />
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="new">New Password</Label>
-                          <Input id="new" type="password"value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)} />
+                        
+                        <div className="space-y-1">
+                          <Label htmlFor="new-password">New Password</Label>
+                          <Input 
+                            id="new-password" 
+                            type="password" 
+                            value={newPassword}
+                            onChange={(e) => {
+                              const newPwd = e.target.value;
+                              setNewPassword(newPwd);
+                              setPasswordStrength(calculatePasswordStrength(newPwd));
+                              setPasswordErrors(validatePassword(newPwd));
+                            }}
+                          />
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-xs">
+                              <span>Strength:</span>
+                              <span>
+                                {passwordStrength === 0 && "Very Weak"}
+                                {passwordStrength === 25 && "Weak"}
+                                {passwordStrength === 50 && "Medium"}
+                                {passwordStrength === 75 && "Strong"}
+                                {passwordStrength === 100 && "Very Strong"}
+                              </span>
+                            </div>
+                            <Progress value={passwordStrength} className="h-2" />
+                            <div className="text-xs text-gray-500">
+                              Password must contain:
+                              <ul className="list-disc pl-5 mt-1">
+                                <li className={newPassword.length >= 8 ? "text-green-500" : ""}>
+                                  At least 8 characters
+                                </li>
+                                <li className={/[A-Z]/.test(newPassword) ? "text-green-500" : ""}>
+                                  At least one uppercase letter
+                                </li>
+                                <li className={/[0-9]/.test(newPassword) ? "text-green-500" : ""}>
+                                  At least one number
+                                </li>
+                                <li className={/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(newPassword) ? "text-green-500" : ""}>
+                                  At least one special character
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="confirm">Confirm New Password</Label>
-                          <Input id="confirm" type="password" value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}/>
+                        
+                        <div className="space-y-1">
+                          <Label htmlFor="confirm-password">Confirm New Password</Label>
+                          <Input 
+                            id="confirm-password" 
+                            type="password" 
+                            value={confirmNewPassword}
+                            onChange={(e) => setConfirmNewPassword(e.target.value)}
+                          />
+                          {newPassword && confirmNewPassword && newPassword !== confirmNewPassword && (
+                            <p className="text-xs text-red-500">Passwords do not match</p>
+                          )}
                         </div>
+                        
+                        <Button 
+                          onClick={handleChangePassword} 
+                          disabled={passwordChanging || !currentPassword || !newPassword || !confirmNewPassword}
+                          className="w-full"
+                        >
+                          {passwordChanging ? "Changing Password..." : "Change Password"}
+                        </Button>
                       </div>
-                      <DialogFooter>
-                        <Button type="submit"onClick={handleChangePassword}>Save Changes</Button>
-                      </DialogFooter>
                     </DialogContent>
                   </Dialog>
                 </div>
