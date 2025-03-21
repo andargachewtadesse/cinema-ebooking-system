@@ -101,25 +101,22 @@ public class CardController {
         }
     }
 
-    // Delete a card by cardNumber
-    @DeleteMapping("/{cardNumber}")
-    public ResponseEntity<?> deleteCard(@PathVariable String cardNumber) {
+    // Delete a card by ID
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteCard(@PathVariable int id) {
         try {
-            System.out.println("CardController: Received DELETE request for card ID: " + cardNumber);
+            System.out.println("CardController: Received DELETE request for card ID: " + id);
 
-            boolean isDeleted = cardDAO.deleteCard(cardNumber);
+            boolean isDeleted = cardDAO.deleteCard(id);
 
             if (isDeleted) {
-                System.out.println("CardController: Successfully deleted card with ID: " + cardNumber);
-                return ResponseEntity.ok().build();
+                System.out.println("CardController: Successfully deleted card with ID: " + id);
+                return ResponseEntity.ok().body(Map.of("message", "Card deleted successfully"));
             } else {
-                System.out.println("CardController: No card found with ID: " + cardNumber);
+                System.out.println("CardController: No card found with ID: " + id);
                 return ResponseEntity.notFound().build();
             }
 
-        } catch (NumberFormatException e) {
-            System.out.println("CardController: Invalid ID format: " + cardNumber);
-            return ResponseEntity.badRequest().body("Invalid card ID format");
         } catch (Exception e) {
             System.out.println("CardController: Unexpected error: " + e.getMessage());
             e.printStackTrace();
@@ -148,6 +145,31 @@ public class CardController {
         }
     }
 
+    // Update card address endpoint
+    @PutMapping("/{id}/update-address")
+    public ResponseEntity<?> updateCardAddress(@PathVariable int id, @RequestBody Map<String, String> payload) {
+        try {
+            System.out.println("CardController: Received PUT request to update address for card ID: " + id);
+            
+            String cardAddress = payload.get("cardAddress");
+            
+            if (cardAddress == null) {
+                return ResponseEntity.badRequest().body("Card address is required");
+            }
+            
+            boolean isUpdated = cardDAO.updateCardAddressById(id, cardAddress);
+            
+            if (isUpdated) {
+                return ResponseEntity.ok().body(Map.of("message", "Card address updated successfully"));
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Card not found"));
+            }
+        } catch (Exception e) {
+            System.out.println("CardController: Error updating card address: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update card address");
+        }
+    }
 
     // Health check
     @GetMapping("/health")

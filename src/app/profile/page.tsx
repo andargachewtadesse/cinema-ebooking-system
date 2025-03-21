@@ -41,6 +41,13 @@ export default function Profile() {
     cvv: "",
     cardAddress: ""
   })
+  const [cardErrors, setCardErrors] = useState({
+    cardholderName: "",
+    cardNumber: "",
+    expirationDate: "",
+    cvv: ""
+  })
+  const [editingCard, setEditingCard] = useState<{id: number, address: string} | null>(null);
   
   const { profile, loading: profileLoading, error: profileError, updateProfileLocally } = useUserProfile();
   const { cards, loading: cardsLoading, error: cardsError, refreshCards } = usePaymentCards();
@@ -158,27 +165,155 @@ export default function Profile() {
     }
   };
 
+  const validateCardInput = () => {
+    let isValid = true;
+    const errors = {
+      cardholderName: "",
+      cardNumber: "",
+      expirationDate: "",
+      cvv: ""
+    };
+
+    // Validate cardholder name (required, letters and spaces only)
+    if (!newCard.cardholderName.trim()) {
+      errors.cardholderName = "Cardholder name is required";
+      isValid = false;
+    } else if (!/^[a-zA-Z\s]+$/.test(newCard.cardholderName.trim())) {
+      errors.cardholderName = "Name should contain only letters and spaces";
+      isValid = false;
+    }
+
+    // Validate card number (required, numbers only, 16 digits)
+    const cardNumberClean = newCard.cardNumber.replace(/\s/g, '');
+    if (!cardNumberClean) {
+      errors.cardNumber = "Card number is required";
+      isValid = false;
+    } else if (!/^\d+$/.test(cardNumberClean)) {
+      errors.cardNumber = "Card number should contain only digits";
+      isValid = false;
+    } else if (cardNumberClean.length !== 16) {
+      errors.cardNumber = "Card number should be 16 digits";
+      isValid = false;
+    }
+
+    // Validate expiration date (required, format MM/YY)
+    if (!newCard.expirationDate) {
+      errors.expirationDate = "Expiration date is required";
+      isValid = false;
+    } else if (!/^\d{2}\/\d{2}$/.test(newCard.expirationDate)) {
+      errors.expirationDate = "Use format MM/YY";
+      isValid = false;
+    } else {
+      // Check if date is valid and not expired
+      const [month, year] = newCard.expirationDate.split('/');
+      const expiryMonth = parseInt(month, 10);
+      const expiryYear = parseInt(year, 10) + 2000; // Convert YY to 20YY
+      
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1; // getMonth is 0-indexed
+      const currentYear = now.getFullYear();
+      
+      if (expiryMonth < 1 || expiryMonth > 12) {
+        errors.expirationDate = "Invalid month";
+        isValid = false;
+      } else if (expiryYear < currentYear || (expiryYear === currentYear && expiryMonth < currentMonth)) {
+        errors.expirationDate = "Card has expired";
+        isValid = false;
+      }
+    }
+
+    // Validate CVV (required, 3-4 digits)
+    if (!newCard.cvv) {
+      errors.cvv = "CVV is required";
+      isValid = false;
+    } else if (!/^\d{3,4}$/.test(newCard.cvv)) {
+      errors.cvv = "CVV should be 3 or 4 digits";
+      isValid = false;
+    }
+
+    setCardErrors(errors);
+    return isValid;
+  };
+
   const handleCardInputChange = (e) => {
     const { id, value } = e.target;
-    setNewCard(prev => ({
+    
+    // Format card number with spaces after every 4 digits while typing
+    if (id === 'cardNumber') {
+      // Remove any non-digit characters
+      const cleaned = value.replace(/\D/g, '');
+      // Add a space after every 4 digits
+      let formatted = '';
+      for (let i = 0; i < cleaned.length; i++) {
+        if (i > 0 && i % 4 === 0) {
+          formatted += ' ';
+        }
+        formatted += cleaned[i];
+      }
+      // Limit to 19 characters (16 digits + 3 spaces)
+      formatted = formatted.substring(0, 19);
+      
+      setNewCard(prev => ({
+        ...prev,
+        [id]: formatted
+      }));
+    }
+    // Format expiration date with / after first two digits
+    else if (id === 'expirationDate') {
+      // Remove any non-digit characters except for a single /
+      const cleaned = value.replace(/[^\d\/]/g, '').replace(/\/+/g, '/');
+      let formatted = cleaned;
+      
+      // If we have at least 2 digits and no slash yet, add one
+      if (cleaned.length >= 2 && !cleaned.includes('/')) {
+        formatted = cleaned.substring(0, 2) + '/' + cleaned.substring(2);
+      }
+      
+      // Limit to 5 characters (MM/YY)
+      formatted = formatted.substring(0, 5);
+      
+      setNewCard(prev => ({
+        ...prev,
+        [id]: formatted
+      }));
+    }
+    // Limit CVV to 4 digits
+    else if (id === 'cvv') {
+      const cleaned = value.replace(/\D/g, '').substring(0, 4);
+      setNewCard(prev => ({
+        ...prev,
+        [id]: cleaned
+      }));
+    }
+    else {
+      setNewCard(prev => ({
+        ...prev,
+        [id]: value
+      }));
+    }
+    
+    // Clear the error message for this field when typing
+    setCardErrors(prev => ({
       ...prev,
-      [id]: value
+      [id]: ""
     }));
   };
 
   const addPaymentMethod = async () => {
     try {
-      setIsSubmitting(true);
-      
-      // Validate form
-      if (!newCard.cardholderName || !newCard.cardNumber || !newCard.expirationDate || !newCard.cvv) {
-        alert("Please fill out all required fields");
-        return;
+      // Validate form before submission
+      if (!validateCardInput()) {
+        return; // Stop if validation fails
       }
+      
+      setIsSubmitting(true);
 
       // Use the billing address if provided, otherwise use profile address
       const cardAddress = newCard.cardAddress || 
         `${profile.streetAddress}, ${profile.city}, ${profile.state} ${profile.zipCode}`;
+      
+      // Clean card number to remove spaces before sending
+      const cleanCardNumber = newCard.cardNumber.replace(/\s/g, '');
       
       const response = await fetch("http://localhost:8080/api/cards/add", {
         method: "POST",
@@ -187,7 +322,7 @@ export default function Profile() {
         },
         body: JSON.stringify({
           cardholderName: newCard.cardholderName,
-          cardNumber: newCard.cardNumber,
+          cardNumber: cleanCardNumber,
           cvv: newCard.cvv,
           cardAddress: cardAddress,
           expirationDate: newCard.expirationDate
@@ -195,7 +330,8 @@ export default function Profile() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to add payment method");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to add payment method");
       }
 
       // Refresh the cards data
@@ -209,13 +345,19 @@ export default function Profile() {
         cvv: "",
         cardAddress: ""
       });
+      setCardErrors({
+        cardholderName: "",
+        cardNumber: "",
+        expirationDate: "",
+        cvv: ""
+      });
       
       // Close dialog by clicking the "ESC" key
       document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'Escape'}));
       
     } catch (error) {
       console.error("Error adding payment method:", error);
-      alert("Failed to add payment method. Please try again.");
+      alert("Failed to add payment method: " + error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -247,6 +389,42 @@ export default function Profile() {
     // Show only last 4 characters
     return "•••• •••• •••• " + cardNumber.slice(-4)
   }
+
+  const handleCardAddressChange = (e) => {
+    const { value } = e.target;
+    setEditingCard(prev => prev ? {...prev, address: value} : null);
+  };
+
+  const updateCardAddress = async (cardId) => {
+    try {
+      setIsSubmitting(true);
+      
+      if (!editingCard) return;
+      
+      const response = await fetch(`http://localhost:8080/api/cards/${cardId}/update-address`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cardAddress: editingCard.address
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update card address");
+      }
+
+      // Refresh the cards data
+      refreshCards();
+      setEditingCard(null);
+    } catch (error) {
+      console.error("Error updating card address:", error);
+      alert("Failed to update card address. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (profileLoading) {
     return (
@@ -506,41 +684,65 @@ export default function Profile() {
                       </DialogHeader>
                       <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                          <Label htmlFor="cardholderName">Card Holder</Label>
+                          <Label htmlFor="cardholderName" className="flex items-center">
+                            Card Holder <span className="text-red-500 ml-1">*</span>
+                          </Label>
                           <Input 
                             id="cardholderName" 
                             placeholder="Name on card" 
                             value={newCard.cardholderName}
                             onChange={handleCardInputChange}
+                            className={cardErrors.cardholderName ? "border-red-500" : ""}
                           />
+                          {cardErrors.cardholderName && (
+                            <p className="text-xs text-red-500">{cardErrors.cardholderName}</p>
+                          )}
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="cardNumber">Card Number</Label>
+                          <Label htmlFor="cardNumber" className="flex items-center">
+                            Card Number <span className="text-red-500 ml-1">*</span>
+                          </Label>
                           <Input 
                             id="cardNumber" 
                             placeholder="1234 5678 9012 3456" 
                             value={newCard.cardNumber}
                             onChange={handleCardInputChange}
+                            className={cardErrors.cardNumber ? "border-red-500" : ""}
                           />
+                          {cardErrors.cardNumber && (
+                            <p className="text-xs text-red-500">{cardErrors.cardNumber}</p>
+                          )}
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="expirationDate">Expiry Date</Label>
+                            <Label htmlFor="expirationDate" className="flex items-center">
+                              Expiry Date <span className="text-red-500 ml-1">*</span>
+                            </Label>
                             <Input 
                               id="expirationDate" 
                               placeholder="MM/YY" 
                               value={newCard.expirationDate}
                               onChange={handleCardInputChange}
+                              className={cardErrors.expirationDate ? "border-red-500" : ""}
                             />
+                            {cardErrors.expirationDate && (
+                              <p className="text-xs text-red-500">{cardErrors.expirationDate}</p>
+                            )}
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="cvv">CVC</Label>
+                            <Label htmlFor="cvv" className="flex items-center">
+                              CVC <span className="text-red-500 ml-1">*</span>
+                            </Label>
                             <Input 
                               id="cvv" 
                               placeholder="123" 
                               value={newCard.cvv}
                               onChange={handleCardInputChange}
+                              className={cardErrors.cvv ? "border-red-500" : ""}
                             />
+                            {cardErrors.cvv && (
+                              <p className="text-xs text-red-500">{cardErrors.cvv}</p>
+                            )}
                           </div>
                         </div>
                         <div className="space-y-2">
@@ -551,6 +753,9 @@ export default function Profile() {
                             value={newCard.cardAddress}
                             onChange={handleCardInputChange}
                           />
+                          <p className="text-xs text-muted-foreground">
+                            If left blank, your profile address will be used
+                          </p>
                         </div>
                       </div>
                       <DialogFooter>
@@ -587,20 +792,62 @@ export default function Profile() {
                           </div>
                           <div className="text-sm text-muted-foreground">
                             <div>{card.cardholderName}</div>
-                            <div>{card.cardAddress}</div>
+                            {editingCard && editingCard.id === card.id ? (
+                              <Input
+                                value={editingCard.address}
+                                onChange={handleCardAddressChange}
+                                className="mt-2 mb-2"
+                                placeholder="Enter new billing address"
+                              />
+                            ) : (
+                              <div>{card.cardAddress}</div>
+                            )}
                             {card.expirationDate && <div>Expires: {card.expirationDate}</div>}
                           </div>
                         </div>
                         <div className="flex items-center gap-2 self-end md:self-center">
-                          <Button disabled variant="outline" size="sm" className="flex items-center gap-2">
-                            <Edit className="h-4 w-4" />
-                            <span className="hidden sm:inline">Edit</span>
-                          </Button>
-                          <Button variant="destructive" size="sm" className="flex items-center gap-2" 
-                            onClick={() => deletePaymentMethod(card.id)}>
-                            <Trash2 className="h-4 w-4" />
-                            <span className="hidden sm:inline">Delete</span>
-                          </Button>
+                          {editingCard && editingCard.id === card.id ? (
+                            <>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex items-center gap-2"
+                                onClick={() => setEditingCard(null)}
+                              >
+                                Cancel
+                              </Button>
+                              <Button 
+                                variant="default" 
+                                size="sm" 
+                                className="flex items-center gap-2"
+                                onClick={() => updateCardAddress(card.id)}
+                                disabled={isSubmitting}
+                              >
+                                {isSubmitting ? "Saving..." : "Save"}
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex items-center gap-2"
+                                onClick={() => setEditingCard({id: card.id, address: card.cardAddress})}
+                              >
+                                <Edit className="h-4 w-4" />
+                                <span className="hidden sm:inline">Edit</span>
+                              </Button>
+                              <Button 
+                                variant="destructive" 
+                                size="sm" 
+                                className="flex items-center gap-2" 
+                                onClick={() => deletePaymentMethod(card.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                <span className="hidden sm:inline">Delete</span>
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     ))}

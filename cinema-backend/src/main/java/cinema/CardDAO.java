@@ -131,16 +131,16 @@ public class CardDAO {
     }
 
     // Delete a card by card ID
-    public boolean deleteCard(String cardNum) {
+    public boolean deleteCard(int cardId) {
         try {
-            String deleteQuery = "DELETE FROM card WHERE cardNumber = ?";
-            int rowsAffected = jdbcTemplate.update(deleteQuery, cardNum);
+            String deleteQuery = "DELETE FROM card WHERE id = ?";
+            int rowsAffected = jdbcTemplate.update(deleteQuery, cardId);
             System.out.println("CardDAO: Delete card query affected " + rowsAffected + " rows");
             return rowsAffected > 0;
         } catch (Exception e) {
             System.out.println("CardDAO: Error deleting card: " + e.getMessage());
             e.printStackTrace();
-            throw new RuntimeException("Failed to delete card with cardNumber: " + cardNum, e);
+            return false;
         }
     }
 
@@ -213,6 +213,20 @@ public class CardDAO {
         }, keyHolder);
 
         return keyHolder.getKey().intValue();  // Return the generated card ID
+    }
+
+    // Update card address by ID
+    public boolean updateCardAddressById(int cardId, String newAddress) {
+        try {
+            String updateQuery = "UPDATE card SET card_address = ? WHERE id = ?";
+            int rowsAffected = jdbcTemplate.update(updateQuery, newAddress, cardId);
+            System.out.println("CardDAO: Update card address affected " + rowsAffected + " rows");
+            return rowsAffected > 0;
+        } catch (Exception e) {
+            System.out.println("CardDAO: Error updating card address: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
     }
 
 }
