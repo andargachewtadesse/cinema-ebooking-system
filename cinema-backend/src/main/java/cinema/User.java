@@ -19,6 +19,8 @@ public class User implements Serializable {
     private String state;
     private String zipCode;
 
+    private boolean isAdmin;
+
     public User(int user_id,String password, String firstName, String lastName, 
                 String email, int status_id, boolean promotionSubscription) {
         this.user_id = user_id;
@@ -134,6 +136,14 @@ public class User implements Serializable {
         this.zipCode = zipCode;
     }
 
+    public boolean isAdmin() {
+        return isAdmin;
+    }
+
+    public void setAdmin(boolean isAdmin) {
+        this.isAdmin = isAdmin;
+    }
+
     @Override
     public String toString() {
         return "User{" +
@@ -143,6 +153,7 @@ public class User implements Serializable {
                 ", email='" + email + '\'' +
                 ", status_id=" + status_id +
                 ", promotionSubscription=" + promotionSubscription +
+                ", isAdmin=" + isAdmin +
                 ", streetAddress='" + streetAddress + '\'' +
                 ", city='" + city + '\'' +
                 ", state='" + state + '\'' +

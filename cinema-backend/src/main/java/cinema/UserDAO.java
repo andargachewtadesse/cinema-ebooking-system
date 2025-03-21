@@ -6,6 +6,7 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.HashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -91,6 +92,8 @@ public class UserDAO {
                     user.setCity(rs.getString("city"));
                     user.setState(rs.getString("state"));
                     user.setZipCode(rs.getString("zip_code"));
+                    
+                    user.setAdmin(rs.getBoolean("is_admin"));
                     
                     return user;
                 },
@@ -329,34 +332,40 @@ public class UserDAO {
     }
     
     // User Login validate
-    public boolean validateUserLogin(String email, String password) {
+    public Map<String, Object> validateUserLogin(String email, String password) {
         try {
-            // Query to get the password from the database
-            String query = "SELECT password FROM user WHERE email = ?";
+            Map<String, Object> result = new HashMap<>();
+            result.put("isValid", false);
             
-            // Use queryForList instead of the deprecated query method
+            // Query to get the password and is_admin from the database
+            String query = "SELECT password, is_admin FROM user WHERE email = ?";
+            
             List<Map<String, Object>> results = jdbcTemplate.queryForList(query, email);
             
-            if (results.isEmpty()) {
-                return false;
+            if (!results.isEmpty()) {
+                String storedPassword = (String) results.get(0).get("password");
+                boolean isAdmin = (boolean) results.get(0).get("is_admin");
+                
+                // Verify password using BCrypt
+                boolean passwordMatches = passwordEncoder.matches(password, storedPassword);
+                
+                if (passwordMatches) {
+                    // Update user status to active
+                    query = "UPDATE user SET status_id = 1 WHERE email = ?";
+                    jdbcTemplate.update(query, email);
+                    
+                    result.put("isValid", true);
+                    result.put("isAdmin", isAdmin);
+                }
             }
             
-            String storedPassword = (String) results.get(0).get("password");
-            
-            // Verify password using BCrypt
-            boolean passwordMatches = passwordEncoder.matches(password, storedPassword);
-            
-            if (passwordMatches) {
-                // Update user status to active
-                query = "UPDATE user SET status_id = 1 WHERE email = ?";
-                jdbcTemplate.update(query, email);
-            }
-            
-            return passwordMatches;
+            return result;
         } catch (Exception e) {
             System.out.println("Error during login validation: " + e.getMessage());
             e.printStackTrace();
-            return false;
+            Map<String, Object> result = new HashMap<>();
+            result.put("isValid", false);
+            return result;
         }
     }
 
@@ -453,6 +462,123 @@ public class UserDAO {
             System.out.println("UserDAO: Error in updatePasswordAfterReset: " + e.getMessage());
             e.printStackTrace();
             return false;
+        }
+    }
+
+    // Method to create initial admin account (to be called from a command line runner)
+    public void createInitialAdminAccount(String email, String password, String firstName, String lastName) {
+        try {
+            // Check if admin already exists
+            String query = "SELECT COUNT(*) FROM user WHERE is_admin = TRUE";
+            int adminCount = jdbcTemplate.queryForObject(query, Integer.class);
+            
+            if (adminCount == 0) {
+                // No admin exists, create one
+                String encryptedPassword = passwordEncoder.encode(password);
+                
+                String insertSql = "INSERT INTO user (password, first_name, last_name, email, status_id, is_admin) " +
+                                   "VALUES (?, ?, ?, ?, 1, TRUE)";
+                
+                jdbcTemplate.update(insertSql, encryptedPassword, firstName, lastName, email);
+                
+                System.out.println("Initial admin account created with email: " + email);
+            } else {
+                System.out.println("Admin account already exists, skipping creation.");
+            }
+        } catch (Exception e) {
+            System.out.println("Error creating initial admin account: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    // Method to get user with admin flag
+    public User getUserByEmailWithAdminStatus(String email) {
+        try {
+            String query = "SELECT * FROM user WHERE email = ?";
+            
+            List<User> users = jdbcTemplate.query(
+                query, 
+                (rs, rowNum) -> {
+                    User user = new User();
+                    user.setUserId(rs.getInt("user_id"));
+                    user.setPassword(rs.getString("password"));
+                    user.setFirstName(rs.getString("first_name"));
+                    user.setLastName(rs.getString("last_name"));
+                    user.setEmail(rs.getString("email"));
+                    user.setStatusId(rs.getInt("status_id"));
+                    user.setPromotionSubscription(rs.getBoolean("promotion_subscription"));
+                    user.setVerificationCode(rs.getString("verification_code"));
+                    user.setAdmin(rs.getBoolean("is_admin"));
+                    
+                    // Get address fields
+                    user.setStreetAddress(rs.getString("street_address"));
+                    user.setCity(rs.getString("city"));
+                    user.setState(rs.getString("state"));
+                    user.setZipCode(rs.getString("zip_code"));
+                    
+                    return user;
+                },
+                email
+            );
+            
+            return users.isEmpty() ? null : users.get(0);
+        } catch (Exception e) {
+            System.out.println("UserDAO: Error in getUserByEmailWithAdminStatus: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    // Method to create a new admin account
+    public boolean createAdminAccount(User user) {
+        try {
+            // Encrypt password
+            String encryptedPassword = passwordEncoder.encode(user.getPassword());
+            
+            String sql = "INSERT INTO user (password, first_name, last_name, email, status_id, is_admin) " +
+                         "VALUES (?, ?, ?, ?, 1, TRUE)";
+            
+            int result = jdbcTemplate.update(
+                sql,
+                encryptedPassword,
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail()
+            );
+            
+            return result > 0;
+        } catch (Exception e) {
+            System.out.println("UserDAO: Error creating admin account: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // Get all admin accounts
+    public List<User> getAllAdmins() {
+        try {
+            String query = "SELECT * FROM user WHERE is_admin = TRUE";
+
+            List<User> admins = jdbcTemplate.query(
+                query, 
+                (rs, rowNum) -> {
+                    User user = new User();
+                    user.setUserId(rs.getInt("user_id"));
+                    user.setFirstName(rs.getString("first_name"));
+                    user.setLastName(rs.getString("last_name"));
+                    user.setEmail(rs.getString("email"));
+                    user.setStatusId(rs.getInt("status_id"));
+                    user.setAdmin(true);
+                    return user;
+                }
+            );
+
+            return admins;
+            
+        } catch (Exception e) {
+            System.out.println("UserDAO: Error getting all admins: " + e.getMessage());
+            e.printStackTrace();
+            return List.of();
         }
     }
 }

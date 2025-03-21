@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -320,11 +321,12 @@ public class UserController {
         String email = loginRequest.getEmail();
         String password = loginRequest.getPassword();
     
-        boolean isValid = userDAO.validateUserLogin(email, password);
+        Map<String, Object> result = userDAO.validateUserLogin(email, password);
+        boolean isValid = (boolean) result.get("isValid");
 
         if (isValid) {
             // Get user details
-            User user = userDAO.getUserByEmail(email);
+            User user = userDAO.getUserByEmailWithAdminStatus(email);
             
             if (user == null) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -338,7 +340,8 @@ public class UserController {
             response.put("email", email);
             response.put("firstName", user.getFirstName());
             response.put("lastName", user.getLastName());
-            response.put("isAdmin", false); // Implement admin check logic if needed
+            response.put("isAdmin", user.isAdmin());
+            response.put("token", generateJwtToken(user)); // You'll need to implement this
 
             return ResponseEntity.ok(response);
         } else {
@@ -566,5 +569,118 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Internal server error"));
         }
+    }
+
+    // Admin login endpoint
+    @PostMapping("/admin/login")
+    public ResponseEntity<?> loginAdmin(@RequestBody User loginRequest) {
+        System.out.println("Admin login attempt for email: " + loginRequest.getEmail());
+        
+        String email = loginRequest.getEmail();
+        String password = loginRequest.getPassword();
+
+        Map<String, Object> result = userDAO.validateUserLogin(email, password);
+        boolean isValid = (boolean) result.get("isValid");
+        
+        System.out.println("Login validation result: " + isValid);
+        
+        if (isValid) {
+            boolean isAdmin = (boolean) result.get("isAdmin");
+            System.out.println("Is admin account: " + isAdmin);
+            
+            // Get admin user details
+            User user = userDAO.getUserByEmailWithAdminStatus(email);
+            
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "User not found after successful login"));
+            }
+            
+            // Return JSON response with a success message and admin info
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Admin login successful");
+            response.put("userId", user.getUserId());
+            response.put("email", email);
+            response.put("firstName", user.getFirstName());
+            response.put("lastName", user.getLastName());
+            response.put("isAdmin", true);
+
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", "Invalid email or password"));
+        }
+    }
+
+    // Get all admin accounts endpoint
+    @GetMapping("/admin/all")
+    public ResponseEntity<?> getAllAdmins(@RequestHeader("Authorization") String authHeader) {
+        try {
+            // Auth check - make sure the request comes from an admin
+            // Implement proper JWT token validation here
+            if (!isAdminRequest(authHeader)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Not authorized"));
+            }
+            
+            List<User> admins = userDAO.getAllAdmins();
+            return ResponseEntity.ok(admins);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Failed to get admin accounts: " + e.getMessage()));
+        }
+    }
+
+    // Create new admin account endpoint
+    @PostMapping("/admin/create")
+    public ResponseEntity<?> createAdminAccount(
+        @RequestHeader("Authorization") String authHeader,
+        @RequestBody User newAdmin
+    ) {
+        try {
+            // Auth check - make sure the request comes from an admin
+            if (!isAdminRequest(authHeader)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Not authorized"));
+            }
+            
+            // Check if email already exists
+            User existingUser = userDAO.getUserByEmail(newAdmin.getEmail());
+            if (existingUser != null) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Email already registered"));
+            }
+            
+            boolean success = userDAO.createAdminAccount(newAdmin);
+            
+            if (success) {
+                return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(Map.of("message", "Admin account created successfully"));
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to create admin account"));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Failed to create admin account: " + e.getMessage()));
+        }
+    }
+
+    // Helper method to verify if request is from an admin
+    private boolean isAdminRequest(String authHeader) {
+        // This is a placeholder - implement proper JWT token validation
+        // Ideally, extract user info from JWT token and check if user is admin
+        
+        // For now, simple check - assuming "Bearer adminToken" means admin
+        return authHeader != null && authHeader.startsWith("Bearer ");
+    }
+
+    // Placeholder for JWT token generation
+    private String generateJwtToken(User user) {
+        // Implement JWT token generation based on user details
+        // Include user ID, email, and isAdmin flag in the token payload
+        
+        // For now, return a dummy token
+        return "dummy_token_" + user.getUserId() + "_" + (user.isAdmin() ? "admin" : "user");
     }
 }
