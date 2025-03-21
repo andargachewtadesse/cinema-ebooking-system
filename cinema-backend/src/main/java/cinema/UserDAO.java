@@ -460,4 +460,34 @@ public class UserDAO {
             return false;
         }
     }
+
+    public boolean verifyPasswordResetCode(String email, String verificationCode) {
+        try {
+            String query = "SELECT * FROM user WHERE email = ? AND verification_code = ?";
+            List<Map<String, Object>> results = jdbcTemplate.queryForList(query, email, verificationCode);
+            
+            return !results.isEmpty();
+        } catch (Exception e) {
+            System.out.println("UserDAO: Error in verifyPasswordResetCode: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean updatePasswordAfterReset(String email, String newPassword) {
+        try {
+            // Encrypt the new password
+            String encryptedPassword = passwordEncoder.encode(newPassword);
+            
+            // Update the password and clear the verification code
+            String updateQuery = "UPDATE user SET password = ?, verification_code = NULL WHERE email = ?";
+            int rowsAffected = jdbcTemplate.update(updateQuery, encryptedPassword, email);
+            
+            return rowsAffected > 0;
+        } catch (Exception e) {
+            System.out.println("UserDAO: Error in updatePasswordAfterReset: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

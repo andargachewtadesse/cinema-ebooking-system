@@ -77,16 +77,34 @@ export default function LoginPage() {
   };
   
 
-  const handlePasswordReset = (e: React.FormEvent) => {
+  const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!resetEmail) {
       setError("Please enter your email address")
       return
     }
-    // Simulate password reset - connect to backend
-    console.log("Password reset for:", resetEmail)
-    setError("")
-    setResetSent(true)
+    
+    try {
+      const response = await fetch("http://localhost:8080/api/users/forgot-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: resetEmail }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setError("")
+        setResetSent(true)
+      } else {
+        setError(data.error || "Failed to send reset link")
+      }
+    } catch (err) {
+      console.error("Password reset error:", err)
+      setError("Something went wrong. Please try again.")
+    }
   }
 
   return (

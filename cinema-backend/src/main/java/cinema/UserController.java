@@ -530,4 +530,39 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error: " + e.getMessage());
         }
     }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> payload) {
+        try {
+            String email = payload.get("email");
+            String verificationCode = payload.get("verificationCode");
+            String newPassword = payload.get("newPassword");
+            
+            if (email == null || verificationCode == null || newPassword == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Email, verification code, and new password are required"));
+            }
+            
+            // First verify the code matches
+            boolean isVerified = userDAO.verifyPasswordResetCode(email, verificationCode);
+            
+            if (!isVerified) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Invalid verification code"));
+            }
+            
+            // If verified, update the password
+            boolean passwordUpdated = userDAO.updatePasswordAfterReset(email, newPassword);
+            
+            if (passwordUpdated) {
+                return ResponseEntity.ok(Map.of("message", "Password has been reset successfully"));
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to update password"));
+            }
+        } catch (Exception e) {
+            System.out.println("UserController: Error in password reset: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Internal server error"));
+        }
+    }
 }
