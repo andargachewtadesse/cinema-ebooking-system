@@ -635,7 +635,7 @@ public class UserController {
     @PostMapping("/admin/create")
     public ResponseEntity<?> createAdminAccount(
         @RequestHeader("Authorization") String authHeader,
-        @RequestBody User newAdmin
+        @RequestBody Map<String, Object> userData
     ) {
         try {
             // Auth check - make sure the request comes from an admin
@@ -643,6 +643,18 @@ public class UserController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Not authorized"));
             }
+            
+            // Create and populate user object
+            User newAdmin = new User();
+            newAdmin.setFirstName((String) userData.get("firstName"));
+            newAdmin.setLastName((String) userData.get("lastName"));
+            newAdmin.setEmail((String) userData.get("email"));
+            newAdmin.setPassword((String) userData.get("password"));
+            
+            // Apply status ID - FORCE it to 2 (inactive) regardless of what was sent
+            newAdmin.setStatusId(2);
+            
+            System.out.println("UserController: Creating admin with statusId=" + newAdmin.getStatusId());
             
             // Check if email already exists
             User existingUser = userDAO.getUserByEmail(newAdmin.getEmail());
@@ -661,6 +673,8 @@ public class UserController {
                     .body(Map.of("error", "Failed to create admin account"));
             }
         } catch (Exception e) {
+            System.out.println("Error creating admin account: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Failed to create admin account: " + e.getMessage()));
         }

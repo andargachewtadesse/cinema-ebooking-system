@@ -5,7 +5,9 @@ import { usePathname, useRouter } from "next/navigation"
 import { OrderHeader } from "@/components/order/OrderHeader"
 import { Sidebar } from "@/app/admin/components/sidebar"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, LogOut } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 export default function AdminLayout({
   children,
@@ -16,6 +18,41 @@ export default function AdminLayout({
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const pathname = usePathname()
+
+  // Add a logout function
+  const handleLogout = async () => {
+    try {
+      // Get the current user from localStorage
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        const email = user.email;
+        
+        // Call the backend logout API
+        await fetch("http://localhost:8080/api/users/logout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
+        });
+      }
+      
+      // Clear authentication data
+      localStorage.removeItem('user');
+      localStorage.removeItem('authToken');
+      
+      // Redirect to login page
+      document.location.href = '/admin/login';
+    } catch (error) {
+      console.error("Error during logout:", error);
+      
+      // Even if the API call fails, still clear local storage and redirect
+      localStorage.removeItem('user');
+      localStorage.removeItem('authToken');
+      document.location.href = '/admin/login';
+    }
+  }
 
   // Direct check for admin status without using context
   useEffect(() => {
@@ -106,7 +143,22 @@ export default function AdminLayout({
   // Render normal admin layout for authenticated admins
   return (
     <div className="flex flex-col min-h-screen">
-      <OrderHeader />
+      <div className="flex items-center justify-between px-6 py-3 border-b">
+        <Link href="/admin" className="text-xl font-bold hover:underline">
+          Bulldawgs Cinema Admin
+        </Link>
+        
+        {/* Logout button */}
+        <Button 
+          variant="outline" 
+          className="flex items-center gap-2"
+          onClick={handleLogout}
+        >
+          <LogOut size={16} />
+          Logout
+        </Button>
+      </div>
+      
       <div className="flex flex-1">
         <Sidebar />
         <main className="flex-1 p-8 bg-background">{children}</main>

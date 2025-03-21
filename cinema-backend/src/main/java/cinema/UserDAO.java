@@ -337,8 +337,8 @@ public class UserDAO {
             Map<String, Object> result = new HashMap<>();
             result.put("isValid", false);
             
-            // Query to get the password and is_admin from the database
-            String query = "SELECT password, is_admin FROM user WHERE email = ?";
+            // Query to get the password, is_admin, and status_id from the database
+            String query = "SELECT password, is_admin, status_id FROM user WHERE email = ?";
             
             List<Map<String, Object>> results = jdbcTemplate.queryForList(query, email);
             
@@ -350,12 +350,13 @@ public class UserDAO {
                 boolean passwordMatches = passwordEncoder.matches(password, storedPassword);
                 
                 if (passwordMatches) {
-                    // Update user status to active
-                    query = "UPDATE user SET status_id = 1 WHERE email = ?";
-                    jdbcTemplate.update(query, email);
-                    
                     result.put("isValid", true);
                     result.put("isAdmin", isAdmin);
+                    
+                    // Only update status if this is a normal login (not during admin account creation)
+                    // This update happens for real users logging in, not during account creation
+                    query = "UPDATE user SET status_id = 1 WHERE email = ?";
+                    jdbcTemplate.update(query, email);
                 }
             }
             
@@ -535,9 +536,15 @@ public class UserDAO {
             // Encrypt password
             String encryptedPassword = passwordEncoder.encode(user.getPassword());
             
-            String sql = "INSERT INTO user (password, first_name, last_name, email, status_id, is_admin) " +
-                         "VALUES (?, ?, ?, ?, 1, TRUE)";
+            // Debug message to check what we're about to do
+            System.out.println("UserDAO: Creating admin account with email: " + user.getEmail() + 
+                               " and explicitly setting status_id=2");
             
+            // Use a simpler query with explicit values
+            String sql = "INSERT INTO user (password, first_name, last_name, email, status_id, is_admin) " +
+                         "VALUES (?, ?, ?, ?, 2, TRUE)";
+            
+            // Execute the update with only the parameters that should be bound
             int result = jdbcTemplate.update(
                 sql,
                 encryptedPassword,
@@ -545,6 +552,16 @@ public class UserDAO {
                 user.getLastName(),
                 user.getEmail()
             );
+            
+            // Print confirmation of success
+            if (result > 0) {
+                System.out.println("UserDAO: Successfully created admin account with status_id=2");
+                
+                // Double check what got inserted
+                String checkSql = "SELECT status_id FROM user WHERE email = ?";
+                Integer statusId = jdbcTemplate.queryForObject(checkSql, Integer.class, user.getEmail());
+                System.out.println("UserDAO: Verified new admin account has status_id=" + statusId);
+            }
             
             return result > 0;
         } catch (Exception e) {

@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS user (
     city VARCHAR(100) DEFAULT NULL,
     state VARCHAR(50) DEFAULT NULL,
     zip_code VARCHAR(20) DEFAULT NULL,
+    is_admin TINYINT(1) DEFAULT 0,
     FOREIGN KEY (status_id) REFERENCES UserStatus(status_id)
 );
 
