@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader } from "@/co
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Checkbox } from "@/components/ui/checkbox"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const [resetEmail, setResetEmail] = useState("")
   const [error, setError] = useState("")
   const [resetSent, setResetSent] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +35,7 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
       });
   
       const data = await response.json();
@@ -41,8 +43,28 @@ export default function LoginPage() {
       if (response.ok) {
         console.log("Login successful:", data);
         setError("");
-        // Store user info in localStorage (or cookies for authentication)
-        localStorage.setItem("user", JSON.stringify(data));
+        
+        // Store authentication data differently based on remember me
+        if (rememberMe) {
+          // For long-term storage, use localStorage
+          localStorage.setItem("authToken", data.token);
+          localStorage.setItem("user", JSON.stringify({
+            userId: data.userId,
+            email: data.email,
+            firstName: data.firstName,
+            lastName: data.lastName
+          }));
+        } else {
+          // For session-only storage, use sessionStorage
+          sessionStorage.setItem("authToken", data.token);
+          sessionStorage.setItem("user", JSON.stringify({
+            userId: data.userId,
+            email: data.email,
+            firstName: data.firstName,
+            lastName: data.lastName
+          }));
+        }
+        
         // Redirect to home page or dashboard
         window.location.href = "/";
       } else {
@@ -124,6 +146,20 @@ export default function LoginPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                     />
+                  </div>
+
+                  <div className="flex items-center space-x-2 my-2">
+                    <Checkbox 
+                      id="remember" 
+                      checked={rememberMe}
+                      onCheckedChange={(checked) => setRememberMe(checked === true)}
+                    />
+                    <label
+                      htmlFor="remember"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Remember me
+                    </label>
                   </div>
 
                   <Button type="submit" className="w-full bg-black text-white hover:bg-gray-800">
