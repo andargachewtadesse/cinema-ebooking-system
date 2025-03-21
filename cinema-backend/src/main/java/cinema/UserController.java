@@ -117,12 +117,12 @@ public class UserController {
     @PutMapping("/change-password")
     public ResponseEntity<?> changePassword(@RequestBody Map<String, String> payload) {
         try {
-            String email = payload.get("email"); // Assuming email is sent along with password change request
+            int userId = userDAO.getActiveUserId();
             String oldPassword = payload.get("oldPassword");
             String newPassword = payload.get("newPassword");
             System.out.println("+++++++++++++++++" + oldPassword + "+++++++++++++++++++++");
             // Validate the old password and update with the new password
-            boolean passwordChanged = userDAO.changePassword(email, oldPassword, newPassword);
+            boolean passwordChanged = userDAO.changePassword(userId, oldPassword, newPassword);
             
             if (passwordChanged) {
                 return ResponseEntity.ok(Map.of("message", "Password updated successfully"));
@@ -208,7 +208,9 @@ public class UserController {
 
     
     
-    // PUT update user password
+    // PUT update user password 
+    // By passing logged in user id 
+    // So only changes password of currently loggined user
     @PutMapping("/{id}/password")
     public ResponseEntity<?> updateUserPassword(@PathVariable String id, @RequestBody Map<String, String> passwords) {
         try {
@@ -222,7 +224,7 @@ public class UserController {
                 return ResponseEntity.badRequest().body("Both current and new passwords are required");
             }
             
-            boolean success = userDAO.updateUserPassword(userId, currentPassword, newPassword);
+            boolean success = userDAO.changePassword(userId, currentPassword, newPassword);
             
             if (success) {
                 System.out.println("UserController: Successfully updated password for user with ID: " + id);

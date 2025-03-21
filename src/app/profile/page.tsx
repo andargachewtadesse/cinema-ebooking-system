@@ -53,6 +53,10 @@ export default function Profile() {
   
   const { profile, loading: profileLoading, error: profileError, updateProfileLocally } = useUserProfile();
   const { cards, loading: cardsLoading, error: cardsError, refreshCards } = usePaymentCards();
+  
+  const [oldPassword, setOldPassword] = useState('');        // Track current password
+  const [newPassword, setNewPassword] = useState('');                // Track new password
+  const [confirmPassword, setConfirmPassword] = useState('');        // Track confirm new password
 
   // Update form data when profile is loaded
   useEffect(() => {
@@ -173,6 +177,34 @@ export default function Profile() {
     } finally {
       setIsSubmitting(false);
       setEditingAddress(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      return "Password Don't Match";
+    }
+
+    try {
+      const response = await fetch('http://localhost:8080/api/users/change-password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          oldPassword,
+          newPassword,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(result.message); // "Password updated successfully"
+    
+      } else {
+        console.error('Error changing password:');
+
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
     }
   };
 
@@ -586,19 +618,22 @@ export default function Profile() {
                       <div className="space-y-4 py-4">
                         <div className="space-y-2">
                           <Label htmlFor="current">Current Password</Label>
-                          <Input id="current" type="password" />
+                          <Input id="current" type="password"value={oldPassword}
+                          onChange={(e) => setOldPassword(e.target.value)} />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="new">New Password</Label>
-                          <Input id="new" type="password" />
+                          <Input id="new" type="password"value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)} />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="confirm">Confirm New Password</Label>
-                          <Input id="confirm" type="password" />
+                          <Input id="confirm" type="password" value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}/>
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button type="submit">Save Changes</Button>
+                        <Button type="submit"onClick={handleChangePassword}>Save Changes</Button>
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
@@ -898,4 +933,3 @@ export default function Profile() {
     </>
   )
 }
-

@@ -275,41 +275,6 @@ public class UserDAO {
         }
     }
     
-
-    public boolean changePassword(String email, String oldPassword, String newPassword) {
-        try {
-
-            String verifyQuery = "SELECT password FROM user WHERE email = ?";
-            List<String> passwords = jdbcTemplate.query(
-                verifyQuery, 
-                (rs, rowNum) -> rs.getString("password"),
-                email
-            );
-            
-            if (!passwords.isEmpty()) {
-                String storedPassword = passwords.get(0);
-    
-                // Verify that the old password matches the stored password (use passwordEncoder for comparison)
-                if (passwordEncoder.matches(oldPassword, storedPassword)) {
-                    // Encrypt the new password
-                    String encryptedPassword = passwordEncoder.encode(newPassword);
-                    
-                    // Update the password
-                    String updateQuery = "UPDATE user SET password = ? WHERE email = ?";
-                    int rowsAffected = jdbcTemplate.update(updateQuery, encryptedPassword, email);
-                    
-                    return rowsAffected > 0; // Return true if the password was successfully updated
-                } else {
-                    return false; // Old password doesn't match
-                }
-            }
-            return false; // User not found
-        } catch (Exception e) {
-            System.out.println("UserDAO: Error in changePassword: " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
-    }
     
 
     public boolean deleteUser(int user_id) {
@@ -325,7 +290,7 @@ public class UserDAO {
         }
     }
 
-    public boolean updateUserPassword(int userId, String currentPassword, String newPassword) {
+    public boolean changePassword(int userId, String currentPassword, String newPassword) {
         try {
             // Get current password from database
             String query = "SELECT password FROM user WHERE user_id = ?";
