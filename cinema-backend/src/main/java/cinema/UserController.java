@@ -268,10 +268,38 @@ public class UserController {
                 return ResponseEntity.badRequest().body("Email, first name, and last name are required");
             }
 
+            // Get the current user email before update (to send notification to this email)
+            String currentEmail = email;  // Default to the provided email
+            Integer activeUserId = userDAO.getActiveUserId();
+            if (activeUserId != null) {
+                User currentUser = userDAO.getUserProfileById(activeUserId);
+                if (currentUser != null && !currentUser.getEmail().equals(email)) {
+                    // If email is being changed, store the original email for notification
+                    currentEmail = currentUser.getEmail();
+                    System.out.println("UserController: Email is being changed from " + currentEmail + " to " + email);
+                }
+            }
+
             // Call the UserDAO method to update user details
             boolean success = userDAO.updateUserDetails(email, newFirstName, newLastName, promotionSubscription);
 
             if (success) {
+                // Send profile update email notification to the CURRENT email (before update)
+                try {
+                    System.out.println("UserController: Sending profile update notification to: " + currentEmail);
+                    emailService.sendProfileUpdateEmail(currentEmail);
+                    System.out.println("UserController: Profile update email sent successfully to: " + currentEmail);
+                    
+                    // If email was changed, also send notification to the new email
+                    if (!currentEmail.equals(email)) {
+                        System.out.println("UserController: Also sending profile update notification to new email: " + email);
+                        emailService.sendProfileUpdateEmail(email);
+                    }
+                } catch (Exception emailError) {
+                    System.err.println("UserController: Failed to send profile update email: " + emailError.getMessage());
+                    emailError.printStackTrace();
+                    // Continue with the response despite email failure
+                }
                 return ResponseEntity.ok(Map.of("message", "User details updated successfully"));
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User not found with the provided email"));
@@ -523,6 +551,8 @@ public class UserController {
             boolean success = userDAO.updateUserAddress(userId, streetAddress, city, state, zipCode);
             
             if (success) {
+                // Send profile update email notification
+                emailService.sendProfileUpdateEmail(email);
                 System.out.println("UserController: Successfully updated address for user with email: " + email);
                 return ResponseEntity.ok(Map.of("message", "Address updated successfully"));
             } else {
