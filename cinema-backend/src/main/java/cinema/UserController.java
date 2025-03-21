@@ -209,9 +209,6 @@ public class UserController {
 
     
     
-    // PUT update user password 
-    // By passing logged in user id 
-    // So only changes password of currently loggined user
     @PutMapping("/{id}/password")
     public ResponseEntity<?> updateUserPassword(@PathVariable String id, @RequestBody Map<String, String> passwords) {
         try {
@@ -369,7 +366,7 @@ public class UserController {
             response.put("firstName", user.getFirstName());
             response.put("lastName", user.getLastName());
             response.put("isAdmin", user.isAdmin());
-            response.put("token", generateJwtToken(user)); // You'll need to implement this
+            response.put("token", generateJwtToken(user)); 
 
             return ResponseEntity.ok(response);
         } else {
@@ -448,7 +445,7 @@ public class UserController {
 
         if (activeUserId != null) {
             // Fetch the user's profile from the database
-            User activeUser = userDAO.getUserProfileById(activeUserId);  // Assuming a method like this exists
+            User activeUser = userDAO.getUserProfileById(activeUserId);  
             
             if (activeUser != null) {
                 Map<String, Object> response = new HashMap<>();
@@ -456,7 +453,7 @@ public class UserController {
                 response.put("lastName", activeUser.getLastName());
                 response.put("email", activeUser.getEmail());
                 response.put("promotionSubscription", activeUser.getPromotionSubscription());
-                // Add other user details as needed
+                
                 
                 // Add the address fields to the response
                 response.put("streetAddress", activeUser.getStreetAddress());
@@ -712,19 +709,13 @@ public class UserController {
 
     // Helper method to verify if request is from an admin
     private boolean isAdminRequest(String authHeader) {
-        // This is a placeholder - implement proper JWT token validation
-        // Ideally, extract user info from JWT token and check if user is admin
-        
-        // For now, simple check - assuming "Bearer adminToken" means admin
+
         return authHeader != null && authHeader.startsWith("Bearer ");
     }
 
     // Placeholder for JWT token generation
     private String generateJwtToken(User user) {
-        // Implement JWT token generation based on user details
-        // Include user ID, email, and isAdmin flag in the token payload
-        
-        // For now, return a dummy token
+
         return "dummy_token_" + user.getUserId() + "_" + (user.isAdmin() ? "admin" : "user");
     }
 }

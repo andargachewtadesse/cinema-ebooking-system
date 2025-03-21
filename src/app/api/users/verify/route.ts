@@ -4,7 +4,7 @@ export async function POST(req: Request) {
   try {
     const verificationData = await req.json()
     
-    // Forward the request to your Java backend
+    
     const response = await fetch('http://localhost:8080/api/users/verify', {
       method: 'POST',
       headers: {

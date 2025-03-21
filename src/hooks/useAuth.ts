@@ -12,9 +12,7 @@ export const useAuth = () => {
       
       if (token) {
         try {
-          // Optionally validate token with backend
-          // const response = await fetch('/api/validate-token', {...});
-          // if (response.ok) { ... }
+     
           
           setIsLoggedIn(true);
           setUser(getUser());

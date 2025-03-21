@@ -477,7 +477,7 @@ export default function Profile() {
         cvv: ""
       });
       
-      // Close dialog by clicking the "ESC" key
+      // Close dialog by clicking escape key
       document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'Escape'}));
       
     } catch (error) {

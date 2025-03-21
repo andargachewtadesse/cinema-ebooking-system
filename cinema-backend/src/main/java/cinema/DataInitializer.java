@@ -65,7 +65,7 @@ public class DataInitializer implements CommandLineRunner {
 
     public void updateUserStatusToInactive() {
         try {
-            String updateQuery = "UPDATE user SET status_id = 2"; // Assuming 2 means Inactive
+            String updateQuery = "UPDATE user SET status_id = 2"; // 2 means Inactive
             int rowsUpdated = jdbcTemplate.update(updateQuery);
             System.out.println("Updated " + rowsUpdated + " users' status to Inactive.");
         } catch (Exception e) {

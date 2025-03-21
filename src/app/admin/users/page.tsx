@@ -210,7 +210,7 @@ export default function UsersPage() {
           email: newUser.email,
           password: newUser.password,
           isAdmin: true,
-          statusId: 2,  // Explicitly set to inactive (2) - changed from status_id to statusId to match Java naming
+          statusId: 2,  // Explicitly set to inactive (2) 
         })
       })
       

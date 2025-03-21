@@ -55,7 +55,7 @@ export default function Home() {
   // Extract all unique individual genres from the combined genre strings
   const allGenres = movies.reduce((genres, movie) => {
     if (movie.originalCategory) {
-      // Split the combined genres (e.g., "Action, Sci-Fi, Thriller" -> ["Action", "Sci-Fi", "Thriller"])
+      // Split the combined genres 
       const movieGenres = movie.originalCategory.split(', ').map((g: string) => g.trim())
       movieGenres.forEach((genre: string) => {
         if (!genres.includes(genre)) {

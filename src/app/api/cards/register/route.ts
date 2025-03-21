@@ -4,7 +4,7 @@ export async function POST(request: Request) {
   try {
     const cardData = await request.json()
     
-    // Forward the request to your Java backend
+    
     const response = await fetch('http://localhost:8080/api/cards/add', {
       method: 'POST',
       headers: {

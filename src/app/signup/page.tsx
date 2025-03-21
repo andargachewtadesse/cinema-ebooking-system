@@ -127,16 +127,16 @@ export default function SignupPage() {
           return
         }
 
-        // Improved card number validation - remove spaces and check length
+        //  remove spaces and check length
         const cardNumClean = method.cardNumber.replace(/\s/g, "")
         if (!/^\d{16}$/.test(cardNumClean)) {
           setError("Card number must be exactly 16 digits")
           return
         }
 
-        // Improved CVV validation based on card type
+        //  CVV validation based on card type
         if (method.cardType === "amex") {
-          // American Express uses 4-digit CVV
+          // American Express 
           if (!/^\d{4}$/.test(method.cvv)) {
             setError("American Express cards require a 4-digit CVV")
             return
