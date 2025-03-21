@@ -67,4 +67,72 @@ CREATE TABLE IF NOT EXISTS card (
     FOREIGN KEY (customer_id) REFERENCES user(user_id) ON DELETE CASCADE
 );
 
+--Create table booking
+CREATE TABLE booking (
+    booking_id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT NULL,
+    booking_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('pending', 'confirmed', 'cancelled') DEFAULT 'pending',
+    FOREIGN KEY (customer_id) REFERENCES users(user_id) ON DELETE SET NULL
+);
+
+--Create table show
+CREATE TABLE movie_show (
+    show_id INT AUTO_INCREMENT PRIMARY KEY,
+    movie_id INT NULL,
+    showroom_id INT NULL,
+    show_datetime DATETIME NULL,
+    duration INT NULL,
+    FOREIGN KEY (movie_id) REFERENCES movie(movie_id) ON DELETE SET NULL,
+    FOREIGN KEY (showroom_id) REFERENCES showroom(showroom_id) ON DELETE SET NULL
+);
+
+--Create table promotion
+
+CREATE TABLE promotion (
+    promotion_id INT AUTO_INCREMENT PRIMARY KEY,
+    discount_percentage DECIMAL(5,2) NOT NULL,
+    description VARCHAR(255) NULL,
+    customer_id INT NULL,
+    FOREIGN KEY (customer_id) REFERENCES users(user_id) ON DELETE SET NULL
+);
+
+--Create table show_time
+CREATE TABLE show_times (
+    show_time_id INT AUTO_INCREMENT PRIMARY KEY,
+    movie_id INT NULL,
+    show_date DATE NULL,
+    show_time TIME NULL,
+    screen_number INT NULL,
+    available_seats INT NULL,
+    price DECIMAL(10,2) NULL,
+    FOREIGN KEY (movie_id) REFERENCES movies(movie_id) ON DELETE SET NULL
+);
+
+--create table showroom
+
+CREATE TABLE showroom (
+    showroom_id INT AUTO_INCREMENT PRIMARY KEY,
+    theatre_id INT NULL,
+    showroom_name VARCHAR(100) NULL,
+    seat_count INT NULL,
+    FOREIGN KEY (theatre_id) REFERENCES theatre(theatre_id) ON DELETE SET NULL
+);
+
+--create table theatre
+CREATE TABLE theatre (
+    theatre_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL
+);
+
+--create table ticket
+CREATE TABLE ticket (
+    ticket_id INT AUTO_INCREMENT PRIMARY KEY,
+    booking_id INT NULL,
+    show_id INT NULL,
+    ticket_type ENUM('adult', 'senior', 'child') DEFAULT 'adult',
+    price DECIMAL(10,2) NULL,
+    FOREIGN KEY (booking_id) REFERENCES booking(booking_id) ON DELETE SET NULL,
+    FOREIGN KEY (show_id) REFERENCES movie_show(show_id) ON DELETE SET NULL
+);
 
