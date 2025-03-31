@@ -83,6 +83,7 @@ CREATE TABLE movie_show (
     showroom_id INT NULL,
     show_datetime DATETIME NULL,
     duration INT NULL,
+    available_seats INT NULL,
     FOREIGN KEY (movie_id) REFERENCES movie(movie_id) ON DELETE SET NULL,
     FOREIGN KEY (showroom_id) REFERENCES showroom(showroom_id) ON DELETE SET NULL
 );
