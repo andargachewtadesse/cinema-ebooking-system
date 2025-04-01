@@ -1,12 +1,5 @@
 package cinema;
 
-import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.Time;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -26,6 +19,7 @@ public class DataInitializer implements CommandLineRunner {
 
         updateUserStatusToInactive(); // Update user status
 
+        /* 
         System.out.println("DataInitializer: Starting to populate showtimes...");
         
         // Get all movies
@@ -61,6 +55,7 @@ public class DataInitializer implements CommandLineRunner {
                 System.out.println("Movie already has " + existingShowTimes.size() + " showtimes: " + movie.getTitle());
             }
         }
+        */
     }
 
     public void updateUserStatusToInactive() {
