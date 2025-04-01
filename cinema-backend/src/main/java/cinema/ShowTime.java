@@ -7,22 +7,24 @@ import java.sql.Time;
 public class ShowTime {
     private int showTimeId;
     private int movieId;
+    private int showroomId;  // Fixed from screenNumber
     private Date showDate;
     private Time showTime;
-    private int screenNumber;
     private int availableSeats;
+    private int duration;  // Added duration field
     private BigDecimal price;
 
     public ShowTime() {
     }
 
-    public ShowTime(int showTimeId, int movieId, Date showDate, Time showTime, int screenNumber, int availableSeats, BigDecimal price) {
+    public ShowTime(int showTimeId, int movieId, int showroomId, Date showDate, Time showTime, int availableSeats, int duration, BigDecimal price) {
         this.showTimeId = showTimeId;
         this.movieId = movieId;
+        this.showroomId = showroomId;  
         this.showDate = showDate;
         this.showTime = showTime;
-        this.screenNumber = screenNumber;
         this.availableSeats = availableSeats;
+        this.duration = duration;  // Added duration
         this.price = price;
     }
 
@@ -42,6 +44,14 @@ public class ShowTime {
         this.movieId = movieId;
     }
 
+    public int getShowroomId() {  
+        return showroomId;
+    }
+
+    public void setShowroomId(int showroomId) {  
+        this.showroomId = showroomId;
+    }
+
     public Date getShowDate() {
         return showDate;
     }
@@ -58,20 +68,20 @@ public class ShowTime {
         this.showTime = showTime;
     }
 
-    public int getScreenNumber() {
-        return screenNumber;
-    }
-
-    public void setScreenNumber(int screenNumber) {
-        this.screenNumber = screenNumber;
-    }
-
     public int getAvailableSeats() {
         return availableSeats;
     }
 
     public void setAvailableSeats(int availableSeats) {
         this.availableSeats = availableSeats;
+    }
+
+    public int getDuration() {  // Getter for duration
+        return duration;
+    }
+
+    public void setDuration(int duration) {  // Setter for duration
+        this.duration = duration;
     }
 
     public BigDecimal getPrice() {
@@ -87,10 +97,11 @@ public class ShowTime {
         return "ShowTime{" +
                 "showTimeId=" + showTimeId +
                 ", movieId=" + movieId +
+                ", showroomId=" + showroomId +  
                 ", showDate=" + showDate +
                 ", showTime=" + showTime +
-                ", screenNumber=" + screenNumber +
                 ", availableSeats=" + availableSeats +
+                ", duration=" + duration +  // Added duration to toString()
                 ", price=" + price +
                 '}';
     }
