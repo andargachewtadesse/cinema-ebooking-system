@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/showtimes")
 @CrossOrigin(origins = "http://localhost:3000")
 public class ShowTimeController {
+    
     private final ShowTimeDAO showTimeDAO;
 
     @Autowired
