@@ -82,11 +82,7 @@ CREATE TABLE show_times (
     show_date DATE NULL,
     show_time TIME NULL,
     available_seats INT NULL,
-<<<<<<< HEAD
     durnation INT NULL,
-=======
-    duration INT NULL,
->>>>>>> ab43641 (modified backend to to disable auto add showtime feature to adapt for adding showtime for showroom in admin)
     price DECIMAL(10,2) NULL,
     FOREIGN KEY (movie_id) REFERENCES movies(movie_id) ON DELETE SET NULL,
     FOREIGN KEY (showroom_id) REFERENCES showroom(showroom_id) ON DELETE SET NULL

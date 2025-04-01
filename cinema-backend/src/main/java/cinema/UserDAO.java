@@ -3,17 +3,10 @@ package cinema;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
-<<<<<<< HEAD
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.HashMap;
-=======
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
->>>>>>> ab43641 (modified backend to to disable auto add showtime feature to adapt for adding showtime for showroom in admin)
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -24,10 +17,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class UserDAO {
-<<<<<<< HEAD
-=======
-
->>>>>>> ab43641 (modified backend to to disable auto add showtime feature to adapt for adding showtime for showroom in admin)
     private final JdbcTemplate jdbcTemplate;
     private final BCryptPasswordEncoder passwordEncoder;
     

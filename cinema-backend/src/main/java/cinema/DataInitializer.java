@@ -1,6 +1,5 @@
 package cinema;
 
-<<<<<<< HEAD
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
@@ -8,8 +7,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
-=======
->>>>>>> ab43641 (modified backend to to disable auto add showtime feature to adapt for adding showtime for showroom in admin)
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -29,17 +26,8 @@ public class DataInitializer implements CommandLineRunner {
 
         updateUserStatusToInactive(); // Update user status
 
-<<<<<<< HEAD
         System.out.println("DataInitializer: Starting to populate showtimes...");
         
-=======
-        //Removing this to get ready to implement
-        //Adding showtime in admin page
-        //Scheduling movies
-        
-        /* 
-        System.out.println("DataInitializer: Starting to populate showtimes...");
->>>>>>> ab43641 (modified backend to to disable auto add showtime feature to adapt for adding showtime for showroom in admin)
         // Get all movies
         List<Movie> movies = movieDAO.getAllMovies();
         
@@ -69,20 +57,10 @@ public class DataInitializer implements CommandLineRunner {
                     
                     movieDAO.addShowTimeForMovie(movie.getMovieId(), showTime);
                 }
-<<<<<<< HEAD
             } else {
                 System.out.println("Movie already has " + existingShowTimes.size() + " showtimes: " + movie.getTitle());
             }
         }
-=======
-                
-            } else {
-                System.out.println("Movie already has " + existingShowTimes.size() + " showtimes: " + movie.getTitle());
-            }
-            
-        }
-        */
->>>>>>> ab43641 (modified backend to to disable auto add showtime feature to adapt for adding showtime for showroom in admin)
     }
 
     public void updateUserStatusToInactive() {
