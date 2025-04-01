@@ -25,18 +25,6 @@ CREATE TABLE IF NOT EXISTS movies (
     status VARCHAR(50) DEFAULT 'Coming Soon'
 );
 
--- Create show_times table if it doesn't exist
-CREATE TABLE IF NOT EXISTS show_times (
-    show_time_id INT AUTO_INCREMENT PRIMARY KEY,
-    movie_id INT NOT NULL,
-    show_date DATE NOT NULL,
-    show_time TIME NOT NULL,
-    screen_number INT NOT NULL,
-    available_seats INT NOT NULL,
-    price DECIMAL(6,2) NOT NULL,
-    FOREIGN KEY (movie_id) REFERENCES movies(movie_id) ON DELETE CASCADE
-);
-
 -- Create user table if it doesn't exist
 CREATE TABLE IF NOT EXISTS user (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -76,18 +64,6 @@ CREATE TABLE booking (
     FOREIGN KEY (customer_id) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
---Create table show
-CREATE TABLE movie_show (
-    show_id INT AUTO_INCREMENT PRIMARY KEY,
-    movie_id INT NULL,
-    showroom_id INT NULL,
-    show_datetime DATETIME NULL,
-    duration INT NULL,
-    available_seats INT NULL,
-    FOREIGN KEY (movie_id) REFERENCES movie(movie_id) ON DELETE SET NULL,
-    FOREIGN KEY (showroom_id) REFERENCES showroom(showroom_id) ON DELETE SET NULL
-);
-
 --Create table promotion
 
 CREATE TABLE promotion (
@@ -98,16 +74,18 @@ CREATE TABLE promotion (
     FOREIGN KEY (customer_id) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
---Create table show_time
+-- Create table show_times
 CREATE TABLE show_times (
     show_time_id INT AUTO_INCREMENT PRIMARY KEY,
     movie_id INT NULL,
+    showroom_id INT NULL,
     show_date DATE NULL,
     show_time TIME NULL,
-    screen_number INT NULL,
     available_seats INT NULL,
+    durnation INT NULL,
     price DECIMAL(10,2) NULL,
-    FOREIGN KEY (movie_id) REFERENCES movies(movie_id) ON DELETE SET NULL
+    FOREIGN KEY (movie_id) REFERENCES movies(movie_id) ON DELETE SET NULL,
+    FOREIGN KEY (showroom_id) REFERENCES showroom(showroom_id) ON DELETE SET NULL
 );
 
 --create table showroom
@@ -134,6 +112,6 @@ CREATE TABLE ticket (
     ticket_type ENUM('adult', 'senior', 'child') DEFAULT 'adult',
     price DECIMAL(10,2) NULL,
     FOREIGN KEY (booking_id) REFERENCES booking(booking_id) ON DELETE SET NULL,
-    FOREIGN KEY (show_id) REFERENCES movie_show(show_id) ON DELETE SET NULL
+    FOREIGN KEY (show_id) REFERENCES show_times(show_time_id) ON DELETE SET NULL
 );
 
