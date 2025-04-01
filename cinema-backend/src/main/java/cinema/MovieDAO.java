@@ -138,7 +138,6 @@ public class MovieDAO {
                 st.setMovieId(rs.getInt("movie_id"));
                 st.setShowDate(rs.getDate("show_date"));
                 st.setShowTime(rs.getTime("show_time"));
-                st.setScreenNumber(rs.getInt("screen_number"));
                 st.setAvailableSeats(rs.getInt("available_seats"));
                 st.setPrice(rs.getBigDecimal("price"));
                 return st;
@@ -212,7 +211,6 @@ public class MovieDAO {
                 movieId,
                 showTime.getShowDate(),
                 showTime.getShowTime(),
-                showTime.getScreenNumber(),
                 showTime.getAvailableSeats(),
                 showTime.getPrice()
             );
