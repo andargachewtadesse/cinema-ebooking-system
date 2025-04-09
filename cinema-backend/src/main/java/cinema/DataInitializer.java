@@ -19,43 +19,6 @@ public class DataInitializer implements CommandLineRunner {
 
         updateUserStatusToInactive(); // Update user status
 
-        /* 
-        System.out.println("DataInitializer: Starting to populate showtimes...");
-        
-        // Get all movies
-        List<Movie> movies = movieDAO.getAllMovies();
-        
-        if (movies.isEmpty()) {
-            System.out.println("No movies found to add showtimes to");
-            return;
-        }
-        
-        // For each movie, check if it has showtimes
-        for (Movie movie : movies) {
-            List<ShowTime> existingShowTimes = movie.getShowTimes();
-            
-            if (existingShowTimes == null || existingShowTimes.isEmpty()) {
-                System.out.println("Adding showtimes for movie: " + movie.getTitle());
-                
-                // Add 3 showtimes for this movie
-                LocalDate today = LocalDate.now();
-                
-                for (int i = 0; i < 3; i++) {
-                    ShowTime showTime = new ShowTime();
-                    showTime.setMovieId(movie.getMovieId());
-                    showTime.setShowDate(Date.valueOf(today.plusDays(i)));
-                    showTime.setShowTime(Time.valueOf(LocalTime.of(12 + (i * 3), 0, 0)));
-                    showTime.setScreenNumber(i + 1);
-                    showTime.setAvailableSeats(80);
-                    showTime.setPrice(new BigDecimal("12.99"));
-                    
-                    movieDAO.addShowTimeForMovie(movie.getMovieId(), showTime);
-                }
-            } else {
-                System.out.println("Movie already has " + existingShowTimes.size() + " showtimes: " + movie.getTitle());
-            }
-        }
-        */
     }
 
     public void updateUserStatusToInactive() {

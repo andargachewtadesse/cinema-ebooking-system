@@ -87,4 +87,28 @@ public class ShowTimeDAO {
 
         return false; // No overlap
     }
+
+    public List<ShowTime> getShowTimesByMovieId(int movieId) {
+        String query = "SELECT * FROM show_times WHERE movie_id = ?";
+    
+        try {
+            return jdbcTemplate.query(query, new Object[]{movieId}, (rs, rowNum) -> {
+                ShowTime showTime = new ShowTime();
+                showTime.setShowTimeId(rs.getInt("show_time_id"));
+                showTime.setMovieId(rs.getInt("movie_id"));
+                showTime.setShowroomId(rs.getInt("showroom_id"));
+                showTime.setShowDate(rs.getDate("show_date"));
+                showTime.setShowTime(rs.getTime("show_time"));
+                showTime.setAvailableSeats(rs.getInt("available_seats"));
+                showTime.setDuration(rs.getInt("duration"));
+                showTime.setPrice(rs.getBigDecimal("price"));
+                return showTime;
+            });
+        } catch (Exception e) {
+            System.out.println("ShowTimeDAO: Error in getShowTimesByMovieId: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to fetch showtimes for movie ID: " + movieId, e);
+        }
+    }
+    
 }
