@@ -22,41 +22,53 @@ public class ShowTimeDAO {
     }
 
     public boolean addShowTimes(List<ShowTime> showTimes) {
-        String query = "INSERT INTO show_times (movie_id, showroom_id, show_date, show_time, available_seats, duration, price) " +
-                       "VALUES (?, ?, ?, ?, ?, ?, ?)";
-
+        String insertQuery = "INSERT INTO show_times (movie_id, showroom_id, show_date, show_time, available_seats, duration, price) " +
+                             "VALUES (?, ?, ?, ?, ?, ?, ?)";
+    
+        String seatCountQuery = "SELECT seat_count FROM showroom WHERE showroom_id = ?";
+    
         try {
             for (ShowTime newShowTime : showTimes) {
                 // Check for overlapping showtime before inserting
                 if (isOverlapping(newShowTime)) {
-                    System.out.println("Insertion aborted: Showtime overlaps with an existing one.");
-                    return false; // Abort insertion
+                    System.out.println("Insertion aborted: Showtime overlaps with an existing one: " + newShowTime);
+                    return false;
                 }
-
-                // Insert if no overlap
-                int rowsAffected = jdbcTemplate.update(query,
+    
+                // Get seat count from showroom table
+                Integer seatCount = jdbcTemplate.queryForObject(seatCountQuery, Integer.class, newShowTime.getShowroomId());
+    
+                if (seatCount == null || seatCount <= 0) {
+                    System.out.println("Invalid seat count for showroom_id: " + newShowTime.getShowroomId());
+                    return false;
+                }
+    
+                // Insert with fetched seat count as available seats
+                int rowsAffected = jdbcTemplate.update(insertQuery,
                     newShowTime.getMovieId(),
                     newShowTime.getShowroomId(),
                     newShowTime.getShowDate(),
                     newShowTime.getShowTime(),
-                    newShowTime.getAvailableSeats(),
+                    seatCount, // Use seat count from showroom as available seats
                     newShowTime.getDuration(),
                     newShowTime.getPrice()
                 );
-
+    
                 if (rowsAffected <= 0) {
-                    return false; // Abort if insert fails
+                    System.out.println("Insert failed for showtime: " + newShowTime);
+                    return false;
                 }
             }
-
-            return true; // Successfully inserted all showtimes
-
+    
+            return true;
+    
         } catch (Exception e) {
             System.out.println("ShowTimeDAO: Error in addShowTimes: " + e.getMessage());
             e.printStackTrace();
-            return false; // Return false if an exception occurs
+            return false;
         }
     }
+    
 
     private boolean isOverlapping(ShowTime newShowTime) {
         String checkQuery = "SELECT show_time, duration FROM show_times WHERE showroom_id = ? AND show_date = ?";
