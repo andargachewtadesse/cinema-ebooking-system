@@ -1,21 +1,26 @@
 package cinema;
 
+import java.util.Date;
+
 public class Promotion {
     private int promotionId;
     private double discountPercentage;
     private String description;
-    private int customerId;
+    private Date creationDate;
+    private boolean sent;
+    
+    public Promotion() {
+        this.creationDate = new Date();
+        this.sent = false;
+    }
 
-    public Promotion() {}
-
-    public Promotion(int promotionId, double discountPercentage, String description, int customerId) {
+    public Promotion(int promotionId, double discountPercentage, String description) {
         this.promotionId = promotionId;
         this.discountPercentage = discountPercentage;
         this.description = description;
-        this.customerId = customerId;
+        this.creationDate = new Date();
+        this.sent = false;
     }
-
-
 
     // Getters and Setters
     public int getPromotionId() {
@@ -41,13 +46,21 @@ public class Promotion {
     public void setDescription(String description) {
         this.description = description;
     }
-
-    public int getCustomerId() {
-        return customerId;
+    
+    public Date getCreationDate() {
+        return creationDate;
     }
-
-    public void setCustomerId(int customerId) {
-        this.customerId = customerId;
+    
+    public void setCreationDate(Date creationDate) {
+        this.creationDate = creationDate;
+    }
+    
+    public boolean isSent() {
+        return sent;
+    }
+    
+    public void setSent(boolean sent) {
+        this.sent = sent;
     }
 
     @Override
@@ -56,7 +69,8 @@ public class Promotion {
                 "promotionId=" + promotionId +
                 ", discountPercentage=" + discountPercentage +
                 ", description='" + description + '\'' +
-                ", customerId=" + customerId +
+                ", creationDate=" + creationDate +
+                ", sent=" + sent +
                 '}';
     }
 }

@@ -1,7 +1,15 @@
 package cinema;
 
+import java.sql.PreparedStatement;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -9,143 +17,151 @@ public class PromotionDAO {
 
     private final JdbcTemplate jdbcTemplate;
     private final UserDAO userDAO;
+    private final EmailService emailService;
 
     @Autowired
-    public PromotionDAO(JdbcTemplate jdbcTemplate, UserDAO userDAO) {
+    public PromotionDAO(JdbcTemplate jdbcTemplate, UserDAO userDAO, EmailService emailService) {
         this.jdbcTemplate = jdbcTemplate;
         this.userDAO = userDAO;
+        this.emailService = emailService;
     }
-
-    // Fetch promotion for the active user (only one promotion)
-    public Promotion getPromotionByActiveUserId() {
+    
+    // Get all promotions (for admin)
+    public List<Promotion> getAllPromotions() {
         try {
-            // Get the active user ID
-            Integer activeUserId = userDAO.getActiveUserId();
-
-            if (activeUserId != null) {
-                // Query to get the promotion for this active user
-                String query = "SELECT * FROM promotion WHERE customer_id = ? LIMIT 1"; // Only expecting one promotion
-
-                // Fetch and map the promotion
-                return jdbcTemplate.queryForObject(
-                    query,
-                    (rs, rowNum) -> {
-                        Promotion promotion = new Promotion();
-                        promotion.setPromotionId(rs.getInt("promotion_id"));
-                        promotion.setDiscountPercentage(rs.getDouble("discount_percentage"));
-                        promotion.setDescription(rs.getString("description"));
-                        promotion.setCustomerId(rs.getInt("customer_id"));
-                        return promotion;
-                    },
-                    activeUserId
-                );
-            } else {
-                System.out.println("No active user found.");
-                return null;
-            }
+            String query = "SELECT * FROM promotion ORDER BY creation_date DESC";
+            
+            return jdbcTemplate.query(query, (rs, rowNum) -> {
+                Promotion promo = new Promotion();
+                promo.setPromotionId(rs.getInt("promotion_id"));
+                promo.setDiscountPercentage(rs.getDouble("discount_percentage"));
+                promo.setDescription(rs.getString("description"));
+                promo.setCreationDate(rs.getTimestamp("creation_date"));
+                promo.setSent(rs.getBoolean("is_sent"));
+                return promo;
+            });
         } catch (Exception e) {
-            System.out.println("PromotionDAO: Error in getPromotionByActiveUserId: " + e.getMessage());
+            System.out.println("PromotionDAO: Error in getAllPromotions: " + e.getMessage());
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+    
+    // Create a new promotion (from admin)
+    public int createPromotion(Promotion promotion) {
+        try {
+            String sql = "INSERT INTO promotion (discount_percentage, description, creation_date, is_sent) " +
+                         "VALUES (?, ?, ?, ?)";
+            
+            KeyHolder keyHolder = new GeneratedKeyHolder();
+            
+            jdbcTemplate.update(connection -> {
+                PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+                ps.setDouble(1, promotion.getDiscountPercentage());
+                ps.setString(2, promotion.getDescription());
+                ps.setTimestamp(3, new java.sql.Timestamp(promotion.getCreationDate().getTime()));
+                ps.setBoolean(4, promotion.isSent());
+                return ps;
+            }, keyHolder);
+            
+            return keyHolder.getKey().intValue();
+        } catch (Exception e) {
+            System.out.println("PromotionDAO: Error creating promotion: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to create promotion", e);
+        }
+    }
+    
+    // Get promotion by ID
+    public Promotion getPromotionById(int promotionId) {
+        try {
+            String query = "SELECT * FROM promotion WHERE promotion_id = ?";
+            
+            List<Promotion> promotions = jdbcTemplate.query(
+                query, 
+                new Object[] { promotionId },
+                (rs, rowNum) -> {
+                    Promotion promo = new Promotion();
+                    promo.setPromotionId(rs.getInt("promotion_id"));
+                    promo.setDiscountPercentage(rs.getDouble("discount_percentage"));
+                    promo.setDescription(rs.getString("description"));
+                    promo.setCreationDate(rs.getTimestamp("creation_date"));
+                    promo.setSent(rs.getBoolean("is_sent"));
+                    return promo;
+                }
+            );
+            
+            return promotions.isEmpty() ? null : promotions.get(0);
+        } catch (Exception e) {
+            System.out.println("PromotionDAO: Error in getPromotionById: " + e.getMessage());
             e.printStackTrace();
             return null;
         }
     }
-
-    public boolean addPromotionToUser(String email) {
+    
+    // Send promotion to all subscribed users
+    public boolean sendPromotionToSubscribers(int promotionId) {
         try {
-            // Get the active user ID
-            User newUser = userDAO.getUserByEmail(email);
-            int userId = newUser.getUserId();
-
-            if (email != null) {
-                // Hardcoded promotion values
-                double discountPercentage = 15.0; // 15% discount
-                String description = "Spring Special Offer: 15% Off!";
-
-                // Insert the promotion into the database
-                String query = "INSERT INTO promotion (discount_percentage, description, customer_id) VALUES (?, ?, ?)";
-
-                // Execute the query to insert the promotion
-                int rowsAffected = jdbcTemplate.update(query, discountPercentage, description, userId);
-
-                if (rowsAffected > 0) {
-                    System.out.println("Promotion successfully added to user with ID: " + userId);
-                    return true;
-                } else {
-                    System.out.println("Failed to add promotion to user.");
-                    return false;
-                }
-            } else {
-                System.out.println("No active user found.");
+            // First, check if the promotion exists and hasn't been sent yet
+            Promotion promotion = getPromotionById(promotionId);
+            if (promotion == null) {
+                System.out.println("PromotionDAO: Promotion not found with ID: " + promotionId);
                 return false;
             }
+            
+            if (promotion.isSent()) {
+                System.out.println("PromotionDAO: Promotion already sent, ID: " + promotionId);
+                return false;
+            }
+            
+            // Get all users who have subscribed to promotions
+            List<User> subscribedUsers = userDAO.getSubscribedUsers();
+            if (subscribedUsers.isEmpty()) {
+                System.out.println("PromotionDAO: No users subscribed to promotions");
+                return false;
+            }
+            
+            // Send email to each subscribed user
+            for (User user : subscribedUsers) {
+                sendPromotionEmail(user.getEmail(), promotion);
+            }
+            
+            // Mark the promotion as sent
+            String updateSql = "UPDATE promotion SET is_sent = TRUE WHERE promotion_id = ?";
+            jdbcTemplate.update(updateSql, promotionId);
+            
+            System.out.println("PromotionDAO: Successfully sent promotion to " + subscribedUsers.size() + " users");
+            return true;
         } catch (Exception e) {
-            System.out.println("PromotionDAO: Error in addPromotionToUser: " + e.getMessage());
+            System.out.println("PromotionDAO: Error sending promotion: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
     }
-
-    public boolean deletePromotionByActiveUser() {
+    
+    // Helper method to send promotion email
+    private void sendPromotionEmail(String email, Promotion promotion) {
         try {
-            // Get the active user ID
-            Integer activeUserId = userDAO.getActiveUserId();
-
-            if (activeUserId != null) {
-                // Query to delete the promotion for this active user
-                String query = "DELETE FROM promotion WHERE customer_id = ?"; // Only delete one promotion
-
-                // Execute the delete query
-                int rowsAffected = jdbcTemplate.update(query, activeUserId);
-
-                if (rowsAffected > 0) {
-                    System.out.println("Promotion successfully deleted for user with ID: " + activeUserId);
-                    return true;
-                } else {
-                    System.out.println("No promotion found for user with ID: " + activeUserId);
-                    return false;
-                }
-            } else {
-                System.out.println("No active user found.");
-                return false;
-            }
+            // Create a message for the promotion email
+            String subject = "Special Promotion: " + promotion.getDescription();
+            String message = "Dear Valued Customer,\n\n" +
+                            "We're excited to offer you a special promotion!\n\n" +
+                            promotion.getDescription() + "\n\n" +
+                            "Discount: " + promotion.getDiscountPercentage() + "% off your next purchase!\n\n" +
+                            "Sincerely,\nCinema E-Booking Team";
+                            
+            // Send the email using EmailService
+            SimpleMailMessage mailMessage = new SimpleMailMessage();
+            mailMessage.setTo(email);
+            mailMessage.setSubject(subject);
+            mailMessage.setText(message);
+            
+            emailService.sendPromotionEmail(email, promotion);
+            
+            System.out.println("PromotionDAO: Sent promotion email to: " + email);
         } catch (Exception e) {
-            System.out.println("PromotionDAO: Error in deletePromotionByActiveUser: " + e.getMessage());
+            System.out.println("PromotionDAO: Error sending promotion email to " + email + ": " + e.getMessage());
             e.printStackTrace();
-            return false;
         }
     }
-
-    public boolean addPromotionToActiveUser() {
-        try {
-            // Get the active user ID
-            Integer activeUserId = userDAO.getActiveUserId();
-            double discountPercentage = 15.0; // 15% discount
-            String description = "Spring Special Offer: 15% Off!";
-
-            if (activeUserId != null) {
-                // Insert the promotion for the active user
-                String query = "INSERT INTO promotion (discount_percentage, description, customer_id) VALUES (?, ?, ?)";
-                
-                // Execute the insert query
-                int rowsAffected = jdbcTemplate.update(query, discountPercentage, description, activeUserId);
-
-                if (rowsAffected > 0) {
-                    System.out.println("Promotion successfully added to user with ID: " + activeUserId);
-                    return true;
-                } else {
-                    System.out.println("Failed to add promotion to user.");
-                    return false;
-                }
-            } else {
-                System.out.println("No active user found.");
-                return false;
-            }
-        } catch (Exception e) {
-            System.out.println("UserDAO: Error adding promotion to user: " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
-    }
-
 }
-

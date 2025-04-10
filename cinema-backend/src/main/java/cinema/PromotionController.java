@@ -1,16 +1,12 @@
 package cinema;
 
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/promotions")
@@ -26,59 +22,62 @@ public class PromotionController {
         this.userDAO = userDAO;
     }
 
-
-    // DELETE promotion for active user
-    @DeleteMapping("/delete")
-    public ResponseEntity<?> deletePromotionForActiveUser() {
+    // Admin endpoint to create a new promotion
+    @PostMapping("/admin/create")
+    public ResponseEntity<?> createPromotion(@RequestBody Promotion promotion) {
         try {
-            boolean isDeleted = promotionDAO.deletePromotionByActiveUser();
-
-            if (isDeleted) {
-                return ResponseEntity.ok(Map.of("message", "Promotion deleted successfully"));
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "No promotion found to delete"));
-            }
+            System.out.println("PromotionController: Creating new promotion with discount: " + 
+                              promotion.getDiscountPercentage() + "%, description: " + promotion.getDescription());
+            
+            // Set default values for new promotions
+            promotion.setCreationDate(new java.util.Date());
+            promotion.setSent(false);
+            
+            int promotionId = promotionDAO.createPromotion(promotion);
+            promotion.setPromotionId(promotionId);
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "message", "Promotion created successfully",
+                "promotion", promotion
+            ));
         } catch (Exception e) {
-            System.out.println("PromotionController: Error deleting promotion: " + e.getMessage());
+            System.out.println("PromotionController: Error creating promotion: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting promotion: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Failed to create promotion: " + e.getMessage()));
         }
     }
-
-    // POST Add promotion to the active user
-    @PostMapping("/add")
-    public ResponseEntity<?> addPromotionToActiveUser() {
+    
+    // Admin endpoint to get all promotions
+    @GetMapping("/admin/all")
+    public ResponseEntity<?> getAllPromotions() {
         try {
-            // Add promotion to the active user
-            boolean isAdded = promotionDAO.addPromotionToActiveUser();
-
-            if (isAdded) {
-                return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("message", "Promotion successfully added to active user."));
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Failed to add promotion to active user."));
-            }
+            List<Promotion> promotions = promotionDAO.getAllPromotions();
+            return ResponseEntity.ok(promotions);
         } catch (Exception e) {
-            System.out.println("PromotionController: Error adding promotion to active user: " + e.getMessage());
+            System.out.println("PromotionController: Error fetching promotions: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error adding promotion: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Failed to fetch promotions: " + e.getMessage()));
         }
     }
-
-    // GET promotion for the active user
-    @GetMapping("/get")
-    public ResponseEntity<?> getPromotionForActiveUser() {
+    
+    // Admin endpoint to send a promotion to all subscribed users
+    @PostMapping("/admin/send/{id}")
+    public ResponseEntity<?> sendPromotionToUsers(@PathVariable int id) {
         try {
-            Promotion promotion = promotionDAO.getPromotionByActiveUserId();
-
-            if (promotion != null) {
-                return ResponseEntity.ok(Map.of("promotion", promotion));
+            boolean sent = promotionDAO.sendPromotionToSubscribers(id);
+            
+            if (sent) {
+                return ResponseEntity.ok(Map.of("message", "Promotion successfully sent to all subscribed users"));
             } else {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "No promotion found for active user"));
+                return ResponseEntity.badRequest().body(Map.of("error", "Failed to send promotion. It may not exist, already been sent, or there are no subscribed users."));
             }
         } catch (Exception e) {
-            System.out.println("PromotionController: Error fetching promotion: " + e.getMessage());
+            System.out.println("PromotionController: Error sending promotion: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching promotion: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Failed to send promotion: " + e.getMessage()));
         }
     }
 }

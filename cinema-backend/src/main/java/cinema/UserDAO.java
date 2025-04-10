@@ -3,6 +3,7 @@ package cinema;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -596,6 +597,31 @@ public class UserDAO {
             System.out.println("UserDAO: Error getting all admins: " + e.getMessage());
             e.printStackTrace();
             return List.of();
+        }
+    }
+    
+    // Get all users who have subscribed to promotions
+    public List<User> getSubscribedUsers() {
+        try {
+            String query = "SELECT * FROM user WHERE promotion_subscription = TRUE";
+            
+            return jdbcTemplate.query(
+                query, 
+                (rs, rowNum) -> {
+                    User user = new User();
+                    user.setUserId(rs.getInt("user_id"));
+                    user.setFirstName(rs.getString("first_name"));
+                    user.setLastName(rs.getString("last_name"));
+                    user.setEmail(rs.getString("email"));
+                    user.setStatusId(rs.getInt("status_id"));
+                    user.setPromotionSubscription(true);
+                    return user;
+                }
+            );
+        } catch (Exception e) {
+            System.out.println("UserDAO: Error in getSubscribedUsers: " + e.getMessage());
+            e.printStackTrace();
+            return new ArrayList<>();
         }
     }
 }

@@ -52,4 +52,18 @@ public class EmailService {
         
         mailSender.send(message);
     }
+    
+    public void sendPromotionEmail(String to, Promotion promotion) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject("Cinema E-Booking System - Special Promotion");
+        message.setText("Dear Valued Customer,\n\n" +
+                "We're excited to offer you a special promotion!\n\n" +
+                promotion.getDescription() + "\n\n" +
+                "Discount: " + promotion.getDiscountPercentage() + "% off your next purchase!\n\n" +
+                "Simply mention this promotion when making your purchase online.\n\n" +
+                "Best Regards,\nCinema E-Booking Team");
+        
+        mailSender.send(message);
+    }
 }
