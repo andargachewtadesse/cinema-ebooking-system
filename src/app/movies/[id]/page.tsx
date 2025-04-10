@@ -5,6 +5,8 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Header } from '@/components/layout/header';
 import { Button } from "@/components/ui/button";
+import Image from 'next/image';
+import projectorImg from  '@/../public/projector.png';
 
 interface Movie {
   id: string;
@@ -133,6 +135,7 @@ const MoviePage = () => {
           </div>
         </div>
 
+        <div className="flex justify-center m-px">
         {/* Select Seats Button */}
         <Button
           className="w-full md:w-auto mb-8"
@@ -140,7 +143,9 @@ const MoviePage = () => {
         >
           Select seats
         </Button>
+        </div>
 
+        <div className="flex justify-center">
         {/* Movie Times Row */}
         {showSeatSelection && (
           <div className="flex flex-wrap gap-2 mb-8">
@@ -155,33 +160,47 @@ const MoviePage = () => {
             ))}
           </div>
         )}
+        </div>
 
-        {/* Seat Selection Grid */}
-        {showSeatSelection && selectedTime && (
-          <div className="flex flex-col items-center gap-2 mb-8 p-8 bg-black/20 rounded-lg">
-            {getSeatsForTime().map((row, rowIndex) => (
-              <div key={rowIndex} className="flex gap-2">
-                {row.map((isAvailable, colIndex) => {
-                  const isSelected = selectedSeats.some(
-                    (s) => s.row === rowIndex && s.col === colIndex
-                  );
-                  const seatLabel = `${String.fromCharCode(65 + rowIndex)}${colIndex + 1}`;
-                  return (
-                    <Button
-                      key={`${rowIndex}-${colIndex}`}
-                      variant={isSelected ? "default" : "outline"}
-                      className="w-12 h-12 p-0"
-                      onClick={() => isAvailable && toggleSeat(rowIndex, colIndex)}
-                      disabled={!isAvailable}
-                    >
-                      {seatLabel}
-                    </Button>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        )}
+{showSeatSelection && selectedTime && (
+  <div className="flex flex-col items-center gap-2 mb-8 p-8 bg-black/20 rounded-lg">
+    {/* Screen Indicator */}
+    <div className="w-full max-w-md h-10 bg-gray-300 rounded mb-4 text-center text-sm text-black flex items-center justify-center">
+      Screen
+    </div>
+
+    {/* Seat Rows */}
+    {getSeatsForTime().map((row, rowIndex) => (
+      <div key={rowIndex} className="flex gap-2">
+        {row.map((isAvailable, colIndex) => {
+          const isSelected = selectedSeats.some(
+            (s) => s.row === rowIndex && s.col === colIndex
+          );
+          const seatLabel = `${String.fromCharCode(65 + rowIndex)}${colIndex + 1}`;
+          return (
+            <Button
+              key={`${rowIndex}-${colIndex}`}
+              variant={isSelected ? "default" : "outline"}
+              className="w-12 h-12 p-0"
+              onClick={() => isAvailable && toggleSeat(rowIndex, colIndex)}
+              disabled={!isAvailable}
+            >
+              {seatLabel}
+            </Button>
+          );
+        })}
+      </div>
+    ))}
+    <div className='text-white'>
+    <Image 
+            src={projectorImg} 
+            alt={movie.title} 
+            className="w-full h-[125px] object-cover rounded rotate90"
+          />
+          <p/> Projector
+    </div>
+  </div>
+)}
 
         {/* Checkout Section */}
         {showSeatSelection && selectedTime && selectedSeats.length > 0 && (
