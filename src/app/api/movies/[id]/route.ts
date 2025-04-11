@@ -64,19 +64,19 @@ export async function GET(
       producer: movie.producer || 'N/A',
       cast: movie.cast ? movie.cast.split(',').map((c: string) => c.trim()).filter(Boolean) : [],
       originalCategory: movie.category || 'General',
-      price: movie.showTimes && movie.showTimes.length > 0 
-        ? movie.showTimes[0].price 
+      price: movie.showTimes && movie.showTimes.length > 0
+        ? movie.showTimes[0].price
         : 'N/A',
       showTimes: movie.showTimes && movie.showTimes.length > 0
         ? movie.showTimes.map((st: any) => ({
             id: st.showTimeId.toString(),
-            date: new Date(st.showDate).toLocaleDateString(),
+            date: st.showDate,
             time: new Date(`1970-01-01T${st.showTime}`).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-            screenNumber: st.screenNumber,
+            screenNumber: st.showroomId,
             availableSeats: st.availableSeats,
             price: st.price,
-            seats: Array.from({ length: 6 }, () => 
-              Array.from({ length: 8 }, () => Math.random() > 0.3)
+            seats: Array.from({ length: 8 }, () =>
+              Array.from({ length: 10 }, () => Math.random() > 0.2)
             )
           }))
         : []

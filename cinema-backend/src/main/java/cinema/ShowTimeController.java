@@ -7,6 +7,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -54,6 +55,33 @@ public class ShowTimeController {
             System.out.println("ShowTimeController: Unexpected error adding showtimes: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
+        }
+    }
+
+    // Add this endpoint to delete a single showtime by its ID
+    @DeleteMapping("/delete/{showTimeId}")
+    public ResponseEntity<String> deleteShowTime(@PathVariable int showTimeId) {
+        try {
+            System.out.println("ShowTimeController: Attempting to delete showtime with ID: " + showTimeId);
+            boolean deleted = showTimeDAO.deleteShowTimeById(showTimeId);
+
+            if (deleted) {
+                System.out.println("ShowTimeController: Successfully deleted showtime ID: " + showTimeId);
+                return ResponseEntity.ok("Showtime deleted successfully.");
+            } else {
+                System.out.println("ShowTimeController: Showtime not found for deletion, ID: " + showTimeId);
+                // Use 404 Not Found if the item didn't exist
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Showtime not found.");
+            }
+        } catch (RuntimeException e) {
+            // Catch the specific exception thrown by DAO on DB error
+            System.out.println("ShowTimeController: Database error deleting showtime: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Database error during deletion: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("ShowTimeController: Unexpected error deleting showtime: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred during deletion.");
         }
     }
 

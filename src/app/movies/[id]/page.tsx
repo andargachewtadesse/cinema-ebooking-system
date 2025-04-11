@@ -18,34 +18,44 @@ import projectorImg from '@/../public/projector.png';
 import { format } from 'date-fns';
 import { Calendar } from "@/components/ui/calendar";
 
+// Interface for the processed showtime data used by the component
 interface ShowTime {
   show_time_id: string;
   movie_id: string;
-  show_date: string;
-  show_time: string;
+  show_date: string; // YYYY-MM-DD
+  show_time: string; // HH:mm (24-hour)
   screen_number: number;
   available_seats: number;
   price: number;
-  seats?: boolean[][]; // Optional seat availability matrix
+  seats?: boolean[][];
 }
 
+// Interface for the raw showtime data likely received from the API
+interface RawShowTime {
+  id: string;
+  date: string; // Format received from API: YYYY-MM-DD (e.g., "2025-04-20")
+  time: string; // Expected format: hh:mm AM/PM
+  screenNumber: number;
+  availableSeats: number;
+  price: number;
+  seats?: boolean[][];
+}
+
+// Update Movie interface to use RawShowTime for the initial data
 interface Movie {
   id: string;
   title: string;
   description: string;
   trailerUrl: string;
   imageUrl: string;
-  genre: string;
+  genre: string; // Note: originalCategory seems to be used in rendering
   status: string;
   rating?: string;
   director?: string;
   producer?: string;
   cast?: string[];
   originalCategory?: string;
-  showTimes: Array<{
-    time: string;
-    seats: boolean[][];
-  }>;
+  showTimes: RawShowTime[]; // Use RawShowTime here for the fetched data
 }
 
 interface SelectedSeat {
@@ -89,24 +99,95 @@ const MoviePage = () => {
         throw new Error(`Error: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      console.log("Fetched movie data:", data);
+      const data: Movie = await response.json(); // Use the updated Movie interface
+      // --- Add Logging: Log the raw data received ---
+      console.log("Raw API data:", JSON.stringify(data, null, 2));
+      console.log("Raw showTimes array:", data.showTimes); // Log the showTimes array specifically
 
-      // Transform showTimes to the correct shape
-      const transformedShowTimes: ShowTime[] = data.showTimes.map((st: any) => ({
-        show_time_id: st.id,
-        movie_id: data.id,
-        show_date: format(new Date(st.date), 'yyyy-MM-dd'), // ensure consistent formatting
-        show_time: convertTo24Hour(st.time),
-        screen_number: st.screenNumber,
-        available_seats: st.availableSeats,
-        price: data.price,
-        seats: st.seats || undefined,
-      }));
+      if (!Array.isArray(data.showTimes)) {
+         console.error("API Error: data.showTimes is not an array!", data.showTimes);
+         setMovie({ ...data, showTimes: [] }); // Set empty array to prevent crashes
+         return;
+      }
+
+
+      // Transform showTimes, adding validation and filtering
+      const transformedShowTimes: ShowTime[] = data.showTimes
+        .map((st: RawShowTime, index: number) => { // Use RawShowTime type
+          console.log(`Processing raw showtime[${index}]:`, st);
+
+          // --- Start Validation ---
+          if (!st || typeof st !== 'object') {
+             console.warn(`Skipping invalid showtime object at index ${index}:`, st);
+             return null;
+          }
+
+          // -- Updated Date Validation & Parsing for YYYY-MM-DD --
+          if (!st.date || typeof st.date !== 'string') {
+              console.warn(`Invalid or missing date string for showtime index ${index} (ID: ${st.id}):`, st.date);
+              return null;
+          }
+
+          // Split YYYY-MM-DD format
+          const dateParts = st.date.split('-'); // Use '-' as separator
+          if (dateParts.length !== 3) {
+              console.warn(`Invalid date format (expected YYYY-MM-DD) for showtime index ${index} (ID: ${st.id}):`, st.date);
+              return null;
+          }
+
+          // Parse year, month (1-indexed), day
+          const year = parseInt(dateParts[0], 10);
+          const month = parseInt(dateParts[1], 10);
+          const day = parseInt(dateParts[2], 10);
+
+          // Validate parsed components
+          if (isNaN(year) || isNaN(month) || isNaN(day) || month < 1 || month > 12 || day < 1 || day > 31) {
+             console.warn(`Failed to parse valid date components from YYYY-MM-DD for showtime index ${index} (ID: ${st.id}):`, st.date);
+             return null;
+          }
+
+          // Create Date object using local time components (month is 0-indexed)
+          // Revert Date.UTC() to use local time interpretation
+          const dateObj = new Date(year, month - 1, day);
+
+          // Check if the manually constructed date is valid
+          if (isNaN(dateObj.getTime())) {
+              console.warn(`Created invalid date object after manual parsing for showtime index ${index} (ID: ${st.id}) from date string:`, st.date);
+              return null;
+          }
+          // --- End Validation ---
+
+          // Format the valid date into M/d/yyyy for component state consistency
+          const showDateStr = format(dateObj, 'M/d/yyyy');
+
+          const transformed = {
+            show_time_id: st.id,
+            movie_id: data.id,
+            show_date: showDateStr, // Store consistently as M/d/yyyy
+            show_time: convertTo24Hour(st.time),
+            screen_number: st.screenNumber,
+            available_seats: st.availableSeats,
+            price: st.price,
+            seats: st.seats || undefined,
+          };
+           console.log(`Successfully transformed showtime[${index}]:`, transformed);
+           return transformed;
+        })
+        .filter((st): st is ShowTime => {
+           // --- Add Logging: Log which items are being filtered out ---
+           if (st === null) {
+              console.log("Filtering out null showtime");
+              return false;
+           }
+           return true;
+        });
+
+      // --- Add Logging: Log the final transformed array ---
+      console.log("Final transformedShowTimes:", transformedShowTimes);
 
       setMovie({
-        ...data,
-        showTimes: transformedShowTimes
+        ...data, // Keep original movie data
+        showTimes: transformedShowTimes // Set the validated and transformed showtimes
       });
     } catch (error) {
       console.error('Error fetching movie:', error);
@@ -123,11 +204,21 @@ const MoviePage = () => {
 
   // Update available showtimes when a date is selected
   useEffect(() => {
+    console.log("Selected date state updated:", selectedDate?.toString());
     if (selectedDate && movie) {
-      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      // Format selected date to M/d/yyyy for comparison
+      const dateStr = format(selectedDate, 'M/d/yyyy');
+      console.log(`Filtering available times for date string: ${dateStr}`);
+
       const filteredShowtimes = movie.showTimes.filter(
-        (showtime) => showtime.show_date === dateStr
+        (showtime) => {
+          // Compare against the M/d/yyyy string in the state
+          const comparison = showtime.show_date === dateStr;
+          // console.log(`Comparing ${showtime.show_date} === ${dateStr} -> ${comparison}`);
+          return comparison;
+        }
       );
+      console.log("Filtered showtimes:", filteredShowtimes);
 
       // Sort showtimes by time
       const sortedShowtimes = [...filteredShowtimes].sort((a, b) =>
@@ -135,16 +226,21 @@ const MoviePage = () => {
       );
 
       setAvailableTimes(sortedShowtimes);
-      setSelectedTime(null); // Reset selected time when date changes
+      setSelectedTime(null);
+    } else {
+       setAvailableTimes([]);
     }
   }, [selectedDate, movie]);
 
   const getSeatsForTime = (): boolean[][] => {
     if (!selectedTime || !selectedDate || !movie) return [];
 
+    // Format selected date to M/d/yyyy for comparison
+    const formattedSelectedDate = format(selectedDate, 'M/d/yyyy');
+
     const timeData = movie.showTimes.find(
       (t) => t.show_time === selectedTime &&
-        t.show_date === format(selectedDate, 'yyyy-MM-dd')
+        t.show_date === formattedSelectedDate
     );
 
     // If seats aren't provided, generate a default 8x10 matrix of available seats
@@ -176,8 +272,15 @@ const MoviePage = () => {
   };
 
   const getAvailableDates = () => {
-    const availableDates = movie?.showTimes.map((showtime) => showtime.show_date);
-    return availableDates ? new Set(availableDates) : new Set();
+    // --- Add Logging: Check showTimes when this is called ---
+    console.log("getAvailableDates called. movie.showTimes:", movie?.showTimes);
+
+    const availableDateStrings = movie?.showTimes.map((showtime) => showtime.show_date);
+    const dateSet = availableDateStrings ? new Set(availableDateStrings) : new Set<string>();
+
+    // --- Add Logging: Check the generated Set ---
+    console.log("Available dates Set:", dateSet);
+    return dateSet;
   };
 
   // Function to convert YouTube URL to embed URL
@@ -354,7 +457,23 @@ const MoviePage = () => {
                     mode="single"
                     selected={selectedDate}
                     onSelect={setSelectedDate}
-                    disabled={(date) => !getAvailableDates().has(format(date, 'yyyy-MM-dd'))}
+                    disabled={(date) => {
+                      const availableDatesSet = getAvailableDates();
+                      // Format calendar's date object to M/d/yyyy
+                      const formattedDate = format(date, 'M/d/yyyy');
+                      const isDisabled = !availableDatesSet.has(formattedDate);
+
+                      // Optional logging
+                      if (date.getFullYear() === 2025 && date.getMonth() === 3) {
+                         console.log(`Calendar disabled check:
+                           Input Date Obj: ${date.toString()}
+                           Formatted Check: ${formattedDate}
+                           Available Set has it?: ${availableDatesSet.has(formattedDate)}
+                           Is Disabled?: ${isDisabled}`);
+                      }
+
+                      return isDisabled;
+                    }}
                     className="mx-auto"
                   />
                 </CardContent>

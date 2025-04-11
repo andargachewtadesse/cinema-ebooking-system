@@ -250,6 +250,44 @@ function ShowTimeForm({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingShowrooms, setIsLoadingShowrooms] = useState(true);
+  const [isLoadingExistingTimes, setIsLoadingExistingTimes] = useState(true);
+  const [existingShowTimes, setExistingShowTimes] = useState([]);
+  const [displayMode, setDisplayMode] = useState<'existing' | 'add'>('existing');
+
+  // Fetch existing showtimes for the movie
+  useEffect(() => {
+    const fetchExistingShowTimes = async () => {
+      if (!movie?.id) return;
+      
+      try {
+        setIsLoadingExistingTimes(true);
+        const response = await fetch(`/api/showtimes/movie/${movie.id}`);
+        
+        if (!response.ok) {
+          console.error('Failed to fetch existing showtimes');
+          return;
+        }
+        
+        const showtimes = await response.json();
+        setExistingShowTimes(showtimes);
+        
+        if (showtimes && showtimes.length > 0) {
+          // Initialize with empty values for adding new show times
+          // Don't load existing showtimes into edit form anymore
+          setPrice(showtimes[0].price.toString());
+          setDisplayMode('existing');
+        } else {
+          setDisplayMode('add');
+        }
+      } catch (err) {
+        console.error('Error fetching existing showtimes:', err);
+      } finally {
+        setIsLoadingExistingTimes(false);
+      }
+    };
+    
+    fetchExistingShowTimes();
+  }, [movie]);
 
   useEffect(() => {
     // Fetch showrooms when component mounts
@@ -308,194 +346,363 @@ function ShowTimeForm({
     setShowTimeEntries(updatedEntries);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    // Validate the price field
-    if (!price) {
-      setError("Please enter a price for the show times.");
+  // Function to handle individual showtime deletion - NOW CALLS API
+  const handleDeleteShowTime = async (showTimeId: number) => {
+    if (!confirm(`Are you sure you want to delete this show time? This action cannot be undone.`)) {
       return;
     }
-
-    // Validate all entries, excluding price which is now global
-    for (const entry of showTimeEntries) {
-      if (!entry.selectedShowroom || !entry.showDate || !entry.showTime || !entry.duration) {
-        setError("Please fill in all fields for each show time entry.");
-        return;
-      }
-    }
-
-    setIsLoading(true);
     
+    setIsLoading(true); // Indicate loading state
+    setError(null);
+
     try {
-      // Map entries to the format expected by the backend
-      const showTimesData = showTimeEntries.map(entry => {
-        const selectedShowroomData = showrooms.find(sr => sr.showroomId == entry.selectedShowroom);
-        const availableSeats = selectedShowroomData?.seatCount || 0;
-        
-        return {
-          movieId: movie.id,
-          showroomId: parseInt(entry.selectedShowroom),
-          showDate: entry.showDate,
-          showTime: entry.showTime,
-          price: parseFloat(price), // Use the single price for all entries
-          duration: parseInt(entry.duration),
-          availableSeats: availableSeats 
-        };
-      });
-      
-      const response = await fetch('/api/showtimes/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(showTimesData), 
+      console.log(`Attempting to delete showtime ID: ${showTimeId}`);
+
+      // Call the frontend API route to delete the showtime
+      const response = await fetch(`/api/showtimes/${showTimeId}`, {
+        method: 'DELETE',
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || errorData.message || 'Failed to add show time(s)');
+        throw new Error(errorData.error || `Failed to delete showtime (status: ${response.status})`);
       }
 
-      onSubmit(); 
+      console.log(`Successfully deleted showtime ID: ${showTimeId}`);
+
+      // Update the UI immediately by removing the deleted showtime
+      setExistingShowTimes(prevTimes =>
+        prevTimes.filter(st => st.showTimeId !== showTimeId)
+      );
+
+      // If we deleted the last showtime, switch to add mode (optional, depends on desired UX)
+      if (existingShowTimes.length <= 1) {
+        setDisplayMode('add');
+        // Optionally clear the add form
+        resetAddForm();
+      }
+
     } catch (error) {
-      console.error('Error adding show time:', error);
-      setError(error instanceof Error ? error.message : 'An unknown error occurred');
+      console.error('Error deleting showtime:', error);
+      setError(error instanceof Error ? error.message : 'An unknown error occurred during deletion');
+      // Optionally show an alert or toast message to the user
+      alert(`Error: ${error instanceof Error ? error.message : 'Could not delete showtime.'}`);
+    } finally {
+      setIsLoading(false); // End loading state
+    }
+  };
+
+  const resetAddForm = () => {
+    setShowTimeEntries([
+      { id: Date.now(), selectedShowroom: '', showDate: '', showTime: '', duration: '' }
+    ]);
+    setPrice(existingShowTimes.length > 0 ? existingShowTimes[0].price.toString() : '');
+  };
+
+  // Modify the submit handler to ONLY handle adding new showtimes
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    // Validate form fields for adding new showtimes
+    if (displayMode === 'add') {
+      if (!price) {
+        setError("Please enter a price for the new show times.");
+        return;
+      }
+
+      // Check if there are any entries to add and validate them
+      const entriesToAdd = showTimeEntries.filter(entry => entry.selectedShowroom || entry.showDate || entry.showTime || entry.duration);
+      if (entriesToAdd.length === 0) {
+        // If only deleting, maybe just call onSubmit? Or handle separately?
+        // For now, assume submit means "save changes", which includes adding.
+        // If no new entries, maybe just close the dialog or show a message.
+         console.log("No new showtimes to add.");
+         onSubmit(); // Close dialog if no new entries?
+         return;
+      }
+
+      for (const entry of entriesToAdd) {
+        if (!entry.selectedShowroom || !entry.showDate || !entry.showTime || !entry.duration) {
+          setError("Please fill in all fields for each new show time entry.");
+          return;
+        }
+      }
+    } else {
+       // If in 'existing' mode and submitting, maybe just close? Or add validation if needed.
+       console.log("Submitting while in 'existing' mode - no new entries to add.");
+       onSubmit(); // Close dialog
+       return;
+    }
+
+
+    setIsLoading(true);
+
+    try {
+      // Only add new showtimes if there are valid entries in the 'add' form
+      const validEntries = showTimeEntries.filter(entry => entry.selectedShowroom && entry.showDate && entry.showTime && entry.duration);
+
+      if (validEntries.length > 0) {
+        console.log("Adding new showtimes for movie:", movie.id);
+
+        // Map entries to the format expected by the backend
+        const showTimesData = validEntries.map(entry => {
+          const selectedShowroomData = showrooms.find(sr => sr.showroomId == entry.selectedShowroom);
+          const availableSeats = selectedShowroomData?.seatCount || 0; // Default to 0 if not found
+
+          return {
+            movieId: movie.id,
+            showroomId: parseInt(entry.selectedShowroom),
+            showDate: entry.showDate,
+            showTime: entry.showTime,
+            price: parseFloat(price), // Use the single price for all entries
+            duration: parseInt(entry.duration),
+            availableSeats: availableSeats
+          };
+        });
+
+        console.log("Data being sent to /api/showtimes/add:", showTimesData);
+
+        const response = await fetch('/api/showtimes/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(showTimesData),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+
+          // Improved error handling for schedule conflicts
+          if (response.status === 409) { // HTTP 409 Conflict
+             throw new Error(errorData.message || errorData.error || "Schedule conflict detected: Another movie is already scheduled for this showroom at the selected time. Please choose a different showroom, date, or time.");
+          }
+
+          throw new Error(errorData.error || errorData.message || 'Failed to add show time(s)');
+        }
+        console.log("Successfully added new showtimes.");
+      } else {
+         console.log("No valid new showtime entries to submit.");
+      }
+
+      onSubmit(); // Call the original submit handler (closes dialog, refreshes list)
+    } catch (error) {
+      console.error('Error adding showtimes:', error);
+      setError(error instanceof Error ? error.message : 'An unknown error occurred while adding showtimes');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const formatDateTime = (dateStr, timeStr) => {
+    const dateObj = new Date(dateStr);
+    
+    // Add a day to fix the timezone issue
+    const adjustedDate = new Date(dateObj);
+    adjustedDate.setDate(dateObj.getDate() + 1);
+    
+    const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
+    return `${adjustedDate.toLocaleDateString(undefined, options)} at ${timeStr}`;
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 w-full">
+    <div className="space-y-6 w-full">
       {error && (
         <div className="bg-red-50 text-red-500 p-4 rounded-md mb-4">
           {error}
         </div>
       )}
       
-      {/* Single Price Field for all showtimes */}
-      <div className="mb-6">
-        <Label htmlFor="price" className="text-sm font-medium text-gray-700 block mb-2">
-          Price ($) for all show times *
-        </Label>
-        <Input
-          id="price"
-          type="number"
-          step="0.01"
-          min="0"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          required
-          className="w-full max-w-xs"
-          placeholder="0.00"
-        />
-      </div>
-      
-      {/* Simple header row */}
-      <div className="grid grid-cols-4 gap-6 mb-2">
-        <div className="text-sm font-medium text-gray-700">Showroom *</div>
-        <div className="text-sm font-medium text-gray-700">Show Date *</div>
-        <div className="text-sm font-medium text-gray-700">Show Time *</div>
-        <div className="text-sm font-medium text-gray-700">Duration (min) *</div>
-      </div>
-
-      {/* Show Time Entries with simpler layout */}
-      <div className="space-y-4">
-        {showTimeEntries.map((entry, index) => (
-          <div key={entry.id}>
-            <div className="grid grid-cols-4 gap-6 items-center">
-              <div>
-                <Select
-                  value={entry.selectedShowroom}
-                  onValueChange={(value) => handleEntryChange(index, 'selectedShowroom', value)}
-                  required
+      {isLoadingExistingTimes ? (
+        <div className="text-center py-4">
+          <div className="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-gray-900 mr-2"></div>
+          Loading existing showtimes...
+        </div>
+      ) : (
+        <>
+          {/* Show existing showtimes with delete options */}
+          {existingShowTimes.length > 0 && displayMode === 'existing' && (
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium">Existing Show Times</h3>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setDisplayMode('add')}
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select showroom" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {showrooms.map((showroom) => (
-                      <SelectItem key={showroom.showroomId} value={showroom.showroomId.toString()}>
-                        {showroom.showroomName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Input
-                  type="date"
-                  value={entry.showDate}
-                  onChange={(e) => handleEntryChange(index, 'showDate', e.target.value)}
-                  required
-                  className="w-full"
-                />
-              </div>
-              
-              <div>
-                <Input
-                  type="time"
-                  value={entry.showTime}
-                  onChange={(e) => handleEntryChange(index, 'showTime', e.target.value)}
-                  required
-                  className="w-full"
-                />
-              </div>
-              
-              <div>
-                <Input
-                  type="number"
-                  min="1"
-                  value={entry.duration}
-                  onChange={(e) => handleEntryChange(index, 'duration', e.target.value)}
-                  required
-                  className="w-full"
-                  placeholder="120"
-                />
-              </div>
-            </div>
-            
-            {/* Remove button - shown below the row with proper spacing */}
-            {showTimeEntries.length > 1 && (
-              <div className="mt-2 flex justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => removeShowTimeEntry(index)}
-                  className="text-red-500 w-28"
-                >
-                  Remove
+                  <Plus className="mr-2 h-4 w-4" /> Add New Show Times
                 </Button>
               </div>
-            )}
-          </div>
-        ))}
-      </div>
-      
-      {/* Add More Button */}
-      <div className="flex justify-start">
-        <Button 
-          type="button" 
-          variant="outline"
-          onClick={addShowTimeEntry}
-          className="border-dashed border-gray-300"
-        >
-          <Plus className="mr-2 h-4 w-4" /> Add Another Show Time
-        </Button>
-      </div>
+              
+              <div className="border rounded-md divide-y">
+                {existingShowTimes.map(showTime => (
+                  <div key={showTime.showTimeId} className="p-4 flex justify-between items-center">
+                    <div>
+                      <p className="font-medium">
+                        {formatDateTime(showTime.showDate, showTime.showTime)}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Showroom: {showrooms.find(sr => sr.showroomId === showTime.showroomId)?.showroomName || showTime.showroomId}
+                        {' • '}Duration: {showTime.duration} min
+                        {' • '}Price: ${parseFloat(showTime.price).toFixed(2)}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteShowTime(showTime.showTimeId)}
+                      disabled={isLoading}
+                      className="text-red-500"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-      {/* Form Actions */}
-      <div className="flex justify-end space-x-3 pt-4 border-t mt-6">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isLoading || isLoadingShowrooms}>
-          {isLoading ? "Adding..." : "Add All Show Times"}
-        </Button>
-      </div>
-    </form>
+          {/* Show add form when in add mode */}
+          {displayMode === 'add' && (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {existingShowTimes.length > 0 && (
+                <div className="flex justify-end">
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    onClick={() => setDisplayMode('existing')}
+                  >
+                    View Existing Show Times
+                  </Button>
+                </div>
+              )}
+              
+              {/* Single Price Field for all showtimes */}
+              <div className="mb-6">
+                <Label htmlFor="price" className="text-sm font-medium text-gray-700 block mb-2">
+                  Price ($) for all show times *
+                </Label>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  required
+                  className="w-full max-w-xs"
+                  placeholder="0.00"
+                />
+              </div>
+              
+              {/* Simple header row */}
+              <div className="grid grid-cols-4 gap-6 mb-2">
+                <div className="text-sm font-medium text-gray-700">Showroom *</div>
+                <div className="text-sm font-medium text-gray-700">Show Date *</div>
+                <div className="text-sm font-medium text-gray-700">Show Time *</div>
+                <div className="text-sm font-medium text-gray-700">Duration (min) *</div>
+              </div>
+
+              {/* Show Time Entries with simpler layout */}
+              <div className="space-y-4">
+                {showTimeEntries.map((entry, index) => (
+                  <div key={entry.id}>
+                    <div className="grid grid-cols-4 gap-6 items-center">
+                      <div>
+                        <Select
+                          value={entry.selectedShowroom}
+                          onValueChange={(value) => handleEntryChange(index, 'selectedShowroom', value)}
+                          required
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select showroom" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {showrooms.map((showroom) => (
+                              <SelectItem key={showroom.showroomId} value={showroom.showroomId.toString()}>
+                                {showroom.showroomName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Input
+                          type="date"
+                          value={entry.showDate}
+                          onChange={(e) => handleEntryChange(index, 'showDate', e.target.value)}
+                          required
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Input
+                          type="time"
+                          value={entry.showTime}
+                          onChange={(e) => handleEntryChange(index, 'showTime', e.target.value)}
+                          required
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={entry.duration}
+                          onChange={(e) => handleEntryChange(index, 'duration', e.target.value)}
+                          required
+                          className="w-full"
+                          placeholder="120"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Remove button - shown below the row with proper spacing */}
+                    {showTimeEntries.length > 1 && (
+                      <div className="mt-2 flex justify-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeShowTimeEntry(index)}
+                          className="text-red-500 w-28"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Add More Button */}
+              <div className="flex justify-start">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={addShowTimeEntry}
+                  className="border-dashed border-gray-300"
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Add Another Show Time
+                </Button>
+              </div>
+              
+              {/* Form Actions */}
+              <div className="flex justify-end space-x-3 pt-4 border-t mt-6">
+                <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isLoading || isLoadingShowrooms}>
+                  {isLoading ? "Adding..." : "Add Show Times"}
+                </Button>
+              </div>
+            </form>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 
@@ -589,10 +796,22 @@ export default function AdminMoviesPage() {
     return movie.showTimes
       .slice(0, 3)
       .map((st: any) => {
-        const date = new Date(st.showDate).toLocaleDateString();
+        const date = formatAdjustedDate(st.showDate);
         return `${date} at ${st.showTime}`;
       })
       .join(", ");
+  };
+
+  // Helper function to format dates correctly with timezone adjustment
+  const formatAdjustedDate = (dateString) => {
+    // Parse the date string
+    const dateObj = new Date(dateString);
+    
+    // Add a day to fix the timezone issue
+    const adjustedDate = new Date(dateObj);
+    adjustedDate.setDate(dateObj.getDate() + 1);
+    
+    return adjustedDate.toLocaleDateString();
   };
 
   if (isLoading) {
@@ -649,19 +868,12 @@ export default function AdminMoviesPage() {
                 </td>
                 <td className="py-3 px-4 whitespace-nowrap">
                   {movie.status === "Currently Running" && movie.showTimes?.[0]?.showDate
-                    ? new Date(movie.showTimes[0].showDate).toLocaleDateString()
+                    ? formatAdjustedDate(movie.showTimes[0].showDate)
                     : "N/A"
                   }
                 </td>
                 <td className="py-3 px-4">
                   <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => router.push(`/admin/movies/edit/${movie.id}`)}
-                      className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                      title="Edit Movie Details"
-                    >
-                      <Pencil className="h-4 w-4 text-gray-700" />
-                    </button>
                     <button
                       onClick={() => handleShowTimeClick(movie)}
                       className="p-1 rounded-full hover:bg-gray-100 transition-colors"
@@ -718,4 +930,3 @@ export default function AdminMoviesPage() {
     </div>
   )
 }
-

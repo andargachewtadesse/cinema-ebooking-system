@@ -49,9 +49,12 @@ export function MovieCard({ movie, isLoggedIn = false }: MovieCardProps) {
             )}
           </div>
 
-          <p className="text-sm mt-3">
-            Release Date: {new Date(movie.releaseDate).toLocaleDateString()}
-          </p>
+          {/* Conditionally render Release Date */}
+          {movie.status !== "Coming Soon" && (
+            <p className="text-sm mt-3">
+              Release Date: {new Date(movie.releaseDate).toLocaleDateString()}
+            </p>
+          )}
         </CardContent>
         <CardFooter className="p-4 pt-0">
           {movie.status !== "Coming Soon" ? (

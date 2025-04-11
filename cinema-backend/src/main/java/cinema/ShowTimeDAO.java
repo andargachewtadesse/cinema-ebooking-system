@@ -110,6 +110,25 @@ public class ShowTimeDAO {
         return false;
     }
 
+    public boolean deleteShowTimeById(int showTimeId) {
+        String sql = "DELETE FROM show_times WHERE show_time_id = ?";
+        try {
+            int rowsAffected = jdbcTemplate.update(sql, showTimeId);
+            if (rowsAffected > 0) {
+                System.out.println("ShowTimeDAO: Successfully deleted showtime with ID: " + showTimeId);
+                return true;
+            } else {
+                System.out.println("ShowTimeDAO: No showtime found with ID: " + showTimeId + " to delete.");
+                return false; // Indicate that no rows were deleted (not found)
+            }
+        } catch (DataAccessException e) {
+            System.out.println("ShowTimeDAO: Database error deleting showtime with ID: " + showTimeId + " - " + e.getMessage());
+            e.printStackTrace();
+            // Re-throw as a runtime exception or a custom exception if needed
+            throw new RuntimeException("Failed to delete showtime due to database error.", e);
+        }
+    }
+
     public List<ShowTime> getShowTimesByMovieId(int movieId) {
         String query = "SELECT * FROM show_times WHERE movie_id = ?";
     
