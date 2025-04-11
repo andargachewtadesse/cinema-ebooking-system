@@ -2,14 +2,14 @@ package cinema;
 
 import java.math.BigDecimal;
 import java.sql.Date;
-import java.sql.Time;
+import java.time.LocalTime;
 
 public class ShowTime {
     private int showTimeId;
     private int movieId;
     private int showroomId;  // Fixed from screenNumber
     private Date showDate;
-    private Time showTime;
+    private LocalTime showTime;
     private int availableSeats;
     private int duration;  // Added duration field
     private BigDecimal price;
@@ -17,7 +17,7 @@ public class ShowTime {
     public ShowTime() {
     }
 
-    public ShowTime(int showTimeId, int movieId, int showroomId, Date showDate, Time showTime, int availableSeats, int duration, BigDecimal price) {
+    public ShowTime(int showTimeId, int movieId, int showroomId, Date showDate, LocalTime showTime, int availableSeats, int duration, BigDecimal price) {
         this.showTimeId = showTimeId;
         this.movieId = movieId;
         this.showroomId = showroomId;  
@@ -60,11 +60,11 @@ public class ShowTime {
         this.showDate = showDate;
     }
 
-    public Time getShowTime() {
+    public LocalTime getShowTime() {
         return showTime;
     }
 
-    public void setShowTime(Time showTime) {
+    public void setShowTime(LocalTime showTime) {
         this.showTime = showTime;
     }
 

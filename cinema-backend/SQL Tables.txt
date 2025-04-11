@@ -61,7 +61,7 @@ CREATE TABLE booking (
     customer_id INT NULL,
     booking_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status ENUM('pending', 'confirmed', 'cancelled') DEFAULT 'pending',
-    FOREIGN KEY (customer_id) REFERENCES users(user_id) ON DELETE SET NULL
+    FOREIGN KEY (customer_id) REFERENCES user(user_id) ON DELETE SET NULL
 );
 
 --Create table promotion
@@ -82,7 +82,7 @@ CREATE TABLE show_times (
     show_date DATE NULL,
     show_time TIME NULL,
     available_seats INT NULL,
-    durnation INT NULL,
+    duration INT NULL,
     price DECIMAL(10,2) NULL,
     FOREIGN KEY (movie_id) REFERENCES movies(movie_id) ON DELETE SET NULL,
     FOREIGN KEY (showroom_id) REFERENCES showroom(showroom_id) ON DELETE SET NULL

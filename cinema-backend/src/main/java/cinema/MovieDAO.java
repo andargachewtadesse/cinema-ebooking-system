@@ -4,6 +4,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -137,7 +138,7 @@ public class MovieDAO {
                 st.setShowTimeId(rs.getInt("show_time_id"));
                 st.setMovieId(rs.getInt("movie_id"));
                 st.setShowDate(rs.getDate("show_date"));
-                st.setShowTime(rs.getTime("show_time"));
+                st.setShowTime(rs.getObject("show_time", LocalTime.class));
                 st.setAvailableSeats(rs.getInt("available_seats"));
                 st.setPrice(rs.getBigDecimal("price"));
                 return st;
@@ -164,6 +165,7 @@ public class MovieDAO {
         movie.setTrailer_picture(resultSet.getString("trailer_picture"));
         movie.setTrailer_video(resultSet.getString("trailer_video"));
         movie.setMpaaRating(resultSet.getString("mpaa_rating"));
+        movie.setStatus(resultSet.getString("status"));
         return movie;
     }
 
