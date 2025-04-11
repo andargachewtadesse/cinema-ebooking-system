@@ -190,7 +190,6 @@ public class CardController {
         }
     }
 
-    // Utility method to get stack trace as a string
     private String getStackTraceAsString(Exception e) {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);

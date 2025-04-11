@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error in POST /api/movies:', error);
     
-    // better error handling
+    //  error handling
     if (error instanceof SyntaxError) {
       return NextResponse.json(
         { error: 'Invalid JSON format: ' + error.message },

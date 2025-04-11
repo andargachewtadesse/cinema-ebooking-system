@@ -227,7 +227,7 @@ public class UserController {
             if (success) {
                 System.out.println("UserController: Successfully updated password for user with ID: " + id);
                 
-                // Send profile update email (optional bonus)
+                // Send profile update email 
                 User updatedUser = userDAO.getAllUser().stream()
                     .filter(u -> u.getUserId() == userId)
                     .findFirst()

@@ -97,7 +97,7 @@ public class CardDAO {
             // Query to get all cards for the active user
             String query = "SELECT * FROM card WHERE customer_id = ?";
             
-            // Use query method with a lambda expression for the row mapper
+
             List<Card> cards = jdbcTemplate.query(query, 
                 new Object[]{activeUserId}, 
                 (rs, rowNum) -> {
@@ -173,7 +173,7 @@ public class CardDAO {
             String query = "SELECT COUNT(*) FROM card WHERE customer_id = ?";
             Integer count = jdbcTemplate.queryForObject(query, Integer.class, actUserId);
             
-            return count < 3;  // Changed from <= 3 to < 3 to allow up to 3 cards
+            return count < 3;  
             
         } catch (Exception e) {
             System.out.println("CardDAO: Error counting payment cards: " + e.getMessage());

@@ -255,7 +255,7 @@ public class UserDAO {
             
             // Check if the user exists
             if (user != null) {
-                // Prepare the SQL update query
+
                 String updateQuery = "UPDATE user SET first_name = ?, last_name = ?, promotion_subscription = ? WHERE email = ?";
                 
                 // Execute the update query
@@ -393,7 +393,7 @@ public class UserDAO {
           
             String query = "SELECT user_id FROM user WHERE status_id = 1";  
             
-            // Assuming you execute the query and get the user ID
+
             return jdbcTemplate.queryForObject(query, Integer.class);
 
         } catch (Exception e) {
@@ -541,7 +541,7 @@ public class UserDAO {
             System.out.println("UserDAO: Creating admin account with email: " + user.getEmail() + 
                                " and explicitly setting status_id=2");
             
-            // Use a simpler query with explicit values
+
             String sql = "INSERT INTO user (password, first_name, last_name, email, status_id, is_admin) " +
                          "VALUES (?, ?, ?, ?, 2, TRUE)";
             

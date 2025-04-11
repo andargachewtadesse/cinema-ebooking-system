@@ -20,7 +20,7 @@ interface StoredTicketInfo {
   seatCol: number;
   seatLabel: string;
   ticketType: 'adult' | 'child' | 'senior';
-  price: number; // Price is now included from localStorage
+  price: number; // Price is  included from localStorage
   quantity?: number; 
 }
 
@@ -176,7 +176,7 @@ export default function OrderPage() {
       });
     });
     
-    // Also update localStorage to persist changes
+    //  update localStorage to persist changes
     const storedData = localStorage.getItem('pendingOrderTickets');
     if (storedData) {
       try {

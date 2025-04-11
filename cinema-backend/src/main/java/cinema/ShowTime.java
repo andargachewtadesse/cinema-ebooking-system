@@ -7,11 +7,11 @@ import java.time.LocalTime;
 public class ShowTime {
     private int showTimeId;
     private int movieId;
-    private int showroomId;  // Fixed from screenNumber
+    private int showroomId;  
     private Date showDate;
     private LocalTime showTime;
     private int availableSeats;
-    private int duration;  // Added duration field
+    private int duration;  
     private BigDecimal price;
 
     public ShowTime() {
@@ -24,7 +24,7 @@ public class ShowTime {
         this.showDate = showDate;
         this.showTime = showTime;
         this.availableSeats = availableSeats;
-        this.duration = duration;  // Added duration
+        this.duration = duration;  
         this.price = price;
     }
 
@@ -76,11 +76,11 @@ public class ShowTime {
         this.availableSeats = availableSeats;
     }
 
-    public int getDuration() {  // Getter for duration
+    public int getDuration() {  
         return duration;
     }
 
-    public void setDuration(int duration) {  // Setter for duration
+    public void setDuration(int duration) {  
         this.duration = duration;
     }
 
@@ -101,7 +101,7 @@ public class ShowTime {
                 ", showDate=" + showDate +
                 ", showTime=" + showTime +
                 ", availableSeats=" + availableSeats +
-                ", duration=" + duration +  // Added duration to toString()
+                ", duration=" + duration +  
                 ", price=" + price +
                 '}';
     }

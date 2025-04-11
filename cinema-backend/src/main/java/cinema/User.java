@@ -13,7 +13,7 @@ public class User implements Serializable {
     private boolean promotionSubscription;
     private String verificationCode;
     
-    // Address fields (all optional)
+    // Address fields 
     private String streetAddress;
     private String city;
     private String state;

@@ -11,11 +11,11 @@ public class Ticket {
     private BigDecimal price;
     private String seatNumber;
 
-    // Default constructor
+
     public Ticket() {
     }
 
-    // Constructor with parameters
+
     public Ticket(int ticketId, int bookingId, int showId, String ticketType, BigDecimal price, String seatNumber) {
         this.ticketId = ticketId;
         this.bookingId = bookingId;
@@ -25,7 +25,7 @@ public class Ticket {
         this.seatNumber = seatNumber;
     }
 
-    // Getters and Setters
+
     public int getTicketId() {
         return ticketId;
     }

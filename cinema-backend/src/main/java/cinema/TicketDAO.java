@@ -65,7 +65,7 @@ public class TicketDAO {
         }
     }
 
-    // Get all tickets for a booking (Optional method)
+    // Get all tickets for a booking 
     public List<Ticket> getTicketsByBookingId(int bookingId) {
         try {
             String query = "SELECT * FROM ticket WHERE booking_id = ?";
@@ -86,7 +86,7 @@ public class TicketDAO {
         }
     }
 
-    // Get ticket by ID (Optional method)
+    // Get ticket by ID 
     public Ticket getTicketById(int ticketId) {
         try {
             String query = "SELECT * FROM ticket WHERE ticket_id = ?";

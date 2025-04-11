@@ -68,7 +68,7 @@ public class TicketController {
         }
     }
 
-    // Get all tickets for a booking (optional method)
+    // Get all tickets for a booking 
     @GetMapping("/booking/{bookingId}")
     public ResponseEntity<List<Ticket>> GetTicketsByBookingId(@PathVariable int bookingId) {
         try {
@@ -87,7 +87,7 @@ public class TicketController {
         }
     }
 
-    // Get ticket by ID (optional method)
+    // Get ticket by ID 
     @GetMapping("/{ticketId}")
     public ResponseEntity<Ticket> GetTicketById(@PathVariable int ticketId) {
         try {

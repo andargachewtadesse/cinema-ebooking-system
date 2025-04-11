@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea" // Import Textarea
+import { Textarea } from "@/components/ui/textarea" 
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, Plus, Trash2, Send } from "lucide-react"
 import { Promotion } from "@/types/Promotion"

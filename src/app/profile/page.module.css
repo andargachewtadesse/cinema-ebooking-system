@@ -1,6 +1,4 @@
-/* UserProfile.module.css */
 
-/* General styles */
 .container {
   max-width: 56rem;
   margin: 2rem auto;
@@ -172,29 +170,29 @@
   margin-top: 0.5rem;
 }
 
-/* Add some global font and color improvements */
+
 body {
   font-family: 'Inter', sans-serif;
   background-color: #f0f4f8;
   color: #1a1a1a;
 }
 
-/* Add a subtle gradient background to the container */
+
 .container {
   background: linear-gradient(145deg, #ffffff, #f7fafc);
 }
 
-/* Add a hover effect to buttons */
+
 .button:hover {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Add a hover effect to input fields */
+
 .inputField:hover {
   border-color: #a0aec0;
 }
 
-/* Fix for edit button positioning */
+
 .nameEmailContainer {
   position: relative;
   margin-bottom: 1rem;
@@ -209,13 +207,13 @@ body {
   gap: 0.5rem;
 }
 
-/* Container for input fields with relative positioning */
+
 .inputFieldContainer {
     position: relative;
     width: 100%;
   }
   
-  /* Style for the input field */
+
   .inputField {
     padding: 0.75rem;
     border: 1px solid #e2e8f0;
@@ -225,7 +223,7 @@ body {
     transition: border-color 0.2s, box-shadow 0.2s;
   }
   
-  /* Style for the <p> tag inside the input field container */
+
   .inputFieldContainer p {
     padding: 0.75rem;
     border: 1px solid #e2e8f0;
@@ -235,10 +233,10 @@ body {
     background-color: #ffffff;
   }
   
-  /* Hover actions (edit, save, cancel buttons) */
+
   .hoverActions {
     position: absolute;
-    right: 0.75rem; /* Adjust this value to align the buttons inside the input field */
+    right: 0.75rem; 
     top: 50%;
     transform: translateY(-50%);
     display: flex;

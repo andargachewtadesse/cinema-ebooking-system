@@ -74,7 +74,7 @@ public class ShowTimeController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Showtime not found.");
             }
         } catch (RuntimeException e) {
-            // Catch the specific exception thrown by DAO on DB error
+
             System.out.println("ShowTimeController: Database error deleting showtime: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Database error during deletion: " + e.getMessage());
