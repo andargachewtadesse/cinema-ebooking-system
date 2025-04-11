@@ -68,6 +68,7 @@ CREATE TABLE booking (
 
 CREATE TABLE promotion (
     promotion_id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(20) NOT NULL,
     discount_percentage DECIMAL(5,2) NOT NULL,
     description VARCHAR(255) NOT NULL,
     creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
