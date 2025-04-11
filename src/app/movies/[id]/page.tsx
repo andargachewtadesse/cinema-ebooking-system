@@ -1,16 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Header } from '@/components/layout/header';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { Card, CardContent } from "@/components/ui/card";
 import Image from 'next/image';
 import projectorImg from '@/../public/projector.png';
-import { DayPicker } from 'react-day-picker';
 import { format } from 'date-fns';
-import 'react-day-picker/dist/style.css';
+import { Calendar } from "@/components/ui/calendar";
 
 interface ShowTime {
   show_time_id: string;
@@ -42,13 +48,21 @@ interface Movie {
   }>;
 }
 
+interface SelectedSeat {
+  row: number;
+  col: number;
+  type: 'adult' | 'child' | 'senior';
+}
+
 const MoviePage = () => {
+  const router = useRouter();
   const { id } = useParams();
   const [movie, setMovie] = useState<Movie | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [availableTimes, setAvailableTimes] = useState<ShowTime[]>([]);
-  const [selectedSeats, setSelectedSeats] = useState<{ row: number; col: number }[]>([]);
+  const [selectedSeats, setSelectedSeats] = useState<SelectedSeat[]>([]);
   const [showSeatSelection, setShowSeatSelection] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -141,13 +155,24 @@ const MoviePage = () => {
     return timeData.seats;
   };
 
-  const toggleSeat = (row: number, col: number) => {
-    const seat = { row, col };
-    setSelectedSeats((prev) =>
-      prev.some((s) => s.row === row && s.col === col)
-        ? prev.filter((s) => s.row !== row || s.col !== col)
-        : [...prev, seat]
-    );
+  const selectSeatWithType = (row: number, col: number, type: 'adult' | 'child' | 'senior') => {
+    const seatIndex = selectedSeats.findIndex(s => s.row === row && s.col === col);
+    
+    if (seatIndex >= 0) {
+      // Update type if seat is already selected
+      setSelectedSeats(prev => 
+        prev.map((seat, i) => 
+          i === seatIndex ? { ...seat, type } : seat
+        )
+      );
+    } else {
+      // Add new seat with specified type
+      setSelectedSeats(prev => [...prev, { row, col, type }]);
+    }
+  };
+
+  const removeSeat = (row: number, col: number) => {
+    setSelectedSeats(prev => prev.filter(s => !(s.row === row && s.col === col)));
   };
 
   const getAvailableDates = () => {
@@ -160,6 +185,55 @@ const MoviePage = () => {
     if (!url) return '';
     const videoId = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=))([^"&?\/\s]{11})/);
     return videoId ? `https://www.youtube.com/embed/${videoId[1]}` : url;
+  };
+
+  // Function to get seat label
+  const getSeatLabel = (row: number, col: number) => {
+    return `${String.fromCharCode(65 + row)}${col + 1}`;
+  };
+
+  const handleProceedToCheckout = () => {
+    // Get the selected showtime to access its price
+    const selectedShowTime = availableTimes.find(
+      (time) => time.show_time === selectedTime
+    );
+    
+    if (!selectedShowTime) {
+      console.error("Selected showtime not found");
+      return;
+    }
+
+    // Base price from the selected showtime
+    const basePrice = parseFloat(selectedShowTime.price);
+    
+    // Create ticket information to store in localStorage
+    const pendingTickets = selectedSeats.map(seat => {
+      // Calculate price based on ticket type
+      let ticketPrice = basePrice;
+      if (seat.type === 'child') {
+        ticketPrice = parseFloat((basePrice * 0.90).toFixed(2));
+      } else if (seat.type === 'senior') {
+        ticketPrice = parseFloat((basePrice * 0.95).toFixed(2));
+      }
+      
+      return {
+        movieId: movie!.id,
+        movieTitle: movie!.title,
+        showDate: format(selectedDate!, 'yyyy-MM-dd'),
+        showTime: selectedTime!,
+        seatRow: seat.row,
+        seatCol: seat.col,
+        seatLabel: getSeatLabel(seat.row, seat.col),
+        ticketType: seat.type,
+        price: ticketPrice, // Add the calculated price
+      };
+    });
+
+    // Save to localStorage
+    localStorage.setItem('pendingOrderTickets', JSON.stringify(pendingTickets));
+    
+    // Navigate to order page
+    router.push('/order');
   };
 
   if (error) {
@@ -247,130 +321,207 @@ const MoviePage = () => {
           </div>
         </div>
 
-{/* Calendar and Show Times */}
-<div className="flex gap-1 mb-6 bg-black/30">
-  {/* Calendar for Date Selection */}
-  <div className="flex-1 rounded-xl p-6 text-white">
-    <h2 className="text-2xl font-bold mb-4">Pick a Show Date</h2>
-    <DayPicker
-      animate
-      mode="single"
-      selected={selectedDate}
-      onSelect={setSelectedDate}
-      modifiers={{
-        unavailable: (date) => !getAvailableDates().has(format(date, 'yyyy-MM-dd')), // Only gray out unavailable dates
-      }}
-      modifiersClassNames={{
-        selected: 'bg-blue-500 text-white',
-        unavailable: 'bg-gray-400 text-black', // Styling unavailable dates
-      }}
-      styles={{
-        caption: { color: 'white' },
-        head_cell: { color: '#ccc' },
-        cell: { color: 'white' },
-      }}
-    />
-  </div>
-        {/* Conditional Button/Label */}
-        <div className="flex justify-center m-px mb-8">
-          {movie.status === "Currently Running" ? (
-            <Button
-              className="w-full md:w-auto"
-              onClick={() => setShowSeatSelection(!showSeatSelection)}
-            >
-              Select seats
-            </Button>
-          ) : (
-            <div className="w-full md:w-auto text-center py-2 px-4 bg-amber-100 rounded-md border border-amber-300">
-              <span className="font-medium text-amber-800">Coming Soon</span>
-            </div>
-          )}
-        </div>
+        {/* Initial Action Button */}
+        {!showSeatSelection && (
+          <div className="flex justify-center mb-8">
+            {movie.status === "Currently Running" ? (
+              <Button 
+                onClick={() => {
+                  setShowSeatSelection(true);
+                  setShowCalendar(true);
+                }}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                Book Tickets
+              </Button>
+            ) : (
+              <div className="w-full md:w-auto text-center py-2 px-4 bg-amber-100 rounded-md border border-amber-300">
+                <span className="font-medium text-amber-800">Coming Soon</span>
+              </div>
+            )}
+          </div>
+        )}
 
-  {/* Show Times */}
-  {selectedDate && (
-    <div className="flex-1 rounded-xl p-6 text-white">
-      <h3 className="text-xl font-semibold mb-3">
-        Available Showtimes for {format(selectedDate, 'MMMM d, yyyy')}
-      </h3>
-      <div className="flex flex-wrap gap-3">
-        {availableTimes.length > 0 ? (
-          availableTimes.map((time) => (
-            <Button
-              key={time.show_time_id}
-              variant={selectedTime === time.show_time ? "default" : "outline"}
-              onClick={() => {
-                setSelectedTime(time.show_time);
-                setShowSeatSelection(!showSeatSelection);
-              }}
-              className="bg-blue-600 hover:bg-yellow-700"
-            >
-              {format(new Date(`2000-01-01T${time.show_time}:00`), 'hh:mm a')}
-            </Button>
-          ))
-        ) : (
-          <p>No showtimes available for this date.</p>
+        {/* Calendar and Show Times */}
+        {showSeatSelection && showCalendar && movie.status === "Currently Running" && (
+          <div className="flex flex-col items-center mb-8">
+            {/* Centered Calendar */}
+            <div className="max-w-md w-full mb-6">
+              <h2 className="text-xl font-semibold mb-4 text-center text-white">Pick a Show Date</h2>
+              <Card className="bg-card border shadow-sm">
+                <CardContent className="pt-6">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    disabled={(date) => !getAvailableDates().has(format(date, 'yyyy-MM-dd'))}
+                    className="mx-auto"
+                  />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Show Times */}
+            {selectedDate && (
+              <Card className="bg-card border shadow-sm max-w-md w-full">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold mb-4 text-card-foreground">
+                    Available Showtimes for {format(selectedDate, 'MMMM d, yyyy')}
+                  </h3>
+                  <div className="flex flex-wrap gap-3 justify-center">
+                    {availableTimes.length > 0 ? (
+                      availableTimes.map((time) => (
+                        <Button
+                          key={time.show_time_id}
+                          variant={selectedTime === time.show_time ? "default" : "outline"}
+                          onClick={() => {
+                            setSelectedTime(time.show_time);
+                            setShowCalendar(false);
+                          }}
+                        >
+                          {format(new Date(`2000-01-01T${time.show_time}:00`), 'hh:mm a')}
+                        </Button>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground">No showtimes available for this date.</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* Seat Selection */}
+        {showSeatSelection && selectedTime && !showCalendar && (
+          <div className="mb-8">
+            <Card className="bg-card border shadow-sm">
+              <CardContent className="p-6">
+                <h2 className="text-xl font-semibold text-card-foreground text-center mb-4">Select Your Seats</h2>
+                
+                {/* Show time and date info */}
+                <div className="text-muted-foreground mb-6 text-center">
+                  <p className="text-lg">
+                    {format(selectedDate!, 'MMMM d, yyyy')} at {format(new Date(`2000-01-01T${selectedTime}:00`), 'hh:mm a')}
+                  </p>
+                </div>
+                
+                {/* Screen Indicator */}
+                <div className="w-full max-w-md h-10 bg-muted rounded mx-auto mb-8 text-center text-sm text-muted-foreground flex items-center justify-center font-medium">
+                  Screen
+                </div>
+
+                {/* Seat Rows */}
+                <div className="mb-8 flex flex-col items-center">
+                  {getSeatsForTime().map((row, rowIndex) => (
+                    <div key={rowIndex} className="flex gap-2 mb-2 justify-center">
+                      {row.map((isAvailable, colIndex) => {
+                        const isSelected = selectedSeats.some(
+                          (s) => s.row === rowIndex && s.col === colIndex
+                        );
+                        const seatLabel = getSeatLabel(rowIndex, colIndex);
+                        
+                        return (
+                          <DropdownMenu key={`${rowIndex}-${colIndex}`}>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant={isSelected ? "default" : "outline"}
+                                size="icon"
+                                className={`w-10 h-10 p-0 font-medium ${
+                                  !isAvailable ? "bg-muted text-muted-foreground opacity-50 cursor-not-allowed" : ""
+                                }`}
+                                disabled={!isAvailable || isSelected}
+                              >
+                                {seatLabel}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            {isAvailable && !isSelected && (
+                              <DropdownMenuContent>
+                                <DropdownMenuItem onSelect={() => selectSeatWithType(rowIndex, colIndex, 'adult')}>
+                                  Adult
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => selectSeatWithType(rowIndex, colIndex, 'child')}>
+                                  Child
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => selectSeatWithType(rowIndex, colIndex, 'senior')}>
+                                  Senior
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            )}
+                          </DropdownMenu>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="flex items-center justify-center mt-4 text-muted-foreground">
+                  <Image
+                    src={projectorImg}
+                    alt="Projector"
+                    className="w-[80px] h-auto object-contain mr-2 opacity-70"
+                  />
+                  <span>Projector</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Selected Tickets Summary */}
+            {selectedSeats.length > 0 && (
+              <div className="mt-6">
+                <Card className="bg-card border shadow-sm">
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-semibold text-card-foreground mb-4">Selected Tickets</h3>
+                    <div className="space-y-3">
+                      {selectedSeats.map((seat, index) => (
+                        <div key={index} className="flex items-center justify-between bg-muted/50 p-3 rounded-md">
+                          <div className="text-card-foreground">
+                            <span className="font-medium">Seat {getSeatLabel(seat.row, seat.col)}</span>
+                            <span className="mx-2 text-muted-foreground">•</span>
+                            <span className="capitalize">{seat.type}</span>
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => removeSeat(seat.row, seat.col)}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Checkout button */}
+                    <div className="mt-6 flex justify-center">
+                      <Button 
+                        onClick={handleProceedToCheckout} 
+                        className="w-full md:w-auto"
+                      >
+                        Proceed to Checkout
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+            
+            {/* Back Button */}
+            <div className="flex justify-center mt-4">
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  setShowCalendar(true);
+                  setSelectedSeats([]);
+                }}
+              >
+                Change Date/Time
+              </Button>
+            </div>
+          </div>
         )}
       </div>
     </div>
-  )}
-</div>
-
-
-  {showSeatSelection && selectedTime && (
-        <div className="flex flex-col items-center gap-2 mb-8 p-8 bg-black/20 rounded-lg">
-          {/* Screen Indicator */}
-          <div className="w-full max-w-md h-10 bg-gray-300 rounded mb-4 text-center text-sm text-black flex items-center justify-center">
-            Screen
-          </div>
-
-          {/* Seat Rows */}
-          {getSeatsForTime().map((row, rowIndex) => (
-            <div key={rowIndex} className="flex gap-2">
-              {row.map((isAvailable, colIndex) => {
-                const isSelected = selectedSeats.some(
-                  (s) => s.row === rowIndex && s.col === colIndex
-                );
-                const seatLabel = `${String.fromCharCode(65 + rowIndex)}${colIndex + 1}`;
-                return (
-                  <Button
-                    key={`${rowIndex}-${colIndex}`}
-                    variant={isSelected ? "default" : "outline"}
-                    className="w-12 h-12 p-0"
-                    onClick={() => isAvailable && toggleSeat(rowIndex, colIndex)}
-                    disabled={!isAvailable}
-                  >
-                    {seatLabel}
-                  </Button>
-                );
-              })}
-            </div>
-          ))}
-          <div className='text-white'>
-            <Image
-              src={projectorImg}
-              alt={movie.title}
-              className="w-full h-[125px] object-cover rounded rotate90"
-            />
-            <p /> Projector
-          </div>
-        </div>
-      )}
-      </div>
-
-
-      {/* Checkout Section */}
-      {showSeatSelection && selectedTime && selectedSeats.length > 0 && (
-        <div className="text-center p-8 bg-black/20 rounded-lg">
-          <p className="text-lg text-white mb-4">Selected Seats: {selectedSeats.length}</p>
-          <Button asChild>
-            <Link href="/order">Proceed to Checkout</Link>
-          </Button>
-        </div>
-      )}
-    </div>
-
-
   );
 };
 
