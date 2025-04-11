@@ -104,13 +104,13 @@ CREATE TABLE theatre (
     name VARCHAR(255) NOT NULL
 );
 
---create table ticket
 CREATE TABLE ticket (
     ticket_id INT AUTO_INCREMENT PRIMARY KEY,
     booking_id INT NULL,
     show_id INT NULL,
     ticket_type ENUM('adult', 'senior', 'child') DEFAULT 'adult',
     price DECIMAL(10,2) NULL,
+    seat_number VARCHAR(10) NULL,
     FOREIGN KEY (booking_id) REFERENCES booking(booking_id) ON DELETE SET NULL,
     FOREIGN KEY (show_id) REFERENCES show_times(show_time_id) ON DELETE SET NULL
 );
