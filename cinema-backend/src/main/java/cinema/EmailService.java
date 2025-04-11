@@ -73,7 +73,7 @@ public class EmailService {
         } catch (Exception e) {
             System.out.println("EmailService: Error sending promotion email: " + e.getMessage());
             e.printStackTrace();
-            // Consider how to handle email failures - maybe log to a database or retry
+            
         }
     }
 

@@ -126,7 +126,7 @@ public class PromotionDAO {
     // Send promotion to all subscribed users
     public boolean sendPromotionToSubscribers(int promotionId) {
         try {
-            // First, check if the promotion exists and hasn't been sent yet
+
             Promotion promotion = getPromotionById(promotionId);
             if (promotion == null) {
                 System.out.println("PromotionDAO: Promotion not found with ID: " + promotionId);
