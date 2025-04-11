@@ -1,102 +1,280 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { OrderHeader } from "@/components/order/OrderHeader"
 import { OrderSummary } from "@/components/order/OrderSummary"
 import { OrderTotal } from "@/components/order/OrderTotal"
 import { Button } from "@/components/ui/button"
 import type { Ticket } from "@/types/order"
 import { CheckoutForm } from "@/components/order/checkoutform"
+import { format } from 'date-fns'
+import { useRouter } from 'next/navigation'
+
+// Interface matching the data stored from MoviePage
+interface StoredTicketInfo {
+  movieId: string;
+  movieTitle: string;
+  showDate: string; // 'yyyy-MM-dd'
+  showTime: string; // 'HH:mm'
+  seatRow: number;
+  seatCol: number;
+  seatLabel: string;
+  ticketType: 'adult' | 'child' | 'senior';
+  price: number; // Price is now included from localStorage
+  quantity?: number; // Add optional quantity field
+}
 
 export default function OrderPage() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
+  const [tickets, setTickets] = useState<Ticket[]>([])
+  const [baseTicketPrices, setBaseTicketPrices] = useState<Record<string, number>>({})
+  const router = useRouter()
   
-  // Update ticket types with prices
-  const ticketTypes = [
-    { type: "Adult", price: 15.0 },
-    { type: "Child", price: 10.0 },
-    { type: "Senior", price: 12.0 },
-  ]
-
-  const [tickets, setTickets] = useState<Ticket[]>([
-    {
-      id: "1",
-      type: "Adult",
-      price: 15.0,
-      quantity: 2,
-      movie: {
-        title: "Inception",
-        showtime: "Today, 7:30 PM"
-      }
-    },
-    {
-      id: "2",
-      type: "Child",
-      price: 10.0,
-      quantity: 1,
-      movie: {
-        title: "Inception",
-        showtime: "Today, 7:30 PM"
-      }
-    },
-    {
-      id: "3",
-      type: "Senior",
-      price: 12.0,
-      quantity: 1,
-      movie: {
-        title: "The Dark Knight",
-        showtime: "Tomorrow, 4:15 PM"
-      }
-    },
-  ])
-
-  // handle ticket type changes
-  const updateTicketType = (id: string, newType: string) => {
-    setTickets(
-      tickets.map((ticket) => {
-        if (ticket.id === id) {
-          const typeInfo = ticketTypes.find((t) => t.type === newType)!
-          return {
-            ...ticket,
-            type: newType,
-            price: typeInfo.price,
+  // Load tickets from localStorage on component mount
+  useEffect(() => {
+    const storedData = localStorage.getItem('pendingOrderTickets');
+    if (storedData) {
+      try {
+        const pendingTickets: StoredTicketInfo[] = JSON.parse(storedData);
+        
+        // Track base price for each movie/showtime (keyed by movieId)
+        const prices: Record<string, number> = {};
+        
+        // Map stored data to the Ticket structure
+        const loadedTickets: Ticket[] = pendingTickets.map((storedTicket, index) => {
+          const datePart = storedTicket.showDate;
+          const timePart = storedTicket.showTime; 
+          const displayShowtime = `${format(new Date(datePart), 'MMM d, yyyy')} at ${format(new Date(`1970-01-01T${timePart}:00`), 'hh:mm a')}`;
+          
+          // Store the base price (calculated from adult ticket)
+          // We assume the first adult ticket for each movie has the base price
+          if (!prices[storedTicket.movieId] && storedTicket.ticketType === 'adult') {
+            prices[storedTicket.movieId] = storedTicket.price;
+          } else if (!prices[storedTicket.movieId]) {
+            // If we don't have an adult ticket, estimate the base price
+            const price = storedTicket.price;
+            if (storedTicket.ticketType === 'child') {
+              prices[storedTicket.movieId] = parseFloat((price / 0.90).toFixed(2));
+            } else if (storedTicket.ticketType === 'senior') {
+              prices[storedTicket.movieId] = parseFloat((price / 0.95).toFixed(2));
+            } else {
+              prices[storedTicket.movieId] = price;
+            }
           }
-        }
-        return ticket
-      }),
-    )
-  }
 
-  const updateQuantity = (id: string, increment: boolean) => {
-    setTickets(
-      tickets.map((ticket) => {
-        if (ticket.id === id) {
-          const newQuantity = increment ? ticket.quantity + 1 : ticket.quantity - 1
           return {
-            ...ticket,
-            quantity: Math.max(0, newQuantity),
-          }
-        }
-        return ticket
-      }),
-    )
-  }
+            id: `${storedTicket.movieId}-${storedTicket.seatRow}-${storedTicket.seatCol}-${index}`, 
+            type: storedTicket.ticketType.charAt(0).toUpperCase() + storedTicket.ticketType.slice(1), 
+            price: typeof storedTicket.price === 'number' && !isNaN(storedTicket.price) ? storedTicket.price : 0,
+            quantity: 1, // Each stored item represents one ticket
+            movie: {
+              title: storedTicket.movieTitle,
+              showtime: displayShowtime, 
+              seat: storedTicket.seatLabel,
+              id: storedTicket.movieId // Store movie ID for price lookups
+            },
+          };
+        });
+
+        setBaseTicketPrices(prices);
+        setTickets(loadedTickets);
+      } catch (parseError) {
+        console.error("Failed to parse stored order tickets:", parseError);
+        localStorage.removeItem('pendingOrderTickets');
+      }
+    }
+  }, []); 
 
   const removeTicket = (id: string) => {
-    setTickets(tickets.filter((ticket) => ticket.id !== id))
+    const updatedTickets = tickets.filter((ticket) => ticket.id !== id);
+    setTickets(updatedTickets);
+    
+    // Update localStorage to reflect the removal
+    const storedData = localStorage.getItem('pendingOrderTickets');
+    if (storedData) {
+        try {
+            let pendingTickets: StoredTicketInfo[] = JSON.parse(storedData);
+            // Filter out the removed ticket based on the derived ID logic
+            // This assumes the ID format is consistent
+            const parts = id.split('-');
+            if (parts.length >= 4) {
+                 const movieId = parts[0];
+                 const seatRow = parseInt(parts[1], 10);
+                 const seatCol = parseInt(parts[2], 10);
+                 pendingTickets = pendingTickets.filter(t => 
+                    !(t.movieId === movieId && t.seatRow === seatRow && t.seatCol === seatCol)
+                 );
+                 localStorage.setItem('pendingOrderTickets', JSON.stringify(pendingTickets));
+            }
+        } catch (e) {
+            console.error("Error updating localStorage after removal:", e);
+        }
+    }
   }
 
   const calculateTotal = () => {
-    return tickets.reduce((total, ticket) => total + ticket.price * ticket.quantity, 0)
+    // Quantity is always 1 now
+    return tickets.reduce((total, ticket) => total + ticket.price, 0)
   }
 
   const handleCheckoutSubmit = async (data: any) => {
-    // checkout submission
     console.log('Checkout data:', data)
+    console.log('Tickets submitted:', tickets); 
     setIsCheckoutOpen(false)
-    // payment processing logic
+    localStorage.removeItem('pendingOrderTickets'); // Clear storage on successful checkout
+    alert("Checkout successful (simulation)!"); 
+    // Consider navigating to confirmation: router.push('/order/confirmation');
   }
+
+  const getTicketPrice = (type: string, movieId: string): number => {
+    const basePrice = baseTicketPrices[movieId] || 0;
+    
+    if (basePrice <= 0) {
+      console.warn(`Invalid base price for movie ID ${movieId}`);
+      return 0;
+    }
+
+    // Normalize the type to lowercase for comparison
+    const lowerType = type.toLowerCase();
+    
+    switch (lowerType) {
+      case 'child':
+        return parseFloat((basePrice * 0.90).toFixed(2)); 
+      case 'senior':
+        return parseFloat((basePrice * 0.95).toFixed(2)); 
+      case 'adult':
+      default:
+        return parseFloat(basePrice.toFixed(2));
+    }
+  };
+
+  // Generate ticket types with prices for each movie
+  const getTicketTypesForMovie = (movieId: string) => {
+    const basePrice = baseTicketPrices[movieId] || 0;
+    
+    return [
+      { type: 'Adult', price: getTicketPrice('adult', movieId) },
+      { type: 'Child', price: getTicketPrice('child', movieId) },
+      { type: 'Senior', price: getTicketPrice('senior', movieId) }
+    ];
+  };
+
+  // Handle ticket type update
+  const handleUpdateTicketType = (id: string, newType: string) => {
+    setTickets(prevTickets => {
+      return prevTickets.map(ticket => {
+        if (ticket.id === id) {
+          // Get movie ID from the ticket ID
+          const movieId = ticket.movie.id || ticket.id.split('-')[0];
+          // Calculate new price based on type
+          const newPrice = getTicketPrice(newType, movieId);
+          
+          return {
+            ...ticket,
+            type: newType,
+            price: newPrice
+          };
+        }
+        return ticket;
+      });
+    });
+    
+    // Also update localStorage to persist changes
+    const storedData = localStorage.getItem('pendingOrderTickets');
+    if (storedData) {
+      try {
+        const pendingTickets: StoredTicketInfo[] = JSON.parse(storedData);
+        const parts = id.split('-');
+        
+        if (parts.length >= 4) {
+          const movieId = parts[0];
+          const seatRow = parseInt(parts[1], 10);
+          const seatCol = parseInt(parts[2], 10);
+          
+          const updatedPendingTickets = pendingTickets.map(ticket => {
+            if (ticket.movieId === movieId && 
+                ticket.seatRow === seatRow && 
+                ticket.seatCol === seatCol) {
+              const updatedType = newType.toLowerCase() as 'adult' | 'child' | 'senior';
+              const newPrice = getTicketPrice(updatedType, movieId);
+              
+              return {
+                ...ticket,
+                ticketType: updatedType,
+                price: newPrice
+              };
+            }
+            return ticket;
+          });
+          
+          localStorage.setItem('pendingOrderTickets', JSON.stringify(updatedPendingTickets));
+        }
+      } catch (e) {
+        console.error("Error updating localStorage after type change:", e);
+      }
+    }
+  };
+
+  // Update the handleUpdateQuantity function
+  const handleUpdateQuantity = (id: string, increment: boolean) => {
+    setTickets(prevTickets => {
+      return prevTickets.map(ticket => {
+        if (ticket.id === id) {
+          // Calculate new quantity (min 1)
+          const newQuantity = increment ? ticket.quantity + 1 : Math.max(1, ticket.quantity - 1);
+          
+          return {
+            ...ticket,
+            quantity: newQuantity,
+            // Update total price for this ticket based on quantity
+            price: parseFloat((getTicketPrice(ticket.type, ticket.movie.id) * newQuantity).toFixed(2))
+          };
+        }
+        return ticket;
+      });
+    });
+    
+    // Also update localStorage to persist changes
+    const storedData = localStorage.getItem('pendingOrderTickets');
+    if (storedData) {
+      try {
+        const pendingTickets: StoredTicketInfo[] = JSON.parse(storedData);
+        const parts = id.split('-');
+        
+        if (parts.length >= 4) {
+          const movieId = parts[0];
+          const seatRow = parseInt(parts[1], 10);
+          const seatCol = parseInt(parts[2], 10);
+          const ticketIndex = parseInt(parts[3], 10);
+          
+          // Find the ticket by movieId, seat row and seat column
+          const ticketToUpdate = pendingTickets.find(t => 
+            t.movieId === movieId && t.seatRow === seatRow && t.seatCol === seatCol
+          );
+          
+          if (ticketToUpdate) {
+            // Update quantity property if not exists (create it)
+            if (!('quantity' in ticketToUpdate)) {
+              ticketToUpdate.quantity = 1;
+            }
+            
+            // Update the quantity
+            ticketToUpdate.quantity = increment 
+              ? (ticketToUpdate.quantity || 1) + 1 
+              : Math.max(1, (ticketToUpdate.quantity || 1) - 1);
+            
+            // Update the price based on the new quantity
+            const basePrice = getTicketPrice(ticketToUpdate.ticketType, movieId);
+            ticketToUpdate.price = parseFloat((basePrice * ticketToUpdate.quantity).toFixed(2));
+            
+            localStorage.setItem('pendingOrderTickets', JSON.stringify(pendingTickets));
+          }
+        }
+      } catch (e) {
+        console.error("Error updating localStorage after quantity change:", e);
+      }
+    }
+  };
 
   return (
     <>
@@ -104,17 +282,23 @@ export default function OrderPage() {
       <div className="container mx-auto p-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Order Summary</h1>
-          <p className="text-muted-foreground">Review and modify your tickets</p>
+          <p className="text-muted-foreground">Review your selected tickets</p>
         </div>
 
         <div className="grid gap-8 md:grid-cols-[1fr,400px]">
-          <OrderSummary
-            tickets={tickets}
-            onUpdateQuantity={updateQuantity}
-            onRemoveTicket={removeTicket}
-            onUpdateTicketType={updateTicketType}
-            ticketTypes={ticketTypes}
-          />
+          {tickets.length > 0 ? (
+            <OrderSummary
+              tickets={tickets}
+              onUpdateQuantity={handleUpdateQuantity}
+              onRemoveTicket={removeTicket}
+              onUpdateTicketType={handleUpdateTicketType}
+              ticketTypes={getTicketTypesForMovie(tickets[0]?.movie?.id || '')}
+            />
+          ) : (
+            <div className="text-center text-muted-foreground py-10 border rounded-md">
+              Your order is empty. Go back to select movie tickets.
+            </div>
+          )}
 
           <div className="space-y-6">
             <OrderTotal tickets={tickets} total={calculateTotal()} />
@@ -123,7 +307,7 @@ export default function OrderPage() {
               <Button
                 size="lg"
                 className="w-full"
-                disabled={tickets.length === 0 || calculateTotal() === 0}
+                disabled={tickets.length === 0} 
                 onClick={() => setIsCheckoutOpen(true)}
               >
                 Continue to Checkout
@@ -132,9 +316,9 @@ export default function OrderPage() {
                 variant="outline"
                 size="lg"
                 className="w-full"
-                onClick={() => window.history.back()}
+                onClick={() => router.back()} 
               >
-                Back to Movie
+                Back
               </Button>
             </div>
           </div>
@@ -150,3 +334,19 @@ export default function OrderPage() {
     </>
   )
 }
+
+// Make sure your Ticket type includes the optional seat
+// in src/types/order.ts (or wherever it's defined)
+/*
+export interface Ticket {
+  id: string;
+  type: string; // "Adult", "Child", "Senior"
+  price: number;
+  quantity: number;
+  movie: {
+    title: string;
+    showtime: string; // Formatted display string
+    seat?: string;    // Make seat optional or required based on need
+  };
+}
+*/
