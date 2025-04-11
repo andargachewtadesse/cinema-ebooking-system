@@ -107,4 +107,19 @@ public class TicketDAO {
             return null;
         }
     }
+
+    // Get a list of seat numbers for a specific show ID 
+    // For getting avaliable seats 
+    // Usage: all seats - list of seats
+    public List<String> getSeatNumbersByShowId(int showId) {
+        try {
+            String query = "SELECT seat_number FROM ticket WHERE show_id = ?";
+            return jdbcTemplate.query(query, new Object[]{showId}, (rs, rowNum) -> rs.getString("seat_number"));
+        } catch (Exception e) {
+            System.out.println("TicketDAO: Error getting seat numbers by show ID: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
 }
