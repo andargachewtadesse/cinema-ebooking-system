@@ -39,7 +39,7 @@ export async function GET(
     const showtimes = await response.json();
     console.log(`Retrieved ${showtimes.length} showtimes for movie ID ${id}`);
 
-    // Transform the showtime data from Java format to our front-end format if needed
+
     const transformedShowtimes = showtimes.map((st: any) => ({
       showTimeId: st.showTimeId,
       movieId: st.movieId,

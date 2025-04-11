@@ -21,7 +21,7 @@ interface StoredTicketInfo {
   seatLabel: string;
   ticketType: 'adult' | 'child' | 'senior';
   price: number; // Price is now included from localStorage
-  quantity?: number; // Add optional quantity field
+  quantity?: number; 
 }
 
 export default function OrderPage() {
@@ -46,12 +46,10 @@ export default function OrderPage() {
           const timePart = storedTicket.showTime; 
           const displayShowtime = `${format(new Date(datePart), 'MMM d, yyyy')} at ${format(new Date(`1970-01-01T${timePart}:00`), 'hh:mm a')}`;
           
-          // Store the base price (calculated from adult ticket)
-          // We assume the first adult ticket for each movie has the base price
           if (!prices[storedTicket.movieId] && storedTicket.ticketType === 'adult') {
             prices[storedTicket.movieId] = storedTicket.price;
           } else if (!prices[storedTicket.movieId]) {
-            // If we don't have an adult ticket, estimate the base price
+
             const price = storedTicket.price;
             if (storedTicket.ticketType === 'child') {
               prices[storedTicket.movieId] = parseFloat((price / 0.90).toFixed(2));
@@ -95,7 +93,6 @@ export default function OrderPage() {
         try {
             let pendingTickets: StoredTicketInfo[] = JSON.parse(storedData);
             // Filter out the removed ticket based on the derived ID logic
-            // This assumes the ID format is consistent
             const parts = id.split('-');
             if (parts.length >= 4) {
                  const movieId = parts[0];
@@ -123,7 +120,7 @@ export default function OrderPage() {
     setIsCheckoutOpen(false)
     localStorage.removeItem('pendingOrderTickets'); // Clear storage on successful checkout
     alert("Checkout successful (simulation)!"); 
-    // Consider navigating to confirmation: router.push('/order/confirmation');
+
   }
 
   const getTicketPrice = (type: string, movieId: string): number => {
@@ -253,7 +250,7 @@ export default function OrderPage() {
           );
           
           if (ticketToUpdate) {
-            // Update quantity property if not exists (create it)
+
             if (!('quantity' in ticketToUpdate)) {
               ticketToUpdate.quantity = 1;
             }
@@ -334,19 +331,3 @@ export default function OrderPage() {
     </>
   )
 }
-
-// Make sure your Ticket type includes the optional seat
-// in src/types/order.ts (or wherever it's defined)
-/*
-export interface Ticket {
-  id: string;
-  type: string; // "Adult", "Child", "Senior"
-  price: number;
-  quantity: number;
-  movie: {
-    title: string;
-    showtime: string; // Formatted display string
-    seat?: string;    // Make seat optional or required based on need
-  };
-}
-*/

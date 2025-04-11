@@ -6,7 +6,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // Get the ID from URL directly to avoid params.id issue
+
   const pathname = request.nextUrl.pathname;
   const id = pathname.split('/').pop();
   
@@ -18,7 +18,7 @@ export async function GET(
     console.log(`Fetching movie with ID: ${id}`);
     console.log(`Making GET request to: ${JAVA_API_URL}/${id}`);
     
-    // Use the full URL with http://localhost:8080/api/movies/id
+
     const response = await fetch(`http://localhost:8080/api/movies/${id}`, {
       headers: {
         'Accept': 'application/json',

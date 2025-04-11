@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    // Make a request to your Java backend
+
     const response = await fetch('http://localhost:8080/api/showrooms', {
       method: 'GET',
       headers: {

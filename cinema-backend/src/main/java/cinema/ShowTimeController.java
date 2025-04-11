@@ -58,7 +58,7 @@ public class ShowTimeController {
         }
     }
 
-    // Add this endpoint to delete a single showtime by its ID
+
     @DeleteMapping("/delete/{showTimeId}")
     public ResponseEntity<String> deleteShowTime(@PathVariable int showTimeId) {
         try {

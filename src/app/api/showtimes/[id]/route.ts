@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Define the base URL for the Java backend API
 const JAVA_API_URL = process.env.JAVA_API_URL || 'http://localhost:8080/api';
 
 export async function DELETE(
@@ -18,7 +17,7 @@ export async function DELETE(
 
     console.log(`API Route: Requesting deletion of showtime ID: ${showTimeId}`);
 
-    // Call the new backend endpoint to delete the specific showtime
+
     const response = await fetch(`${JAVA_API_URL}/showtimes/delete/${showTimeId}`, {
       method: 'DELETE',
     });

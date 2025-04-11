@@ -63,11 +63,11 @@ function MovieForm({
       // Add empty reviews field
       formData.append('reviews', '');
       
-      // If we're updating an existing movie, include the movie ID
+      
       if (movie?.id) {
         formData.append('movieId', movie.id);
         
-        // CRITICAL: Include the existing showTimes to preserve them
+
         if (movie.showTimes && movie.showTimes.length > 0) {
           formData.append('existingShowTimes', JSON.stringify(movie.showTimes));
         }
@@ -346,7 +346,7 @@ function ShowTimeForm({
     setShowTimeEntries(updatedEntries);
   };
 
-  // Function to handle individual showtime deletion - NOW CALLS API
+
   const handleDeleteShowTime = async (showTimeId: number) => {
     if (!confirm(`Are you sure you want to delete this show time? This action cannot be undone.`)) {
       return;
@@ -375,17 +375,17 @@ function ShowTimeForm({
         prevTimes.filter(st => st.showTimeId !== showTimeId)
       );
 
-      // If we deleted the last showtime, switch to add mode (optional, depends on desired UX)
+
       if (existingShowTimes.length <= 1) {
         setDisplayMode('add');
-        // Optionally clear the add form
+
         resetAddForm();
       }
 
     } catch (error) {
       console.error('Error deleting showtime:', error);
       setError(error instanceof Error ? error.message : 'An unknown error occurred during deletion');
-      // Optionally show an alert or toast message to the user
+
       alert(`Error: ${error instanceof Error ? error.message : 'Could not delete showtime.'}`);
     } finally {
       setIsLoading(false); // End loading state
@@ -414,11 +414,9 @@ function ShowTimeForm({
       // Check if there are any entries to add and validate them
       const entriesToAdd = showTimeEntries.filter(entry => entry.selectedShowroom || entry.showDate || entry.showTime || entry.duration);
       if (entriesToAdd.length === 0) {
-        // If only deleting, maybe just call onSubmit? Or handle separately?
-        // For now, assume submit means "save changes", which includes adding.
-        // If no new entries, maybe just close the dialog or show a message.
+   
          console.log("No new showtimes to add.");
-         onSubmit(); // Close dialog if no new entries?
+         onSubmit(); 
          return;
       }
 
@@ -429,9 +427,9 @@ function ShowTimeForm({
         }
       }
     } else {
-       // If in 'existing' mode and submitting, maybe just close? Or add validation if needed.
+
        console.log("Submitting while in 'existing' mode - no new entries to add.");
-       onSubmit(); // Close dialog
+       onSubmit(); 
        return;
     }
 
@@ -484,7 +482,7 @@ function ShowTimeForm({
          console.log("No valid new showtime entries to submit.");
       }
 
-      onSubmit(); // Call the original submit handler (closes dialog, refreshes list)
+      onSubmit();
     } catch (error) {
       console.error('Error adding showtimes:', error);
       setError(error instanceof Error ? error.message : 'An unknown error occurred while adding showtimes');
@@ -659,7 +657,7 @@ function ShowTimeForm({
                       </div>
                     </div>
                     
-                    {/* Remove button - shown below the row with proper spacing */}
+                    {/* Remove button  */}
                     {showTimeEntries.length > 1 && (
                       <div className="mt-2 flex justify-end">
                         <Button

@@ -67,7 +67,7 @@ export const deletePromotion = async (promotionId: number): Promise<void> => {
   console.log("Successfully deleted promotion");
 }
 
-// Send a promotion (for admin) - Placeholder if needed later
+
 export const sendPromotion = async (promotionId: number): Promise<void> => {
   const response = await fetch(`${API_BASE_URL}/promotions/admin/send/${promotionId}`, {
     method: "POST",

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useAdmin } from "@/contexts/AdminContext" // Assuming you have this context
+import { useAdmin } from "@/contexts/AdminContext" 
 import {
   Table,
   TableBody,

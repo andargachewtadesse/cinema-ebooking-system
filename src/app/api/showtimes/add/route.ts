@@ -28,15 +28,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // If the backend responds with plain text on success (like "Showtimes added successfully!")
-    // We need to handle it properly as the frontend expects JSON.
+
     const responseText = await response.text();
     try {
-      // Try parsing as JSON first, in case the backend changes later
+
       const jsonData = JSON.parse(responseText);
       return NextResponse.json(jsonData);
     } catch (e) {
-      // If it's not JSON, return the text message in a JSON structure
+
       return NextResponse.json({ message: responseText });
     }
 

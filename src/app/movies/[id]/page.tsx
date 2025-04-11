@@ -30,10 +30,10 @@ interface ShowTime {
   seats?: boolean[][];
 }
 
-// Interface for the raw showtime data likely received from the API
+// Interface for the raw showtime data
 interface RawShowTime {
   id: string;
-  date: string; // Format received from API: YYYY-MM-DD (e.g., "2025-04-20")
+  date: string; // Format received from API: YYYY-MM-DD
   time: string; // Expected format: hh:mm AM/PM
   screenNumber: number;
   availableSeats: number;
@@ -48,7 +48,7 @@ interface Movie {
   description: string;
   trailerUrl: string;
   imageUrl: string;
-  genre: string; // Note: originalCategory seems to be used in rendering
+  genre: string; 
   status: string;
   rating?: string;
   director?: string;
@@ -99,8 +99,8 @@ const MoviePage = () => {
         throw new Error(`Error: ${response.statusText}`);
       }
 
-      const data: Movie = await response.json(); // Use the updated Movie interface
-      // --- Add Logging: Log the raw data received ---
+      const data: Movie = await response.json();
+
       console.log("Raw API data:", JSON.stringify(data, null, 2));
       console.log("Raw showTimes array:", data.showTimes); // Log the showTimes array specifically
 
@@ -111,18 +111,18 @@ const MoviePage = () => {
       }
 
 
-      // Transform showTimes, adding validation and filtering
+
       const transformedShowTimes: ShowTime[] = data.showTimes
         .map((st: RawShowTime, index: number) => { // Use RawShowTime type
           console.log(`Processing raw showtime[${index}]:`, st);
 
-          // --- Start Validation ---
+
           if (!st || typeof st !== 'object') {
              console.warn(`Skipping invalid showtime object at index ${index}:`, st);
              return null;
           }
 
-          // -- Updated Date Validation & Parsing for YYYY-MM-DD --
+
           if (!st.date || typeof st.date !== 'string') {
               console.warn(`Invalid or missing date string for showtime index ${index} (ID: ${st.id}):`, st.date);
               return null;
@@ -146,8 +146,7 @@ const MoviePage = () => {
              return null;
           }
 
-          // Create Date object using local time components (month is 0-indexed)
-          // Revert Date.UTC() to use local time interpretation
+
           const dateObj = new Date(year, month - 1, day);
 
           // Check if the manually constructed date is valid
@@ -155,7 +154,6 @@ const MoviePage = () => {
               console.warn(`Created invalid date object after manual parsing for showtime index ${index} (ID: ${st.id}) from date string:`, st.date);
               return null;
           }
-          // --- End Validation ---
 
           // Format the valid date into M/d/yyyy for component state consistency
           const showDateStr = format(dateObj, 'M/d/yyyy');
@@ -174,7 +172,7 @@ const MoviePage = () => {
            return transformed;
         })
         .filter((st): st is ShowTime => {
-           // --- Add Logging: Log which items are being filtered out ---
+
            if (st === null) {
               console.log("Filtering out null showtime");
               return false;
@@ -182,7 +180,7 @@ const MoviePage = () => {
            return true;
         });
 
-      // --- Add Logging: Log the final transformed array ---
+
       console.log("Final transformedShowTimes:", transformedShowTimes);
 
       setMovie({
@@ -272,13 +270,12 @@ const MoviePage = () => {
   };
 
   const getAvailableDates = () => {
-    // --- Add Logging: Check showTimes when this is called ---
+
     console.log("getAvailableDates called. movie.showTimes:", movie?.showTimes);
 
     const availableDateStrings = movie?.showTimes.map((showtime) => showtime.show_date);
     const dateSet = availableDateStrings ? new Set(availableDateStrings) : new Set<string>();
 
-    // --- Add Logging: Check the generated Set ---
     console.log("Available dates Set:", dateSet);
     return dateSet;
   };
@@ -463,7 +460,7 @@ const MoviePage = () => {
                       const formattedDate = format(date, 'M/d/yyyy');
                       const isDisabled = !availableDatesSet.has(formattedDate);
 
-                      // Optional logging
+
                       if (date.getFullYear() === 2025 && date.getMonth() === 3) {
                          console.log(`Calendar disabled check:
                            Input Date Obj: ${date.toString()}

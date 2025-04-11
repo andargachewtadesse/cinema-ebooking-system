@@ -15,8 +15,7 @@ export async function DELETE(
 
     console.log(`Deleting showtimes for movie ID: ${id}`);
 
-    // Create a custom SQL query to delete all showtimes for this movie
-    // We'll use the direct JDBC API from our Java backend
+ 
     const response = await fetch(`http://localhost:8080/api/showtimes/movie/${id}`, {
       method: 'DELETE',
     });

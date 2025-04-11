@@ -25,6 +25,7 @@ export interface Movie {
   isCurrentlyRunning: boolean
   description: string
   genres?: string[]
+  originalCategory?: string
 }
 
 export interface Review {
