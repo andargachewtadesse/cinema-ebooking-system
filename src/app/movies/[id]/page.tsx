@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Header } from '@/components/layout/header';
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import Image from 'next/image';
 import projectorImg from  '@/../public/projector.png';
 
@@ -15,6 +16,12 @@ interface Movie {
   trailerUrl: string;
   imageUrl: string;
   genre: string;
+  status: string;
+  rating?: string;
+  director?: string;
+  producer?: string;
+  cast?: string[];
+  originalCategory?: string;
   showTimes: Array<{
     time: string;
     seats: boolean[][];
@@ -78,7 +85,8 @@ const MoviePage = () => {
   };
 
   // Function to convert YouTube URL to embed URL
-  const getEmbedUrl = (url: string) => {
+  const getEmbedUrl = (url: string | undefined) => {
+    if (!url) return '';
     const videoId = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=))([^"&?\/\s]{11})/);
     return videoId ? `https://www.youtube.com/embed/${videoId[1]}` : url;
   };
@@ -112,55 +120,94 @@ const MoviePage = () => {
       <div className="container mx-auto px-4 py-8 flex-1">
         {/* Trailer Container */}
         <div className="w-full aspect-video rounded-lg overflow-hidden mb-8 bg-black/20">
-          <iframe
-            src={getEmbedUrl(movie.trailerUrl)}
-            title={`${movie.title} Trailer`}
-            className="w-full h-full"
-            allowFullScreen
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          />
+          {movie.trailerUrl ? (
+            <iframe
+              src={getEmbedUrl(movie.trailerUrl)}
+              title={`${movie.title} Trailer`}
+              className="w-full h-full"
+              allowFullScreen
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-white bg-gray-800">
+              Trailer not available
+            </div>
+          )}
         </div>
 
         {/* Movie Card */}
         <div className="flex flex-col md:flex-row gap-8 p-8 bg-black/20 rounded-lg mb-8">
           <img 
-            src={movie.imageUrl} 
+            src={movie.imageUrl || '/placeholder.svg'} 
             alt={movie.title} 
             className="w-full md:w-[300px] h-[450px] object-cover rounded"
           />
-          <div className="flex-1 space-y-4">
-            <h1 className="text-3xl font-bold text-white">{movie.title}</h1>
-            <p className="text-lg text-gray-300">{movie.genre}</p>
-            <p className="text-gray-200">{movie.description}</p>
+          <div className="flex-1 space-y-4 text-white">
+            <h1 className="text-3xl font-bold">{movie.title}</h1>
+
+            {/* Genre Tags */}
+            <div className="flex flex-wrap gap-2">
+              {(movie.originalCategory?.split(',').map(g => g.trim()).filter(Boolean) || []).map((genre, index) => (
+                <Badge key={index} variant="secondary" className="text-xs">{genre}</Badge>
+              ))}
+              {(movie.originalCategory?.split(',').map(g => g.trim()).filter(Boolean) || []).length === 0 && (
+                 <Badge variant="secondary" className="text-xs">General</Badge>
+              )}
+            </div>
+
+            {/* Rating */}
+            {movie.rating && <p className="text-base"><span className="font-semibold text-white">Rating:</span> <span className="text-gray-200">{movie.rating}</span></p>}
+
+            {/* Synopsis */}
+            <p className="text-base text-gray-200"><span className="font-semibold text-white">Synopsis:</span> {movie.description || 'No synopsis available.'}</p>
+
+            {/* Director */}
+            {movie.director && <p className="text-base"><span className="font-semibold text-white">Director:</span> <span className="text-gray-200">{movie.director}</span></p>}
+
+            {/* Producer */}
+            {movie.producer && <p className="text-base"><span className="font-semibold text-white">Producer:</span> <span className="text-gray-200">{movie.producer}</span></p>}
+
+            {/* Cast */}
+            {movie.cast && movie.cast.length > 0 && (
+              <p className="text-base text-gray-200">
+                <span className="font-semibold text-white">Cast:</span> {movie.cast.join(', ')}
+              </p>
+            )}
           </div>
         </div>
 
-        <div className="flex justify-center m-px">
-        {/* Select Seats Button */}
-        <Button
-          className="w-full md:w-auto mb-8"
-          onClick={() => setShowSeatSelection(!showSeatSelection)}
-        >
-          Select seats
-        </Button>
+        {/* Conditional Button/Label */}
+        <div className="flex justify-center m-px mb-8">
+          {movie.status === "Currently Running" ? (
+            <Button
+              className="w-full md:w-auto"
+              onClick={() => setShowSeatSelection(!showSeatSelection)}
+            >
+              Select seats
+            </Button>
+          ) : (
+            <div className="w-full md:w-auto text-center py-2 px-4 bg-amber-100 rounded-md border border-amber-300">
+              <span className="font-medium text-amber-800">Coming Soon</span>
+            </div>
+          )}
         </div>
 
-        <div className="flex justify-center">
         {/* Movie Times Row */}
         {showSeatSelection && (
-          <div className="flex flex-wrap gap-2 mb-8">
-            {movieTimes.map((timeData, index) => (
-              <Button
-                key={index}
-                variant={selectedTime === timeData.time ? "default" : "outline"}
-                onClick={() => setSelectedTime(timeData.time)}
-              >
-                {timeData.time}
-              </Button>
-            ))}
+          <div className="flex justify-center">
+            <div className="flex flex-wrap gap-2 mb-8">
+              {movieTimes.map((timeData, index) => (
+                <Button
+                  key={index}
+                  variant={selectedTime === timeData.time ? "default" : "outline"}
+                  onClick={() => setSelectedTime(timeData.time)}
+                >
+                  {timeData.time}
+                </Button>
+              ))}
+            </div>
           </div>
         )}
-        </div>
 
 {showSeatSelection && selectedTime && (
   <div className="flex flex-col items-center gap-2 mb-8 p-8 bg-black/20 rounded-lg">

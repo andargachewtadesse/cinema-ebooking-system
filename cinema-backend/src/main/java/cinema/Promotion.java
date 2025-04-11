@@ -4,6 +4,7 @@ import java.util.Date;
 
 public class Promotion {
     private int promotionId;
+    private String code;
     private double discountPercentage;
     private String description;
     private Date creationDate;
@@ -14,8 +15,9 @@ public class Promotion {
         this.sent = false;
     }
 
-    public Promotion(int promotionId, double discountPercentage, String description) {
+    public Promotion(int promotionId, String code, double discountPercentage, String description) {
         this.promotionId = promotionId;
+        this.code = code;
         this.discountPercentage = discountPercentage;
         this.description = description;
         this.creationDate = new Date();
@@ -29,6 +31,14 @@ public class Promotion {
 
     public void setPromotionId(int promotionId) {
         this.promotionId = promotionId;
+    }
+    
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
     }
 
     public double getDiscountPercentage() {
@@ -67,6 +77,7 @@ public class Promotion {
     public String toString() {
         return "Promotion{" +
                 "promotionId=" + promotionId +
+                ", code='" + code + '\'' +
                 ", discountPercentage=" + discountPercentage +
                 ", description='" + description + '\'' +
                 ", creationDate=" + creationDate +

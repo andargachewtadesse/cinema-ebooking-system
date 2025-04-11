@@ -5,6 +5,8 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class EmailService {
 
@@ -54,16 +56,51 @@ public class EmailService {
     }
     
     public void sendPromotionEmail(String to, Promotion promotion) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
-        message.setSubject("Cinema E-Booking System - Special Promotion");
-        message.setText("Dear Valued Customer,\n\n" +
-                "We're excited to offer you a special promotion!\n\n" +
-                promotion.getDescription() + "\n\n" +
-                "Discount: " + promotion.getDiscountPercentage() + "% off your next purchase!\n\n" +
-                "Simply mention this promotion when making your purchase online.\n\n" +
-                "Best Regards,\nCinema E-Booking Team");
-        
-        mailSender.send(message);
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(to);
+            message.setSubject("Cinema E-Booking System - Special Promotion");
+            message.setText("Dear Valued Customer,\n\n" +
+                    "We're excited to offer you a special promotion!\n\n" +
+                    promotion.getDescription() + "\n\n" +
+                    "Discount: " + promotion.getDiscountPercentage() + "% off your next purchase!\n\n" +
+                    "Use promotion code: " + promotion.getCode() + "\n\n" +
+                    "Simply enter this code at checkout to redeem your discount.\n\n" +
+                    "Best Regards,\nCinema E-Booking Team");
+            
+            mailSender.send(message);
+            System.out.println("EmailService: Successfully sent promotion email to " + to);
+        } catch (Exception e) {
+            System.out.println("EmailService: Error sending promotion email: " + e.getMessage());
+            e.printStackTrace();
+            // Consider how to handle email failures - maybe log to a database or retry
+        }
+    }
+
+    public void sendPromotionEmailBulk(List<String> recipients, Promotion promotion) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            
+            // Convert list of emails to string array for the setTo method
+            String[] emailArray = recipients.toArray(new String[0]);
+            message.setTo(emailArray);
+            
+            // Use BCC instead of To for privacy reasons
+            message.setBcc(emailArray);
+            message.setSubject("Cinema E-Booking System - Special Promotion");
+            message.setText("Dear Valued Customer,\n\n" +
+                    "We're excited to offer you a special promotion!\n\n" +
+                    promotion.getDescription() + "\n\n" +
+                    "Discount: " + promotion.getDiscountPercentage() + "% off your next purchase!\n\n" +
+                    "Use promotion code: " + promotion.getCode() + "\n\n" +
+                    "Simply enter this code at checkout to redeem your discount.\n\n" +
+                    "Best Regards,\nCinema E-Booking Team");
+            
+            mailSender.send(message);
+            System.out.println("EmailService: Successfully sent bulk promotion email to " + recipients.size() + " recipients");
+        } catch (Exception e) {
+            System.out.println("EmailService: Error sending bulk promotion email: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

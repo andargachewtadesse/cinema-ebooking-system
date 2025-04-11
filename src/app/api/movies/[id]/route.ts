@@ -58,6 +58,12 @@ export async function GET(
       trailerUrl: movie.trailer_video || '',
       imageUrl: movie.trailer_picture || '',
       genre: movie.category || 'Uncategorized',
+      status: movie.status || 'Unknown',
+      rating: movie.mpaaRating || 'Not Rated',
+      director: movie.director || 'N/A',
+      producer: movie.producer || 'N/A',
+      cast: movie.cast ? movie.cast.split(',').map((c: string) => c.trim()).filter(Boolean) : [],
+      originalCategory: movie.category || 'General',
       price: movie.showTimes && movie.showTimes.length > 0 
         ? movie.showTimes[0].price 
         : 'N/A',

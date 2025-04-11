@@ -14,6 +14,7 @@ interface Movie {
   seats: boolean[][];
   genre: string;
   imageUrl: string;
+  status: string;
 }
 
 // Mock data 
@@ -25,6 +26,7 @@ const mockMovie: Movie = {
   seats: Array.from({ length: 6 }, () => Array.from({ length: 8 }, () => Math.random() > 0.3)), // Random seat availability
   genre: 'Sci-Fi',
   imageUrl: 'https://m.media-amazon.com/images/M/MV5BMjExMjkwNTQ0Nl5BMl5BanBnXkFtZTcwNTY0OTk1Mw@@._V1_.jpg', // Placeholder image
+  status: 'Currently Running',
 };
 
 const MoviePage = () => {
@@ -82,13 +84,20 @@ const MoviePage = () => {
           </div>
         </div>
 
-        {/* Select Seats Button */}
-        <button
-          className={styles.checkoutButton}
-          onClick={() => setShowSeatSelection(!showSeatSelection)}
-        >
-          Select seats
-        </button>
+        {/* Select Seats Button - only show for currently running movies */}
+        {movie.status === "Currently Running" ? (
+          <button
+            className={styles.checkoutButton}
+            onClick={() => setShowSeatSelection(!showSeatSelection)}
+          >
+            Select seats
+          </button>
+        ) : (
+          <div className={styles.comingSoonBanner}>
+            <span className="font-medium">Coming Soon</span>
+            <p className="text-sm mt-1">This movie is not yet available for booking.</p>
+          </div>
+        )}
 
         {/* Movie Times Row */}
         {showSeatSelection && (

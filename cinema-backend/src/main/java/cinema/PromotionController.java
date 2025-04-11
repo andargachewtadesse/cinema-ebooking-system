@@ -80,4 +80,24 @@ public class PromotionController {
                 .body(Map.of("error", "Failed to send promotion: " + e.getMessage()));
         }
     }
+    
+    // Admin endpoint to delete a promotion
+    @DeleteMapping("/admin/delete/{id}")
+    public ResponseEntity<?> deletePromotion(@PathVariable int id) {
+        try {
+            boolean deleted = promotionDAO.deletePromotion(id);
+            
+            if (deleted) {
+                return ResponseEntity.ok(Map.of("message", "Promotion successfully deleted"));
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                       .body(Map.of("error", "Promotion not found or could not be deleted"));
+            }
+        } catch (Exception e) {
+            System.out.println("PromotionController: Error deleting promotion: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Failed to delete promotion: " + e.getMessage()));
+        }
+    }
 }

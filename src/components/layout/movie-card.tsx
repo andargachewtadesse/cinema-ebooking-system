@@ -54,13 +54,17 @@ export function MovieCard({ movie, isLoggedIn = false }: MovieCardProps) {
           </p>
         </CardContent>
         <CardFooter className="p-4 pt-0">
-          {movie.status !== "Coming Soon" && (
+          {movie.status !== "Coming Soon" ? (
             <Button 
               className="w-full bg-green-600 hover:bg-green-700" 
               variant="default"
             >
               Book Now
             </Button>
+          ) : (
+            <div className="w-full text-center py-2 bg-amber-100 rounded-md border border-amber-300">
+              <span className="font-medium text-amber-800">Coming Soon</span>
+            </div>
           )}
         </CardFooter>
       </Card>

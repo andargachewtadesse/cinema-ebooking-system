@@ -34,6 +34,7 @@ public class PromotionDAO {
             return jdbcTemplate.query(query, (rs, rowNum) -> {
                 Promotion promo = new Promotion();
                 promo.setPromotionId(rs.getInt("promotion_id"));
+                promo.setCode(rs.getString("code"));
                 promo.setDiscountPercentage(rs.getDouble("discount_percentage"));
                 promo.setDescription(rs.getString("description"));
                 promo.setCreationDate(rs.getTimestamp("creation_date"));
@@ -50,17 +51,19 @@ public class PromotionDAO {
     // Create a new promotion (from admin)
     public int createPromotion(Promotion promotion) {
         try {
-            String sql = "INSERT INTO promotion (discount_percentage, description, creation_date, is_sent) " +
-                         "VALUES (?, ?, ?, ?)";
+            // Don't include promotion_id in the column list since it's auto-increment
+            String sql = "INSERT INTO promotion (code, discount_percentage, description, creation_date, is_sent) " +
+                         "VALUES (?, ?, ?, ?, ?)";
             
             KeyHolder keyHolder = new GeneratedKeyHolder();
             
             jdbcTemplate.update(connection -> {
                 PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-                ps.setDouble(1, promotion.getDiscountPercentage());
-                ps.setString(2, promotion.getDescription());
-                ps.setTimestamp(3, new java.sql.Timestamp(promotion.getCreationDate().getTime()));
-                ps.setBoolean(4, promotion.isSent());
+                ps.setString(1, promotion.getCode());
+                ps.setDouble(2, promotion.getDiscountPercentage());
+                ps.setString(3, promotion.getDescription());
+                ps.setTimestamp(4, new java.sql.Timestamp(promotion.getCreationDate().getTime()));
+                ps.setBoolean(5, promotion.isSent());
                 return ps;
             }, keyHolder);
             
@@ -83,6 +86,7 @@ public class PromotionDAO {
                 (rs, rowNum) -> {
                     Promotion promo = new Promotion();
                     promo.setPromotionId(rs.getInt("promotion_id"));
+                    promo.setCode(rs.getString("code"));
                     promo.setDiscountPercentage(rs.getDouble("discount_percentage"));
                     promo.setDescription(rs.getString("description"));
                     promo.setCreationDate(rs.getTimestamp("creation_date"));
@@ -96,6 +100,26 @@ public class PromotionDAO {
             System.out.println("PromotionDAO: Error in getPromotionById: " + e.getMessage());
             e.printStackTrace();
             return null;
+        }
+    }
+    
+    // Delete a promotion by ID
+    public boolean deletePromotion(int promotionId) {
+        try {
+            String sql = "DELETE FROM promotion WHERE promotion_id = ?";
+            int rowsAffected = jdbcTemplate.update(sql, promotionId);
+            
+            if (rowsAffected > 0) {
+                System.out.println("PromotionDAO: Successfully deleted promotion with ID: " + promotionId);
+                return true;
+            } else {
+                System.out.println("PromotionDAO: No promotion found to delete with ID: " + promotionId);
+                return false; // No promotion found with that ID
+            }
+        } catch (Exception e) {
+            System.out.println("PromotionDAO: Error deleting promotion: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
     }
     
@@ -121,47 +145,35 @@ public class PromotionDAO {
                 return false;
             }
             
-            // Send email to each subscribed user
-            for (User user : subscribedUsers) {
-                sendPromotionEmail(user.getEmail(), promotion);
-            }
+            System.out.println("PromotionDAO: Starting to send promotion to " + subscribedUsers.size() + " users");
+            
+            // Extract just the email addresses from the users
+            List<String> emailAddresses = subscribedUsers.stream()
+                .map(User::getEmail)
+                .collect(java.util.stream.Collectors.toList());
             
             // Mark the promotion as sent
             String updateSql = "UPDATE promotion SET is_sent = TRUE WHERE promotion_id = ?";
             jdbcTemplate.update(updateSql, promotionId);
             
-            System.out.println("PromotionDAO: Successfully sent promotion to " + subscribedUsers.size() + " users");
+            // Send bulk email in separate thread
+            new Thread(() -> {
+                try {
+                    // Send one email with all recipients as BCC
+                    emailService.sendPromotionEmailBulk(emailAddresses, promotion);
+                    System.out.println("PromotionDAO: Completed sending bulk promotion email to " + emailAddresses.size() + " users");
+                } catch (Exception e) {
+                    System.out.println("PromotionDAO: Error in email sending thread: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }).start();
+            
+            // Return true immediately since we've started the process
             return true;
         } catch (Exception e) {
             System.out.println("PromotionDAO: Error sending promotion: " + e.getMessage());
             e.printStackTrace();
             return false;
-        }
-    }
-    
-    // Helper method to send promotion email
-    private void sendPromotionEmail(String email, Promotion promotion) {
-        try {
-            // Create a message for the promotion email
-            String subject = "Special Promotion: " + promotion.getDescription();
-            String message = "Dear Valued Customer,\n\n" +
-                            "We're excited to offer you a special promotion!\n\n" +
-                            promotion.getDescription() + "\n\n" +
-                            "Discount: " + promotion.getDiscountPercentage() + "% off your next purchase!\n\n" +
-                            "Sincerely,\nCinema E-Booking Team";
-                            
-            // Send the email using EmailService
-            SimpleMailMessage mailMessage = new SimpleMailMessage();
-            mailMessage.setTo(email);
-            mailMessage.setSubject(subject);
-            mailMessage.setText(message);
-            
-            emailService.sendPromotionEmail(email, promotion);
-            
-            System.out.println("PromotionDAO: Sent promotion email to: " + email);
-        } catch (Exception e) {
-            System.out.println("PromotionDAO: Error sending promotion email to " + email + ": " + e.getMessage());
-            e.printStackTrace();
         }
     }
 }
