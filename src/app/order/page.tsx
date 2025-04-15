@@ -42,9 +42,27 @@ export default function OrderPage() {
         
         // Map stored data to the Ticket structure
         const loadedTickets: Ticket[] = pendingTickets.map((storedTicket, index) => {
-          const datePart = storedTicket.showDate;
-          const timePart = storedTicket.showTime; 
-          const displayShowtime = `${format(new Date(datePart), 'MMM d, yyyy')} at ${format(new Date(`1970-01-01T${timePart}:00`), 'hh:mm a')}`;
+          const datePart = storedTicket.showDate; // 'yyyy-MM-dd'
+          const timePart = storedTicket.showTime; // 'h:mm A' format
+          
+          // Parse date safely
+          let formattedDate = datePart; // Default
+          try {
+            const parts = datePart.split('-');
+            if (parts.length === 3) {
+              const year = parseInt(parts[0], 10);
+              const month = parseInt(parts[1], 10);
+              const day = parseInt(parts[2], 10);
+              if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+                formattedDate = format(new Date(year, month - 1, day), 'MMM d, yyyy');
+              }
+            }
+          } catch(e) {
+            console.error("Error formatting date in order page:", datePart, e);
+          }
+          
+          // Combine formatted date and time (time is already formatted)
+          const displayShowtime = `${formattedDate} at ${timePart}`;
           
           if (!prices[storedTicket.movieId] && storedTicket.ticketType === 'adult') {
             prices[storedTicket.movieId] = storedTicket.price;
@@ -161,8 +179,8 @@ export default function OrderPage() {
     setTickets(prevTickets => {
       return prevTickets.map(ticket => {
         if (ticket.id === id) {
-          // Get movie ID from the ticket ID
-          const movieId = ticket.movie.id || ticket.id.split('-')[0];
+          // Get movie ID from the main ticket id (format: movieId-row-col-index)
+          const movieId = ticket.id.split('-')[0];
           // Calculate new price based on type
           const newPrice = getTicketPrice(newType, movieId);
           
@@ -219,12 +237,14 @@ export default function OrderPage() {
         if (ticket.id === id) {
           // Calculate new quantity (min 1)
           const newQuantity = increment ? ticket.quantity + 1 : Math.max(1, ticket.quantity - 1);
+          // Get movie ID from the main ticket id
+          const movieId = ticket.id.split('-')[0];
           
           return {
             ...ticket,
             quantity: newQuantity,
             // Update total price for this ticket based on quantity
-            price: parseFloat((getTicketPrice(ticket.type, ticket.movie.id) * newQuantity).toFixed(2))
+            price: parseFloat((getTicketPrice(ticket.type, movieId) * newQuantity).toFixed(2))
           };
         }
         return ticket;
@@ -289,7 +309,7 @@ export default function OrderPage() {
               onUpdateQuantity={handleUpdateQuantity}
               onRemoveTicket={removeTicket}
               onUpdateTicketType={handleUpdateTicketType}
-              ticketTypes={getTicketTypesForMovie(tickets[0]?.movie?.id || '')}
+              ticketTypes={getTicketTypesForMovie(tickets[0]?.id.split('-')[0] || '')}
             />
           ) : (
             <div className="text-center text-muted-foreground py-10 border rounded-md">

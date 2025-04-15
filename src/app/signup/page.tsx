@@ -896,18 +896,7 @@ export default function SignupPage() {
                     Login
                   </Link>
                 </>
-              ) : (
-                <>
-                  By completing registration, you agree to our{" "}
-                  <Link href="/terms" className="text-blue-600 hover:underline">
-                    Terms of Service
-                  </Link>{" "}
-                  and{" "}
-                  <Link href="/privacy" className="text-blue-600 hover:underline">
-                    Privacy Policy
-                  </Link>
-                </>
-              )}
+              ) : null}
             </p>
           </CardFooter>
         </Card>

@@ -39,17 +39,47 @@ export async function GET(
     const showtimes = await response.json();
     console.log(`Retrieved ${showtimes.length} showtimes for movie ID ${id}`);
 
+    // Transform the backend data format to match the frontend expected format
+    const transformedShowtimes = showtimes.map((st: any) => {
+      // Format date: convert from YYYY-MM-DD to proper date string
+      let dateStr = st.showDate;
+      
+      // Format time: convert from 24-hour to 12-hour with AM/PM
+      let timeObj;
+      try {
+        // Parse the time string from backend (format: HH:MM:SS)
+        const timeParts = st.showTime.split(':');
+        if (timeParts.length >= 2) {
+          const hours = parseInt(timeParts[0], 10);
+          const minutes = timeParts[1];
+          const ampm = hours >= 12 ? 'PM' : 'AM';
+          const displayHours = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+          timeObj = `${displayHours}:${minutes} ${ampm}`;
+        } else {
+          // Fallback if time format is unexpected
+          timeObj = st.showTime;
+        }
+      } catch (e) {
+        console.error("Error parsing time:", st.showTime, e);
+        timeObj = st.showTime; // Use original as fallback
+      }
 
-    const transformedShowtimes = showtimes.map((st: any) => ({
-      showTimeId: st.showTimeId,
-      movieId: st.movieId,
-      showroomId: st.showroomId,
-      showDate: st.showDate,
-      showTime: st.showTime,
-      availableSeats: st.availableSeats,
-      duration: st.duration,
-      price: st.price
-    }));
+      console.log(`Transformed showtime: 
+        ID: ${st.showTimeId}, 
+        Date: ${dateStr}, 
+        Time: ${timeObj}, 
+        Room: ${st.showroomId}, 
+        Price: ${st.price}`);
+
+      return {
+        id: st.showTimeId.toString(),
+        date: dateStr,
+        time: timeObj,
+        screenNumber: st.showroomId,
+        availableSeats: st.availableSeats,
+        price: st.price
+      };
+    });
 
     return NextResponse.json(transformedShowtimes);
   } catch (error) {

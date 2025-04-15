@@ -26,7 +26,6 @@ USE cinemadb;
 
 3. Create the necessary tables:
 ```sql
-
 CREATE TABLE IF NOT EXISTS UserStatus (
     status_id INT PRIMARY KEY,
     status_name VARCHAR(50) NOT NULL
@@ -49,17 +48,6 @@ CREATE TABLE IF NOT EXISTS movies (
     trailer_video VARCHAR(255) NOT NULL,
     mpaa_rating VARCHAR(10) NOT NULL,
     status VARCHAR(50) DEFAULT 'Coming Soon'
-);
-
-CREATE TABLE IF NOT EXISTS show_times (
-    show_time_id INT AUTO_INCREMENT PRIMARY KEY,
-    movie_id INT NOT NULL,
-    show_date DATE NOT NULL,
-    show_time TIME NOT NULL,
-    screen_number INT NOT NULL,
-    available_seats INT NOT NULL,
-    price DECIMAL(6,2) NOT NULL,
-    FOREIGN KEY (movie_id) REFERENCES movies(movie_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS user (
@@ -90,6 +78,59 @@ CREATE TABLE IF NOT EXISTS card (
     FOREIGN KEY (customer_id) REFERENCES user(user_id) ON DELETE CASCADE
 );
 
+CREATE TABLE booking (
+    booking_id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT NULL,
+    booking_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('pending', 'confirmed', 'cancelled') DEFAULT 'pending',
+    FOREIGN KEY (customer_id) REFERENCES user(user_id) ON DELETE SET NULL
+);
+
+CREATE TABLE promotion (
+    promotion_id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(20) NOT NULL,
+    discount_percentage DECIMAL(5,2) NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_sent BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE show_times (
+    show_time_id INT AUTO_INCREMENT PRIMARY KEY,
+    movie_id INT NULL,
+    showroom_id INT NULL,
+    show_date DATE NULL,
+    show_time TIME NULL,
+    available_seats INT NULL,
+    duration INT NULL,
+    price DECIMAL(10,2) NULL,
+    FOREIGN KEY (movie_id) REFERENCES movies(movie_id) ON DELETE SET NULL,
+    FOREIGN KEY (showroom_id) REFERENCES showroom(showroom_id) ON DELETE SET NULL
+);
+
+CREATE TABLE showroom (
+    showroom_id INT AUTO_INCREMENT PRIMARY KEY,
+    theatre_id INT NULL,
+    showroom_name VARCHAR(100) NULL,
+    seat_count INT NULL,
+    FOREIGN KEY (theatre_id) REFERENCES theatre(theatre_id) ON DELETE SET NULL
+);
+
+CREATE TABLE theatre (
+    theatre_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE ticket (
+    ticket_id INT AUTO_INCREMENT PRIMARY KEY,
+    booking_id INT NULL,
+    show_id INT NULL,
+    ticket_type ENUM('adult', 'senior', 'child') DEFAULT 'adult',
+    price DECIMAL(10,2) NULL,
+    seat_number VARCHAR(10) NULL,
+    FOREIGN KEY (booking_id) REFERENCES booking(booking_id) ON DELETE SET NULL,
+    FOREIGN KEY (show_id) REFERENCES show_times(show_time_id) ON DELETE SET NULL
+);
 ```
 
 ### 2. Backend Setup (Spring Boot)
@@ -140,6 +181,13 @@ npm run dev
 ```
 
 The frontend application will be available at `http://localhost:3000`
+
+### 4. Test Routes
+
+1. Run the following from the root directory
+```bash
+npm run test
+```
 
 ## Features
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Header } from '@/components/layout/header';
@@ -17,6 +17,7 @@ import Image from 'next/image';
 import projectorImg from '@/../public/projector.png';
 import { format } from 'date-fns';
 import { Calendar } from "@/components/ui/calendar";
+import { Clock } from 'lucide-react';
 
 // Interface for the processed showtime data used by the component
 interface ShowTime {
@@ -69,12 +70,13 @@ const MoviePage = () => {
   const { id } = useParams();
   const [movie, setMovie] = useState<Movie | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [availableTimes, setAvailableTimes] = useState<ShowTime[]>([]);
+  const [availableTimes, setAvailableTimes] = useState<RawShowTime[]>([]);
   const [selectedSeats, setSelectedSeats] = useState<SelectedSeat[]>([]);
   const [showSeatSelection, setShowSeatSelection] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showAllDates, setShowAllDates] = useState(false);
 
   // Helper function to convert 12-hour time format to 24-hour format
   const convertTo24Hour = (time12h: string): string => {
@@ -110,82 +112,11 @@ const MoviePage = () => {
          return;
       }
 
-
-
-      const transformedShowTimes: ShowTime[] = data.showTimes
-        .map((st: RawShowTime, index: number) => { // Use RawShowTime type
-          console.log(`Processing raw showtime[${index}]:`, st);
-
-
-          if (!st || typeof st !== 'object') {
-             console.warn(`Skipping invalid showtime object at index ${index}:`, st);
-             return null;
-          }
-
-
-          if (!st.date || typeof st.date !== 'string') {
-              console.warn(`Invalid or missing date string for showtime index ${index} (ID: ${st.id}):`, st.date);
-              return null;
-          }
-
-          // Split YYYY-MM-DD format
-          const dateParts = st.date.split('-'); // Use '-' as separator
-          if (dateParts.length !== 3) {
-              console.warn(`Invalid date format (expected YYYY-MM-DD) for showtime index ${index} (ID: ${st.id}):`, st.date);
-              return null;
-          }
-
-          // Parse year, month (1-indexed), day
-          const year = parseInt(dateParts[0], 10);
-          const month = parseInt(dateParts[1], 10);
-          const day = parseInt(dateParts[2], 10);
-
-          // Validate parsed components
-          if (isNaN(year) || isNaN(month) || isNaN(day) || month < 1 || month > 12 || day < 1 || day > 31) {
-             console.warn(`Failed to parse valid date components from YYYY-MM-DD for showtime index ${index} (ID: ${st.id}):`, st.date);
-             return null;
-          }
-
-
-          const dateObj = new Date(year, month - 1, day);
-
-          // Check if the manually constructed date is valid
-          if (isNaN(dateObj.getTime())) {
-              console.warn(`Created invalid date object after manual parsing for showtime index ${index} (ID: ${st.id}) from date string:`, st.date);
-              return null;
-          }
-
-          // Format the valid date into M/d/yyyy for component state consistency
-          const showDateStr = format(dateObj, 'M/d/yyyy');
-
-          const transformed = {
-            show_time_id: st.id,
-            movie_id: data.id,
-            show_date: showDateStr, // Store consistently as M/d/yyyy
-            show_time: convertTo24Hour(st.time),
-            screen_number: st.screenNumber,
-            available_seats: st.availableSeats,
-            price: st.price,
-            seats: st.seats || undefined,
-          };
-           console.log(`Successfully transformed showtime[${index}]:`, transformed);
-           return transformed;
-        })
-        .filter((st): st is ShowTime => {
-
-           if (st === null) {
-              console.log("Filtering out null showtime");
-              return false;
-           }
-           return true;
-        });
-
-
-      console.log("Final transformedShowTimes:", transformedShowTimes);
+      console.log("Setting movie state with raw showTimes:", data.showTimes);
 
       setMovie({
         ...data, // Keep original movie data
-        showTimes: transformedShowTimes // Set the validated and transformed showtimes
+        showTimes: data.showTimes // Use the raw showTimes directly
       });
     } catch (error) {
       console.error('Error fetching movie:', error);
@@ -204,24 +135,35 @@ const MoviePage = () => {
   useEffect(() => {
     console.log("Selected date state updated:", selectedDate?.toString());
     if (selectedDate && movie) {
-      // Format selected date to M/d/yyyy for comparison
-      const dateStr = format(selectedDate, 'M/d/yyyy');
+      // Format selected date to YYYY-MM-DD for comparison (matches RawShowTime.date format)
+      const dateStr = format(selectedDate, 'yyyy-MM-dd'); 
       console.log(`Filtering available times for date string: ${dateStr}`);
 
       const filteredShowtimes = movie.showTimes.filter(
         (showtime) => {
-          // Compare against the M/d/yyyy string in the state
-          const comparison = showtime.show_date === dateStr;
-          // console.log(`Comparing ${showtime.show_date} === ${dateStr} -> ${comparison}`);
+          // Compare against the YYYY-MM-DD string
+          const comparison = showtime.date === dateStr;
+          // console.log(`Comparing ${showtime.date} === ${dateStr} -> ${comparison}`);
           return comparison;
         }
       );
       console.log("Filtered showtimes:", filteredShowtimes);
 
-      // Sort showtimes by time
-      const sortedShowtimes = [...filteredShowtimes].sort((a, b) =>
-        a.show_time.localeCompare(b.show_time)
-      );
+      // Sort showtimes by time (using RawShowTime.time)
+      const sortedShowtimes = [...filteredShowtimes].sort((a, b) => {
+        try {
+          // Assuming time is in 'h:mm A' or 'hh:mm A' format
+          const timeA = new Date(`2000-01-01 ${a.time}`).getTime();
+          const timeB = new Date(`2000-01-01 ${b.time}`).getTime();
+          if (!isNaN(timeA) && !isNaN(timeB)) {
+            return timeA - timeB;
+          }
+          return 0;
+        } catch (error) {
+           console.error('Error comparing times:', a.time, b.time, error);
+           return 0;
+        }
+      });
 
       setAvailableTimes(sortedShowtimes);
       setSelectedTime(null);
@@ -230,24 +172,42 @@ const MoviePage = () => {
     }
   }, [selectedDate, movie]);
 
-  const getSeatsForTime = (): boolean[][] => {
+  // Memoize the seat layout calculation
+  const seatsForSelectedTime = useMemo(() => {
     if (!selectedTime || !selectedDate || !movie) return [];
 
-    // Format selected date to M/d/yyyy for comparison
-    const formattedSelectedDate = format(selectedDate, 'M/d/yyyy');
+    // Format selected date to YYYY-MM-DD for comparison
+    const formattedSelectedDate = format(selectedDate, 'yyyy-MM-dd'); 
 
+    console.log(`useMemo: Finding timeData for ${formattedSelectedDate} ${selectedTime}`);
     const timeData = movie.showTimes.find(
-      (t) => t.show_time === selectedTime &&
-        t.show_date === formattedSelectedDate
+      (t) => t.time === selectedTime &&
+             t.date === formattedSelectedDate
     );
 
-    // If seats aren't provided, generate a default 8x10 matrix of available seats
-    if (!timeData?.seats) {
-      return Array(8).fill(0).map(() => Array(10).fill(true));
+    // If seats are provided by the API, return them
+    if (timeData?.seats) {
+      console.log("useMemo: Returning seats from API data");
+      return timeData.seats;
     }
 
-    return timeData.seats;
-  };
+    // If seats aren't provided, generate a default 8x10 matrix with random availability ONCE
+    if (timeData) { // Ensure we found a timeData object even if seats aren't defined
+        console.log("useMemo: Generating RANDOM default seats");
+        const rows = 8;
+        const cols = 10;
+        const defaultSeats = Array(rows).fill(0).map(() => 
+            Array(cols).fill(0).map(() => Math.random() > 0.2) // Approx 80% available
+        );
+        // Note: We are NOT saving this back to the state here to avoid infinite loops.
+        // useMemo handles caching the generated value based on dependencies.
+        return defaultSeats;
+    }
+
+    console.log("useMemo: No timeData found or seats available, returning empty array");
+    return []; // Fallback if timeData itself wasn't found
+
+  }, [selectedTime, selectedDate, movie?.showTimes]); // Dependencies for recalculation
 
   const selectSeatWithType = (row: number, col: number, type: 'adult' | 'child' | 'senior') => {
     const seatIndex = selectedSeats.findIndex(s => s.row === row && s.col === col);
@@ -270,13 +230,31 @@ const MoviePage = () => {
   };
 
   const getAvailableDates = () => {
-
     console.log("getAvailableDates called. movie.showTimes:", movie?.showTimes);
+    const dateSet = new Set<string>();
+    if (!movie?.showTimes) return dateSet;
 
-    const availableDateStrings = movie?.showTimes.map((showtime) => showtime.show_date);
-    const dateSet = availableDateStrings ? new Set(availableDateStrings) : new Set<string>();
+    // Parse dates safely and add to set in 'yyyy-MM-dd' format
+    movie.showTimes.forEach((showtime) => {
+      try {
+        const parts = showtime.date.split(/[-\/]/);
+        if (parts.length === 3) {
+          const year = parseInt(parts[0], 10);
+          const month = parseInt(parts[1], 10);
+          const day = parseInt(parts[2], 10);
+          if (!isNaN(year) && !isNaN(month) && !isNaN(day) && 
+              month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+            // Format back to yyyy-MM-dd for the set key
+            const dateKey = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+            dateSet.add(dateKey);
+          }
+        }
+      } catch (e) {
+        console.error("Error processing date for available dates set:", showtime.date, e);
+      }
+    });
 
-    console.log("Available dates Set:", dateSet);
+    console.log("Available dates Set (yyyy-MM-dd):", dateSet);
     return dateSet;
   };
 
@@ -295,7 +273,7 @@ const MoviePage = () => {
   const handleProceedToCheckout = () => {
     // Get the selected showtime to access its price
     const selectedShowTime = availableTimes.find(
-      (time) => time.show_time === selectedTime
+      (time) => time.time === selectedTime
     );
     
     if (!selectedShowTime) {
@@ -304,7 +282,7 @@ const MoviePage = () => {
     }
 
     // Base price from the selected showtime
-    const basePrice = parseFloat(selectedShowTime.price);
+    const basePrice = parseFloat(selectedShowTime.price.toString());
     
     // Create ticket information to store in localStorage
     const pendingTickets = selectedSeats.map(seat => {
@@ -418,6 +396,150 @@ const MoviePage = () => {
                 <span className="font-semibold text-white">Cast:</span> {movie.cast.join(', ')}
               </p>
             )}
+            
+            {/* Showtimes */}
+            {movie.showTimes && movie.showTimes.length > 0 && (
+              <div className="pt-3 border-t border-white/10 mt-4">
+                <h3 className="text-base font-semibold text-white mb-3 flex items-center">
+                  <Clock className="h-4 w-4 mr-2" /> Showtimes:
+                </h3>
+                <div className="space-y-4">
+                  {/* Group showtimes by date */}
+                  {(() => {
+                    const dateGroups = Object.entries(
+                      movie.showTimes.reduce<Record<string, RawShowTime[]>>((acc, showtime) => {
+                        // Use date as key
+                        const date = showtime.date;
+                        if (!date) return acc; // Skip if no date
+                        if (!acc[date]) acc[date] = [];
+                        acc[date].push(showtime);
+                        return acc;
+                      }, {})
+                    )
+                    // Sort dates chronologically with safe parsing
+                    .sort(([dateA], [dateB]) => {
+                      // Try to use safer date parsing, explicitly using components
+                      const parseDateSafely = (dateStr: string) => {
+                        try {
+                          const parts = dateStr.split(/[-\/]/);
+                          if (parts.length === 3) {
+                            const year = parseInt(parts[0], 10);
+                            const month = parseInt(parts[1], 10);
+                            const day = parseInt(parts[2], 10);
+
+                            // Basic validation
+                            if (!isNaN(year) && !isNaN(month) && !isNaN(day) && 
+                                month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                              // Create date using components to avoid UTC interpretation
+                              return new Date(year, month - 1, day); 
+                            }
+                          }
+                          console.warn("Could not parse date components:", dateStr);
+                          // Fallback or throw error? Returning epoch for now.
+                          return new Date(0); 
+                        } catch (e) {
+                          console.error("Error parsing date:", dateStr, e);
+                          return new Date(0);
+                        }
+                      };
+                      
+                      return parseDateSafely(dateA).getTime() - parseDateSafely(dateB).getTime();
+                    });
+                    
+                    const displayDates = showAllDates ? dateGroups : dateGroups.slice(0, 3);
+                    
+                    return (
+                      <>
+                        {displayDates.map(([date, times]) => {
+                          // Format date for display with error handling
+                          let formattedDate = date; // Default to the original string
+                          try {
+                            // Use the same safe parsing as in the sort function
+                            const parseDateSafely = (dateStr: string) => {
+                              try {
+                                const parts = dateStr.split(/[-\/]/);
+                                if (parts.length === 3) {
+                                  const year = parseInt(parts[0], 10);
+                                  const month = parseInt(parts[1], 10);
+                                  const day = parseInt(parts[2], 10);
+                                  if (!isNaN(year) && !isNaN(month) && !isNaN(day) && 
+                                      month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                                    return new Date(year, month - 1, day); 
+                                  }
+                                }
+                                return null; // Indicate parsing failure
+                              } catch (e) {
+                                return null;
+                              }
+                            };
+
+                            const dateObj = parseDateSafely(date);
+                                                        
+                            if (dateObj) { // Check if dateObj is not null
+                              formattedDate = dateObj.toLocaleDateString('en-US', {
+                                weekday: 'short',
+                                month: 'short', 
+                                day: 'numeric'
+                              });
+                            } else {
+                              console.log('Could not format date, using original:', date);
+                            }
+                          } catch (error) {
+                            console.log('Error during date formatting:', date, error);
+                            // Keep the original string if parsing fails
+                          }
+                          
+                          // Sort times chronologically
+                          const sortedTimes = [...times].sort((a, b) => {
+                            try {
+                              const timeA = new Date(`2000-01-01 ${a.time}`).getTime();
+                              const timeB = new Date(`2000-01-01 ${b.time}`).getTime();
+                              if (!isNaN(timeA) && !isNaN(timeB)) {
+                                return timeA - timeB;
+                              }
+                              return 0;
+                            } catch (error) {
+                              console.log('Error sorting times:', error);
+                              return 0;
+                            }
+                          });
+                          
+                          return (
+                            <div key={date} className="space-y-2">
+                              <p className="text-sm font-medium text-gray-200">{formattedDate}</p>
+                              <div className="flex flex-wrap gap-2">
+                                {sortedTimes.map((time, i) => {
+                                  return (
+                                    <Badge 
+                                      key={i} 
+                                      variant="outline" 
+                                      className="text-xs bg-primary/20 hover:bg-primary/30 border-primary/30 text-white px-3 py-1"
+                                    >
+                                      {time.time}
+                                    </Badge>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        
+                        {dateGroups.length > 3 && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-primary hover:text-primary/80 hover:bg-primary/10 mt-2"
+                            onClick={() => setShowAllDates(!showAllDates)}
+                          >
+                            {showAllDates ? "Show fewer dates" : `Show ${dateGroups.length - 3} more dates`}
+                          </Button>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -455,16 +577,20 @@ const MoviePage = () => {
                     selected={selectedDate}
                     onSelect={setSelectedDate}
                     disabled={(date) => {
-                      const availableDatesSet = getAvailableDates();
-                      // Format calendar's date object to M/d/yyyy
-                      const formattedDate = format(date, 'M/d/yyyy');
+                      // Get the set of available dates (already in yyyy-MM-dd format)
+                      const availableDatesSet = getAvailableDates(); 
+                      
+                      // Format the calendar date to yyyy-MM-dd
+                      const formattedDate = format(date, 'yyyy-MM-dd');
+                      
+                      // Check if the formatted date exists in the set
                       const isDisabled = !availableDatesSet.has(formattedDate);
 
-
+                      // Optional: Debug log
                       if (date.getFullYear() === 2025 && date.getMonth() === 3) {
                          console.log(`Calendar disabled check:
                            Input Date Obj: ${date.toString()}
-                           Formatted Check: ${formattedDate}
+                           Formatted Check (yyyy-MM-dd): ${formattedDate} 
                            Available Set has it?: ${availableDatesSet.has(formattedDate)}
                            Is Disabled?: ${isDisabled}`);
                       }
@@ -488,14 +614,14 @@ const MoviePage = () => {
                     {availableTimes.length > 0 ? (
                       availableTimes.map((time) => (
                         <Button
-                          key={time.show_time_id}
-                          variant={selectedTime === time.show_time ? "default" : "outline"}
+                          key={time.id}
+                          variant={selectedTime === time.time ? "default" : "outline"}
                           onClick={() => {
-                            setSelectedTime(time.show_time);
+                            setSelectedTime(time.time);
                             setShowCalendar(false);
                           }}
                         >
-                          {format(new Date(`2000-01-01T${time.show_time}:00`), 'hh:mm a')}
+                          {time.time}
                         </Button>
                       ))
                     ) : (
@@ -518,7 +644,7 @@ const MoviePage = () => {
                 {/* Show time and date info */}
                 <div className="text-muted-foreground mb-6 text-center">
                   <p className="text-lg">
-                    {format(selectedDate!, 'MMMM d, yyyy')} at {format(new Date(`2000-01-01T${selectedTime}:00`), 'hh:mm a')}
+                    {format(selectedDate!, 'MMMM d, yyyy')} at {selectedTime}
                   </p>
                 </div>
                 
@@ -527,9 +653,9 @@ const MoviePage = () => {
                   Screen
                 </div>
 
-                {/* Seat Rows */}
+                {/* Seat Rows - Use the memoized value */}
                 <div className="mb-8 flex flex-col items-center">
-                  {getSeatsForTime().map((row, rowIndex) => (
+                  {seatsForSelectedTime.map((row, rowIndex) => ( // Use memoized seats
                     <div key={rowIndex} className="flex gap-2 mb-2 justify-center">
                       {row.map((isAvailable, colIndex) => {
                         const isSelected = selectedSeats.some(
@@ -543,7 +669,7 @@ const MoviePage = () => {
                               <Button
                                 variant={isSelected ? "default" : "outline"}
                                 size="icon"
-                                className={`w-10 h-10 p-0 font-medium ${
+                                className={`w-10 h-10 p-0 font-medium ${ 
                                   !isAvailable ? "bg-muted text-muted-foreground opacity-50 cursor-not-allowed" : ""
                                 }`}
                                 disabled={!isAvailable || isSelected}
