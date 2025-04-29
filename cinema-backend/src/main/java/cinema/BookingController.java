@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,22 +29,22 @@ public class BookingController {
 
     // Add multiple bookings
     @PostMapping("/add")
-    public ResponseEntity<String> AddBookings(@RequestBody List<Booking> bookings) {
+    public ResponseEntity<Integer> AddBookings(@RequestBody Booking bookings) {
         try {
             System.out.println("BookingController: Adding bookings...");
-            boolean success = bookingDAO.addBookings(bookings);
+            int success = bookingDAO.addBookings(bookings);
 
-            if (success) {
+            if (success != -1) {
                 System.out.println("BookingController: Successfully added bookings.");
-                return ResponseEntity.ok("Bookings added successfully!");
+                return ResponseEntity.ok(success);
             } else {
                 System.out.println("BookingController: Failed to add some bookings.");
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to add bookings.");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(-1);
             }
         } catch (Exception e) {
             System.out.println("BookingController: Error adding bookings: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error while adding bookings.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(-1);
         }
     }
 
@@ -101,6 +102,29 @@ public class BookingController {
             System.out.println("BookingController: Error deleting booking: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error while deleting booking.");
+        }
+    }
+
+    // updating booking status to confirmed
+    @PutMapping("/confirm")
+    public ResponseEntity<String> updateBookingStatus(@PathVariable int bookingId) {
+        try {
+            System.out.println("BookingController: Updating booking status to 'confirmed'...");
+            int rowsUpdated = bookingDAO.updateBookingStatusToConfirmed(bookingId);
+
+            if (rowsUpdated == 1) {
+                System.out.println("BookingController: Booking status updated to 'confirmed'.");
+                return ResponseEntity.ok("Booking status updated to 'confirmed'.");
+            } else if (rowsUpdated == 0) {
+                System.out.println("BookingController: No booking found with the given ID or the status is not 'pending'.");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No booking found with the given ID or the status is not 'pending'.");
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update booking status.");
+            }
+        } catch (Exception e) {
+            System.out.println("BookingController: Error updating booking status: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error while updating booking status.");
         }
     }
 }

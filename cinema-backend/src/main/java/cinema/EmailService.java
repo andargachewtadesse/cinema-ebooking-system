@@ -1,11 +1,11 @@
 package cinema;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 public class EmailService {
@@ -103,4 +103,34 @@ public class EmailService {
             e.printStackTrace();
         }
     }
+
+    public void sendOrderConfirm(String to, int bookingId, List<String> movieNames, List<String> ticketTypes, List<Double> prices) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject("Cinema E-Booking System - Order Confirmation");
+    
+        StringBuilder emailText = new StringBuilder();
+        emailText.append("Dear customer,\n\n")
+                 .append("Thank you for your booking at Cinema E-Booking System! Your order has been confirmed.\n\n")
+                 .append("Booking ID: ").append(bookingId).append("\n\n")
+                 .append("Tickets:\n");
+    
+        // Format: Movie Title - Ticket Type - $Price (each on a new line)
+        for (int i = 0; i < movieNames.size(); i++) {
+            emailText.append(movieNames.get(i))
+                     .append(" - ")
+                     .append(ticketTypes.get(i))
+                     .append(" - $")
+                     .append(String.format("%.2f", prices.get(i)))
+                     .append("\n");
+        }
+    
+        emailText.append("\nIf you did not make this booking, please contact our support team.\n\n")
+                 .append("Best Regards,\nCinema E-Booking Team");
+    
+        message.setText(emailText.toString());
+        mailSender.send(message);
+        System.out.println("Order confirmation email sent to: " + to);
+    }
+    
 }
