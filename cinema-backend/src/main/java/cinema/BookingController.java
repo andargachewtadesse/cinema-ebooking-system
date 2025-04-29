@@ -1,5 +1,6 @@
 package cinema;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,10 +22,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class BookingController {
 
     private final BookingDAO bookingDAO;
+    private final TicketDAO ticketDAO;
 
     @Autowired
-    public BookingController(BookingDAO bookingDAO) {
+    public BookingController(BookingDAO bookingDAO, TicketDAO ticketDAO) {
         this.bookingDAO = bookingDAO;
+        this.ticketDAO = ticketDAO;
     }
 
     // Add multiple bookings
@@ -125,6 +128,31 @@ public class BookingController {
             System.out.println("BookingController: Error updating booking status: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error while updating booking status.");
+        }
+    }
+
+    // Get all tickets for a customer's bookings
+    @GetMapping("/customer/{customerId}/tickets")
+    public ResponseEntity<List<Ticket>> getAllTicketsForCustomer(@PathVariable int customerId) {
+        try {
+            System.out.println("BookingController: Fetching all tickets for customer ID " + customerId);
+            List<Booking> bookings = bookingDAO.getBookingsByCustomerId(customerId);
+
+            if (bookings.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+            }
+
+            List<Ticket> allTickets = new ArrayList<>();
+            for (Booking booking : bookings) {
+                List<Ticket> tickets = ticketDAO.getTicketsByBookingId(booking.getBookingId());
+                allTickets.addAll(tickets);
+            }
+
+            return ResponseEntity.ok(allTickets);
+        } catch (Exception e) {
+            System.out.println("BookingController: Error fetching tickets for customer: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 }
