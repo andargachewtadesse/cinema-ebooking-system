@@ -11,6 +11,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
 
 @Repository
 public class TicketDAO {
@@ -24,8 +25,8 @@ public class TicketDAO {
 
     // Add a new ticket
     public int addTicket(Ticket ticket) {
-        String sql = "INSERT INTO ticket (booking_id, show_id, ticket_type, price, seat_number) " +
-                     "VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO ticket (booking_id, show_id, movie_title, ticket_type, price, seat_number) " +
+                     "VALUES (?, ?, ?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
         try {
@@ -35,15 +36,39 @@ public class TicketDAO {
                  return -1;
             }
 
-            BigDecimal price = ticket.getPrice();
+            String lookedUpMovieTitle;
+            try {
+                String titleSql = """
+                    SELECT m.title
+                    FROM movies m
+                    JOIN show_times st ON m.movie_id = st.movie_id
+                    WHERE st.show_time_id = ?
+                    """;
+                lookedUpMovieTitle = jdbcTemplate.queryForObject(titleSql, String.class, ticket.getShowId());
+            } catch (EmptyResultDataAccessException e) {
+                System.err.println("TicketDAO: Could not find movie title for show_id: " + ticket.getShowId());
+                return -1;
+            } catch (DataAccessException e) {
+                System.err.println("TicketDAO: Database error looking up movie title for show_id " + ticket.getShowId() + ": " + e.getMessage());
+                e.printStackTrace();
+                return -1;
+            }
+
+            final String finalMovieTitle = lookedUpMovieTitle;
+            final BigDecimal price = ticket.getPrice();
+            final String seatNumber = ticket.getSeatNumber();
+            final String ticketTypeLower = ticket.getTicketType().toLowerCase();
+            final int bookingId = ticket.getBookingId();
+            final int showId = ticket.getShowId();
 
             int rowsAffected = jdbcTemplate.update(connection -> {
                 PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-                ps.setInt(1, ticket.getBookingId());
-                ps.setInt(2, ticket.getShowId());
-                ps.setString(3, ticket.getTicketType().toLowerCase()); // Ensure lowercase
-                ps.setBigDecimal(4, price);
-                ps.setString(5, ticket.getSeatNumber());
+                ps.setInt(1, bookingId);
+                ps.setInt(2, showId);
+                ps.setString(3, finalMovieTitle);
+                ps.setString(4, ticketTypeLower);
+                ps.setBigDecimal(5, price);
+                ps.setString(6, seatNumber);
                 return ps;
             }, keyHolder);
 
@@ -100,12 +125,13 @@ public class TicketDAO {
     // Get all tickets for a booking
     public List<Ticket> getTicketsByBookingId(int bookingId) {
         try {
-            String query = "SELECT * FROM ticket WHERE booking_id = ?";
+            String query = "SELECT ticket_id, booking_id, show_id, movie_title, ticket_type, price, seat_number FROM ticket WHERE booking_id = ?";
             return jdbcTemplate.query(query, new Object[]{bookingId}, (rs, rowNum) -> {
                 Ticket ticket = new Ticket();
                 ticket.setTicketId(rs.getInt("ticket_id"));
                 ticket.setBookingId(rs.getInt("booking_id"));
                 ticket.setShowId(rs.getInt("show_id"));
+                ticket.setMovieTitle(rs.getString("movie_title"));
                 ticket.setTicketType(rs.getString("ticket_type"));
                 ticket.setPrice(rs.getBigDecimal("price"));
                 ticket.setSeatNumber(rs.getString("seat_number"));
@@ -128,13 +154,14 @@ public class TicketDAO {
     // Get ticket by ID
     public Ticket getTicketById(int ticketId) {
         try {
-            String query = "SELECT * FROM ticket WHERE ticket_id = ?";
+            String query = "SELECT ticket_id, booking_id, show_id, movie_title, ticket_type, price, seat_number FROM ticket WHERE ticket_id = ?";
             // Use queryForObject for single result or handle EmptyResultDataAccessException
              return jdbcTemplate.queryForObject(query, new Object[]{ticketId}, (rs, rowNum) -> {
                 Ticket ticket = new Ticket();
                 ticket.setTicketId(rs.getInt("ticket_id"));
                 ticket.setBookingId(rs.getInt("booking_id"));
                 ticket.setShowId(rs.getInt("show_id"));
+                ticket.setMovieTitle(rs.getString("movie_title"));
                 ticket.setTicketType(rs.getString("ticket_type"));
                 ticket.setPrice(rs.getBigDecimal("price"));
                 ticket.setSeatNumber(rs.getString("seat_number"));

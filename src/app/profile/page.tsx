@@ -18,13 +18,29 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
-import { CreditCard, User, MapPin, Lock, PlusCircle, Edit, Trash2 } from "lucide-react"
+import { CreditCard, User, MapPin, Lock, PlusCircle, Edit, Trash2, Ticket, Calendar, Clock } from "lucide-react"
 import { OrderHeader } from "@/components/order/OrderHeader"
 import { useUserProfile } from "@/hooks/useUserProfile"
 import { usePaymentCards } from "@/hooks/usePaymentCards"
+import { useUserOrders } from "@/hooks/useUserOrders"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { format } from "date-fns"
 
 export default function Profile() {
   const router = useRouter()
@@ -57,6 +73,7 @@ export default function Profile() {
   
   const { profile, loading: profileLoading, error: profileError, updateProfileLocally } = useUserProfile();
   const { cards, loading: cardsLoading, error: cardsError, refreshCards } = usePaymentCards();
+  const { bookings, loading: bookingsLoading, error: bookingsError } = useUserOrders();
   
   const [newPassword, setNewPassword] = useState("")
   const [confirmNewPassword, setConfirmNewPassword] = useState("")
@@ -66,6 +83,33 @@ export default function Profile() {
   const [passwordChanging, setPasswordChanging] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+
+  // Format date for nicer display
+  const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return format(date, "MMM d, yyyy");
+    } catch (e: any) {
+      return dateString;
+    }
+  };
+
+  // Format time for nicer display
+  const formatTime = (timeString: string | null | undefined): string => {
+    if (!timeString) return "N/A";
+    try {
+      // Handle HH:MM:SS format
+      const parts = timeString.split(':');
+      const hours = parseInt(parts[0]);
+      const minutes = parts[1];
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const displayHours = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+      return `${displayHours}:${minutes} ${ampm}`;
+    } catch (e: any) {
+      return timeString;
+    }
+  };
 
   // Check authentication first and redirect if not logged in
   useEffect(() => {
@@ -618,7 +662,7 @@ export default function Profile() {
         </div>
 
         <Tabs defaultValue="personal" className="w-full">
-          <TabsList className="grid grid-cols-3 w-full md:w-[400px] mb-8">
+          <TabsList className="grid grid-cols-4 w-full md:w-[500px] mb-8">
             <TabsTrigger value="personal" className="flex items-center gap-2">
               <User className="h-4 w-4" />
               <span className="hidden sm:inline">Personal Info</span>
@@ -630,6 +674,10 @@ export default function Profile() {
             <TabsTrigger value="payment" className="flex items-center gap-2">
               <CreditCard className="h-4 w-4" />
               <span className="hidden sm:inline">Payment</span>
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="flex items-center gap-2">
+              <Ticket className="h-4 w-4" />
+              <span className="hidden sm:inline">Order History</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1084,6 +1132,100 @@ export default function Profile() {
                       <div className="text-sm text-muted-foreground mt-2">Maximum of 3 payment methods allowed.</div>
                     )}
                   </>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="orders">
+            <Card>
+              <CardHeader>
+                <CardTitle>Order History</CardTitle>
+                <CardDescription>View your past movie ticket purchases</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {bookingsLoading ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-20 w-full" />
+                  </div>
+                ) : bookingsError ? (
+                  <div className="text-center py-8 text-red-500">{bookingsError}</div>
+                ) : bookings.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <div className="mb-4">
+                      <Ticket className="mx-auto h-12 w-12 opacity-20" />
+                    </div>
+                    <p>You haven't purchased any tickets yet.</p>
+                    <Button 
+                      onClick={() => router.push('/movies')} 
+                      variant="outline" 
+                      className="mt-4"
+                    >
+                      Browse Movies
+                    </Button>
+                  </div>
+                ) : (
+                  <Accordion type="single" collapsible className="w-full">
+                    {bookings.map((booking) => (
+                      <AccordionItem key={booking.bookingId} value={`booking-${booking.bookingId}`}>
+                        <AccordionTrigger className="hover:no-underline">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full text-left">
+                            <div className="font-medium">Order #{booking.bookingId}</div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Calendar className="h-4 w-4" />
+                              <span>{formatDate(booking.bookingDatetime)}</span>
+                              <span className="hidden sm:inline">•</span>
+                              <span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">
+                                {booking.status}
+                              </span>
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          {!booking.tickets || booking.tickets.length === 0 ? (
+                            <div className="text-center py-4 text-sm text-muted-foreground">
+                              No tickets found for this order.
+                            </div>
+                          ) : (
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Movie</TableHead>
+                                  <TableHead>Seat</TableHead>
+                                  <TableHead>Type</TableHead>
+                                  <TableHead className="text-right">Price</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {booking.tickets.map((ticket) => (
+                                  <TableRow key={ticket.ticketId}>
+                                    <TableCell className="font-medium">
+                                      {ticket.movieTitle || "Unknown Movie"}
+                                    </TableCell>
+                                    <TableCell>{ticket.seatNumber}</TableCell>
+                                    <TableCell>
+                                      <span className="capitalize">{ticket.ticketType}</span>
+                                    </TableCell>
+                                    <TableCell className="text-right">${Number(ticket.price).toFixed(2)}</TableCell>
+                                  </TableRow>
+                                ))}
+                                <TableRow>
+                                  <TableCell colSpan={3} className="text-right font-medium">
+                                    Total
+                                  </TableCell>
+                                  <TableCell className="text-right font-bold">
+                                    ${booking.tickets.reduce((sum, ticket) => sum + Number(ticket.price), 0).toFixed(2)}
+                                  </TableCell>
+                                </TableRow>
+                              </TableBody>
+                            </Table>
+                          )}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
                 )}
               </CardContent>
             </Card>
