@@ -13,12 +13,18 @@ public class Booking {
     public Booking() {
     }
 
-    // Constructor with parameters
+    // Constructor with essential parameters
     public Booking(int bookingId, int customerId, Timestamp bookingDatetime, String status) {
         this.bookingId = bookingId;
         this.customerId = customerId;
         this.bookingDatetime = bookingDatetime;
         this.status = status;
+    }
+    
+    // Simplified constructor for creation (only needs customerId initially)
+    public Booking(int customerId) {
+        this.customerId = customerId;
+        this.status = "pending"; // Default status
     }
 
     // Getters and Setters
@@ -54,7 +60,7 @@ public class Booking {
         this.status = status;
     }
 
-    // toString method for displaying booking details
+    // toString method reflecting simplified structure
     @Override
     public String toString() {
         return "Booking{" +

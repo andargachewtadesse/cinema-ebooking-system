@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import org.springframework.dao.DataAccessException;
 
 @Repository
 public class TicketDAO {
@@ -23,32 +24,56 @@ public class TicketDAO {
 
     // Add a new ticket
     public int addTicket(Ticket ticket) {
-        try {
-            // Get the price from the show_time table
-            String priceQuery = "SELECT price FROM show_time WHERE show_time_id = ?";
-            BigDecimal price = jdbcTemplate.queryForObject(priceQuery, new Object[]{ticket.getShowId()}, BigDecimal.class);
+        String sql = "INSERT INTO ticket (booking_id, show_id, ticket_type, price, seat_number) " +
+                     "VALUES (?, ?, ?, ?, ?)";
+        KeyHolder keyHolder = new GeneratedKeyHolder();
 
-            // Insert a new ticket with the fetched price
-            String sql = "INSERT INTO ticket (booking_id, show_id, ticket_type, price, seat_number) " +
-                         "VALUES (?, ?, ?, ?, ?)";
-            
-            KeyHolder keyHolder = new GeneratedKeyHolder();
-            
-            jdbcTemplate.update(connection -> {
+        try {
+            // Basic null checks for required fields before attempting insert
+            if (ticket == null || ticket.getPrice() == null || ticket.getTicketType() == null || ticket.getSeatNumber() == null || ticket.getBookingId() <= 0 || ticket.getShowId() <= 0) {
+                 System.err.println("TicketDAO: Attempted to add ticket with invalid/null fields: " + ticket);
+                 return -1;
+            }
+
+            BigDecimal price = ticket.getPrice();
+
+            int rowsAffected = jdbcTemplate.update(connection -> {
                 PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
                 ps.setInt(1, ticket.getBookingId());
                 ps.setInt(2, ticket.getShowId());
-                ps.setString(3, ticket.getTicketType());
+                ps.setString(3, ticket.getTicketType().toLowerCase()); // Ensure lowercase
                 ps.setBigDecimal(4, price);
                 ps.setString(5, ticket.getSeatNumber());
                 return ps;
             }, keyHolder);
-            
-            return keyHolder.getKey().intValue();
-        } catch (Exception e) {
-            System.out.println("TicketDAO: Error adding ticket: " + e.getMessage());
+
+            if (rowsAffected == 0) {
+                // Insert failed, but no exception was thrown (less common)
+                System.err.println("TicketDAO: Insert query affected 0 rows. Ticket not added.");
+                return -1;
+            }
+
+            Number key = keyHolder.getKey();
+            // Check if key is null (could happen if insertion failed in some DBs or config issues)
+            if (key == null) {
+                System.err.println("TicketDAO: Generated key was null after insert. Ticket may not have been added correctly.");
+                return -1;
+            }
+            return key.intValue(); // Return generated ID
+
+        } catch (DataAccessException e) { // Catch specific Spring JDBC exceptions first
+            System.err.println("TicketDAO: Database error adding ticket for booking_id=" + ticket.getBookingId() + ", show_id=" + ticket.getShowId() + " - Error: " + e.getMessage());
+            // Log the root cause, often the SQLException with constraint details
+            if (e.getRootCause() != null) {
+                 System.err.println("TicketDAO: Root Cause: " + e.getRootCause().getMessage());
+            }
+            // Print stack trace for full context
             e.printStackTrace();
-            throw new RuntimeException("Failed to add ticket", e);
+            return -1; // Indicate failure
+        } catch (Exception e) { // Catch any other unexpected exceptions
+             System.err.println("TicketDAO: Unexpected error adding ticket: " + e.getClass().getName() + " - " + e.getMessage());
+             e.printStackTrace();
+             return -1;
         }
     }
 
@@ -58,14 +83,21 @@ public class TicketDAO {
             String sql = "DELETE FROM ticket WHERE ticket_id = ?";
             int rowsAffected = jdbcTemplate.update(sql, ticketId);
             return rowsAffected > 0;
+        } catch (DataAccessException e) { // Catch DB errors
+            System.err.println("TicketDAO: Error deleting ticket ID " + ticketId + ": " + e.getMessage());
+            if (e.getRootCause() != null) {
+                System.err.println("TicketDAO: Root Cause: " + e.getRootCause().getMessage());
+            }
+            e.printStackTrace();
+            return false;
         } catch (Exception e) {
-            System.out.println("TicketDAO: Error deleting ticket: " + e.getMessage());
+            System.err.println("TicketDAO: Unexpected error deleting ticket: " + e.getClass().getName() + " - " + e.getMessage());
             e.printStackTrace();
             return false;
         }
     }
 
-    // Get all tickets for a booking 
+    // Get all tickets for a booking
     public List<Ticket> getTicketsByBookingId(int bookingId) {
         try {
             String query = "SELECT * FROM ticket WHERE booking_id = ?";
@@ -79,18 +111,26 @@ public class TicketDAO {
                 ticket.setSeatNumber(rs.getString("seat_number"));
                 return ticket;
             });
-        } catch (Exception e) {
-            System.out.println("TicketDAO: Error getting tickets by booking ID: " + e.getMessage());
+        } catch (DataAccessException e) { // Catch DB errors
+            System.err.println("TicketDAO: Error getting tickets by booking ID " + bookingId + ": " + e.getMessage());
+            if (e.getRootCause() != null) {
+                System.err.println("TicketDAO: Root Cause: " + e.getRootCause().getMessage());
+            }
             e.printStackTrace();
-            return null;
+            return null; // Or return empty list: return Collections.emptyList();
+        } catch (Exception e) {
+             System.err.println("TicketDAO: Unexpected error getting tickets by booking ID: " + e.getClass().getName() + " - " + e.getMessage());
+             e.printStackTrace();
+             return null;
         }
     }
 
-    // Get ticket by ID 
+    // Get ticket by ID
     public Ticket getTicketById(int ticketId) {
         try {
             String query = "SELECT * FROM ticket WHERE ticket_id = ?";
-            List<Ticket> tickets = jdbcTemplate.query(query, new Object[]{ticketId}, (rs, rowNum) -> {
+            // Use queryForObject for single result or handle EmptyResultDataAccessException
+             return jdbcTemplate.queryForObject(query, new Object[]{ticketId}, (rs, rowNum) -> {
                 Ticket ticket = new Ticket();
                 ticket.setTicketId(rs.getInt("ticket_id"));
                 ticket.setBookingId(rs.getInt("booking_id"));
@@ -100,25 +140,39 @@ public class TicketDAO {
                 ticket.setSeatNumber(rs.getString("seat_number"));
                 return ticket;
             });
-            return tickets.isEmpty() ? null : tickets.get(0);
-        } catch (Exception e) {
-            System.out.println("TicketDAO: Error getting ticket by ID: " + e.getMessage());
+        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+             System.out.println("TicketDAO: No ticket found for ID " + ticketId);
+             return null;
+        } catch (DataAccessException e) { // Catch other DB errors
+            System.err.println("TicketDAO: Error getting ticket by ID " + ticketId + ": " + e.getMessage());
+             if (e.getRootCause() != null) {
+                 System.err.println("TicketDAO: Root Cause: " + e.getRootCause().getMessage());
+             }
             e.printStackTrace();
             return null;
+        } catch (Exception e) {
+              System.err.println("TicketDAO: Unexpected error getting ticket by ID: " + e.getClass().getName() + " - " + e.getMessage());
+              e.printStackTrace();
+              return null;
         }
     }
 
-    // Get a list of seat numbers for a specific show ID 
-    // For getting avaliable seats 
-    // Usage: all seats - list of seats
+    // Get a list of seat numbers for a specific show ID
     public List<String> getSeatNumbersByShowId(int showId) {
         try {
             String query = "SELECT seat_number FROM ticket WHERE show_id = ?";
             return jdbcTemplate.query(query, new Object[]{showId}, (rs, rowNum) -> rs.getString("seat_number"));
-        } catch (Exception e) {
-            System.out.println("TicketDAO: Error getting seat numbers by show ID: " + e.getMessage());
+        } catch (DataAccessException e) { // Catch DB errors
+            System.err.println("TicketDAO: Error getting seat numbers by show ID " + showId + ": " + e.getMessage());
+             if (e.getRootCause() != null) {
+                 System.err.println("TicketDAO: Root Cause: " + e.getRootCause().getMessage());
+             }
             e.printStackTrace();
-            return null;
+            return null; // Or return empty list: return Collections.emptyList();
+        } catch (Exception e) {
+             System.err.println("TicketDAO: Unexpected error getting seat numbers by show ID: " + e.getClass().getName() + " - " + e.getMessage());
+             e.printStackTrace();
+             return null;
         }
     }
 

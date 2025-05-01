@@ -6,5 +6,8 @@ export interface Ticket {
     movie: {
       title: string
       showtime: string
+      seat: string
+      id: string
     }
+    showId: string
   }

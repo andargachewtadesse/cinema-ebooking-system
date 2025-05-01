@@ -449,6 +449,7 @@ public class UserController {
             
             if (activeUser != null) {
                 Map<String, Object> response = new HashMap<>();
+                response.put("userId", activeUser.getUserId());
                 response.put("firstName", activeUser.getFirstName());
                 response.put("lastName", activeUser.getLastName());
                 response.put("email", activeUser.getEmail());

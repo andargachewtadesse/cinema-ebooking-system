@@ -65,6 +65,20 @@ interface SelectedSeat {
   type: 'adult' | 'child' | 'senior';
 }
 
+// Define the structure for localStorage
+interface StoredTicketInfo {
+  movieId: string;
+  movieTitle: string;
+  showId: string; // <<< ADDED: This will store the RawShowTime.id (show_time_id)
+  showDate: string; // 'yyyy-MM-dd'
+  showTime: string; // 'h:mm A' format from API
+  seatRow: number;
+  seatCol: number;
+  seatLabel: string;
+  ticketType: 'adult' | 'child' | 'senior';
+  price: number; // Final calculated price for this specific ticket
+}
+
 const MoviePage = () => {
   const router = useRouter();
   const { id } = useParams();
@@ -75,6 +89,7 @@ const MoviePage = () => {
   const [showSeatSelection, setShowSeatSelection] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedTimeData, setSelectedTimeData] = useState<RawShowTime | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showAllDates, setShowAllDates] = useState(false);
 
@@ -167,6 +182,7 @@ const MoviePage = () => {
 
       setAvailableTimes(sortedShowtimes);
       setSelectedTime(null);
+      setSelectedTimeData(null);
     } else {
        setAvailableTimes([]);
     }
@@ -174,40 +190,22 @@ const MoviePage = () => {
 
   // Memoize the seat layout calculation
   const seatsForSelectedTime = useMemo(() => {
-    if (!selectedTime || !selectedDate || !movie) return [];
-
-    // Format selected date to YYYY-MM-DD for comparison
-    const formattedSelectedDate = format(selectedDate, 'yyyy-MM-dd'); 
-
-    console.log(`useMemo: Finding timeData for ${formattedSelectedDate} ${selectedTime}`);
-    const timeData = movie.showTimes.find(
-      (t) => t.time === selectedTime &&
-             t.date === formattedSelectedDate
-    );
+    if (!selectedTimeData) return [];
 
     // If seats are provided by the API, return them
-    if (timeData?.seats) {
-      console.log("useMemo: Returning seats from API data");
-      return timeData.seats;
+    if (selectedTimeData.seats) {
+      console.log("useMemo: Returning seats from API data for showId:", selectedTimeData.id);
+      return selectedTimeData.seats;
     }
 
-    // If seats aren't provided, generate a default 8x10 matrix with random availability ONCE
-    if (timeData) { // Ensure we found a timeData object even if seats aren't defined
-        console.log("useMemo: Generating RANDOM default seats");
-        const rows = 8;
-        const cols = 10;
-        const defaultSeats = Array(rows).fill(0).map(() => 
-            Array(cols).fill(0).map(() => Math.random() > 0.2) // Approx 80% available
-        );
-        // Note: We are NOT saving this back to the state here to avoid infinite loops.
-        // useMemo handles caching the generated value based on dependencies.
-        return defaultSeats;
-    }
-
-    console.log("useMemo: No timeData found or seats available, returning empty array");
-    return []; // Fallback if timeData itself wasn't found
-
-  }, [selectedTime, selectedDate, movie?.showTimes]); // Dependencies for recalculation
+    // Generate default seats if not provided
+    console.log("useMemo: Generating RANDOM default seats for showId:", selectedTimeData.id);
+    const rows = 8;
+    const cols = 10;
+    return Array(rows).fill(0).map(() =>
+        Array(cols).fill(0).map(() => Math.random() > 0.2)
+    );
+  }, [selectedTimeData]);
 
   const selectSeatWithType = (row: number, col: number, type: 'adult' | 'child' | 'senior') => {
     const seatIndex = selectedSeats.findIndex(s => s.row === row && s.col === col);
@@ -270,22 +268,33 @@ const MoviePage = () => {
     return `${String.fromCharCode(65 + row)}${col + 1}`;
   };
 
+  // ADDED: Handler for selecting a time button
+  const handleTimeSelection = (timeData: RawShowTime) => {
+    console.log("Selected time data:", timeData);
+    setSelectedTime(timeData.time); // Keep storing the string for button styling if needed
+    setSelectedTimeData(timeData); // <<< ADDED: Store the full object
+    setShowCalendar(false); // Hide calendar, show seats
+    setSelectedSeats([]); // Clear seats when time changes
+  };
+
   const handleProceedToCheckout = () => {
-    // Get the selected showtime to access its price
-    const selectedShowTime = availableTimes.find(
-      (time) => time.time === selectedTime
-    );
-    
-    if (!selectedShowTime) {
-      console.error("Selected showtime not found");
-      return;
+    // Use the stored selectedTimeData object which contains the correct ID
+    if (!selectedTimeData) {
+      console.error("Selected showtime data (selectedTimeData) not found. Cannot proceed.");
+      alert("An error occurred. Please re-select the showtime.");
+      return; // Prevent proceeding without the necessary data
     }
 
-    // Base price from the selected showtime
-    const basePrice = parseFloat(selectedShowTime.price.toString());
-    
+    if (!movie || !selectedDate) {
+        console.error("Movie or Date context missing");
+        return;
+    }
+
+    // Base price from the selected showtime object
+    const basePrice = parseFloat(selectedTimeData.price.toString());
+
     // Create ticket information to store in localStorage
-    const pendingTickets = selectedSeats.map(seat => {
+    const pendingTickets: StoredTicketInfo[] = selectedSeats.map(seat => {
       // Calculate price based on ticket type
       let ticketPrice = basePrice;
       if (seat.type === 'child') {
@@ -293,25 +302,33 @@ const MoviePage = () => {
       } else if (seat.type === 'senior') {
         ticketPrice = parseFloat((basePrice * 0.95).toFixed(2));
       }
-      
-      return {
+
+      // Construct the object for localStorage
+      const storedTicket: StoredTicketInfo = {
         movieId: movie!.id,
         movieTitle: movie!.title,
+        showId: selectedTimeData.id, // <<< USE THE CORRECT show_time_id
         showDate: format(selectedDate!, 'yyyy-MM-dd'),
-        showTime: selectedTime!,
+        showTime: selectedTimeData.time, // Use time from selectedTimeData
         seatRow: seat.row,
         seatCol: seat.col,
         seatLabel: getSeatLabel(seat.row, seat.col),
         ticketType: seat.type,
-        price: ticketPrice, // Add the calculated price
+        price: ticketPrice,
       };
+      return storedTicket;
     });
 
     // Save to localStorage
-    localStorage.setItem('pendingOrderTickets', JSON.stringify(pendingTickets));
-    
-    // Navigate to order page
-    router.push('/order');
+    if (pendingTickets.length > 0) {
+        console.log("Saving to localStorage:", JSON.stringify(pendingTickets, null, 2));
+        localStorage.setItem('pendingOrderTickets', JSON.stringify(pendingTickets));
+        // Navigate to order page
+        router.push('/order');
+    } else {
+        console.warn("No seats selected. Not proceeding to checkout.");
+        alert("Please select your seats first.");
+    }
   };
 
   if (error) {
@@ -612,16 +629,13 @@ const MoviePage = () => {
                   </h3>
                   <div className="flex flex-wrap gap-3 justify-center">
                     {availableTimes.length > 0 ? (
-                      availableTimes.map((time) => (
+                      availableTimes.map((timeData) => ( // timeData is RawShowTime
                         <Button
-                          key={time.id}
-                          variant={selectedTime === time.time ? "default" : "outline"}
-                          onClick={() => {
-                            setSelectedTime(time.time);
-                            setShowCalendar(false);
-                          }}
+                          key={timeData.id} // Use the unique show_time_id as key
+                          variant={selectedTimeData?.id === timeData.id ? "default" : "outline"} // Style based on selected object ID
+                          onClick={() => handleTimeSelection(timeData)} // <<< CALL THE HANDLER
                         >
-                          {time.time}
+                          {timeData.time} {/* Display the time string */}
                         </Button>
                       ))
                     ) : (

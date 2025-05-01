@@ -1,6 +1,5 @@
 package cinema;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,36 +21,49 @@ import org.springframework.web.bind.annotation.RestController;
 public class BookingController {
 
     private final BookingDAO bookingDAO;
-    private final TicketDAO ticketDAO;
+    private final UserDAO userDAO;
 
     @Autowired
-    public BookingController(BookingDAO bookingDAO, TicketDAO ticketDAO) {
+    public BookingController(BookingDAO bookingDAO, UserDAO userDAO) {
         this.bookingDAO = bookingDAO;
-        this.ticketDAO = ticketDAO;
+        this.userDAO = userDAO;
     }
 
-    // Add multiple bookings
+    // Add a single booking shell
     @PostMapping("/add")
-    public ResponseEntity<Integer> AddBookings(@RequestBody Booking bookings) {
+    public ResponseEntity<Integer> CreateBookingShell(@RequestBody Booking bookingRequest) {
         try {
-            System.out.println("BookingController: Adding bookings...");
-            int success = bookingDAO.addBookings(bookings);
+            // Expecting only customerId in the request body
+            int customerId = bookingRequest.getCustomerId();
+            System.out.println("BookingController: Creating booking shell for customer ID: " + customerId);
+            
+            // Validate the customer exists
+            if (!userDAO.userExists(customerId)) {
+                System.out.println("BookingController: Customer ID " + customerId + " does not exist");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(-1);
+            }
+            
+            // Create a minimal Booking object for the DAO
+            Booking newBooking = new Booking(customerId); 
+            
+            int bookingId = bookingDAO.createBooking(newBooking); // Call the updated DAO method
 
-            if (success != -1) {
-                System.out.println("BookingController: Successfully added bookings.");
-                return ResponseEntity.ok(success);
+            if (bookingId != -1) {
+                System.out.println("BookingController: Successfully created booking shell with ID: " + bookingId);
+                // Return the generated booking_id
+                return ResponseEntity.ok(bookingId); 
             } else {
-                System.out.println("BookingController: Failed to add some bookings.");
+                System.out.println("BookingController: Failed to create booking shell.");
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(-1);
             }
         } catch (Exception e) {
-            System.out.println("BookingController: Error adding bookings: " + e.getMessage());
+            System.out.println("BookingController: Error creating booking shell: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(-1);
         }
     }
 
-    // Get bookings by customer ID
+    // Get bookings by customer ID (returns simplified Booking objects)
     @GetMapping("/customer/{customerId}")
     public ResponseEntity<List<Booking>> FetchBookingsForCustomer(@PathVariable int customerId) {
         try {
@@ -70,7 +82,7 @@ public class BookingController {
         }
     }
 
-    // Get a specific booking by booking ID
+    // Get a specific booking by booking ID (returns simplified Booking object)
     @GetMapping("/{bookingId}")
     public ResponseEntity<Booking> FetchBookingById(@PathVariable int bookingId) {
         try {
@@ -94,6 +106,8 @@ public class BookingController {
     public ResponseEntity<String> DeleteBooking(@PathVariable int bookingId) {
         try {
             System.out.println("BookingController: Deleting booking ID " + bookingId);
+             // Consider implications for associated tickets. 
+             // Maybe delete tickets first or use database cascade.
             boolean deleted = bookingDAO.deleteBookingById(bookingId);
 
             if (deleted) {
@@ -109,50 +123,26 @@ public class BookingController {
     }
 
     // updating booking status to confirmed
-    @PutMapping("/confirm")
+    @PutMapping("/confirm/{bookingId}")
     public ResponseEntity<String> updateBookingStatus(@PathVariable int bookingId) {
         try {
-            System.out.println("BookingController: Updating booking status to 'confirmed'...");
-            int rowsUpdated = bookingDAO.updateBookingStatusToConfirmed(bookingId);
+            System.out.println("BookingController: Updating booking status to 'confirmed' for ID " + bookingId);
+            int rowsUpdated = bookingDAO.updateBookingStatusToConfirmed(bookingId); // Calls simplified DAO method
 
             if (rowsUpdated == 1) {
                 System.out.println("BookingController: Booking status updated to 'confirmed'.");
                 return ResponseEntity.ok("Booking status updated to 'confirmed'.");
             } else if (rowsUpdated == 0) {
-                System.out.println("BookingController: No booking found with the given ID or the status is not 'pending'.");
+                System.out.println("BookingController: No booking found with ID " + bookingId + " or status is not 'pending'.");
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No booking found with the given ID or the status is not 'pending'.");
-            } else {
+            } else { // rowsUpdated == -1 (error)
+                 System.out.println("BookingController: Failed to update booking status for ID " + bookingId);
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update booking status.");
             }
         } catch (Exception e) {
             System.out.println("BookingController: Error updating booking status: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error while updating booking status.");
-        }
-    }
-
-    // Get all tickets for a customer's bookings
-    @GetMapping("/customer/{customerId}/tickets")
-    public ResponseEntity<List<Ticket>> getAllTicketsForCustomer(@PathVariable int customerId) {
-        try {
-            System.out.println("BookingController: Fetching all tickets for customer ID " + customerId);
-            List<Booking> bookings = bookingDAO.getBookingsByCustomerId(customerId);
-
-            if (bookings.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-            }
-
-            List<Ticket> allTickets = new ArrayList<>();
-            for (Booking booking : bookings) {
-                List<Ticket> tickets = ticketDAO.getTicketsByBookingId(booking.getBookingId());
-                allTickets.addAll(tickets);
-            }
-
-            return ResponseEntity.ok(allTickets);
-        } catch (Exception e) {
-            System.out.println("BookingController: Error fetching tickets for customer: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 }

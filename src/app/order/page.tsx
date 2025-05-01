@@ -24,6 +24,7 @@ import type { SubmitData } from "@/components/order/checkoutform"
 interface StoredTicketInfo {
   movieId: string;
   movieTitle: string;
+  showId: string;
   showDate: string; // 'yyyy-MM-dd'
   showTime: string; // 'HH:mm'
   seatRow: number;
@@ -41,6 +42,7 @@ export default function OrderPage() {
   const [baseTicketPrices, setBaseTicketPrices] = useState<Record<string, number>>({})
   const [userData, setUserData] = useState<any>(null)
   const [userCards, setUserCards] = useState<any[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
   
   // Load tickets from localStorage on component mount
@@ -48,13 +50,20 @@ export default function OrderPage() {
     const storedData = localStorage.getItem('pendingOrderTickets');
     if (storedData) {
       try {
+        console.log("Loading from localStorage:", storedData);
         const pendingTickets: StoredTicketInfo[] = JSON.parse(storedData);
-        
-        // Track base price for each movie/showtime (keyed by movieId)
+
+        // Validate that items have showId
+        const validPendingTickets = pendingTickets.filter(pt => {
+            if (!pt.showId) {
+                console.warn("Found stored ticket without showId, filtering out:", pt);
+                return false;
+            }
+            return true;
+        });
+
         const prices: Record<string, number> = {};
-        
-        // Map stored data to the Ticket structure
-        const loadedTickets: Ticket[] = pendingTickets.map((storedTicket, index) => {
+        const loadedTickets: Ticket[] = validPendingTickets.map((storedTicket, index) => {
           const datePart = storedTicket.showDate; // 'yyyy-MM-dd'
           const timePart = storedTicket.showTime; // 'h:mm A' format
           
@@ -92,19 +101,21 @@ export default function OrderPage() {
           }
 
           return {
-            id: `${storedTicket.movieId}-${storedTicket.seatRow}-${storedTicket.seatCol}-${index}`, 
+            id: `${storedTicket.showId}-${storedTicket.seatRow}-${storedTicket.seatCol}-${index}`, 
             type: storedTicket.ticketType.charAt(0).toUpperCase() + storedTicket.ticketType.slice(1), 
             price: typeof storedTicket.price === 'number' && !isNaN(storedTicket.price) ? storedTicket.price : 0,
-            quantity: 1, // Each stored item represents one ticket
+            quantity: storedTicket.quantity || 1,
             movie: {
               title: storedTicket.movieTitle,
               showtime: displayShowtime, 
               seat: storedTicket.seatLabel,
               id: storedTicket.movieId // Store movie ID for price lookups
             },
+            showId: storedTicket.showId
           };
         });
 
+        console.log("Loaded tickets state:", loadedTickets);
         setBaseTicketPrices(prices);
         setTickets(loadedTickets);
       } catch (parseError) {
@@ -147,49 +158,104 @@ export default function OrderPage() {
 
   const handleCheckoutSubmit = async (data: SubmitData) => {
     console.log('Checkout form data received in OrderPage:', data);
-    console.log('Tickets submitted:', tickets); 
 
-    // TEMPORARY: Skip actual API call and redirect
+    // User validation
+    if (!userData || !userData.userId) {
+        console.error("User data or User ID is missing.");
+        alert("Error: User information not loaded. Please try logging in again.");
+        setIsSubmitting(false);
+        return;
+    }
+    const userId = userData.userId;
+    console.log("Using definite customer ID:", userId);
+
+    // Ticket validation
+    if (tickets.length === 0) {
+        console.error("No tickets in the order.");
+        alert("Your order is empty.");
+        setIsSubmitting(false);
+        return;
+    }
+
     try {
-      console.log("Mock success - would normally send payload to backend");
-      
-      // Log what would have been sent to the backend
-      const payload = {
-        tickets: tickets.map(t => ({
-          movieId: t.movie.id,
-          showtime: t.movie.showtime,
-          seatLabel: t.movie.seat,
-          ticketType: t.type.toLowerCase(),
-          price: t.price,
-          quantity: t.quantity
-        })),
-        payment: data.selectedCardId 
-          ? { type: 'savedCard', cardId: data.selectedCardId }
-          : { 
-              type: 'newCard', 
-              cardDetails: data.newCardDetails
-            },
-        userDetails: {
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
+      setIsSubmitting(true);
+
+      // Format tickets for API - USE THE CORRECT showId from the Ticket object
+      const ticketData = tickets.map(ticket => {
+         // Access showId directly from the ticket object
+         const showIdNum = parseInt(ticket.showId, 10); // Already stored on the ticket object
+         if (isNaN(showIdNum)) {
+             // This shouldn't happen if loading logic is correct, but good to check
+             console.error("Invalid showId found in ticket state:", ticket);
+             throw new Error("Invalid ticket data: show ID is not a number.");
+         }
+
+        return {
+          showId: showIdNum, // <<< USE THE CORRECT showId FROM TICKET STATE
+          seatLabel: ticket.movie.seat,
+          ticketType: ticket.type.toLowerCase(),
+          price: ticket.price // Send the final price for this ticket
+        };
+      });
+      console.log("Formatted ticket data for API:", ticketData);
+
+      // Payment info object construction (remains the same)
+      const paymentInfo = data.selectedCardId ? { id: data.selectedCardId, type: 'saved' } : data.newCardDetails ? {
+              type: 'new',
+              details: {
+                cardholderName: data.newCardDetails.cardholderName,
+                cardNumber: data.newCardDetails.cardNumber.slice(-4), // Send only last 4 for logging/display? Check API req.
+                expiryMonth: data.newCardDetails.expiryMonth,
+                expiryYear: data.newCardDetails.expiryYear,
+                saveCard: data.newCardDetails.saveCard
+              }
+            }
+          : null;
+
+      // Send the data to our API
+      const response = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem("authToken")}`
         },
-        totalAmount: calculateTotal()
-      };
-      
-      console.log("Would have sent payload:", JSON.stringify(payload, null, 2));
+        body: JSON.stringify({
+          customerId: userId,
+          tickets: ticketData, // Send the corrected ticket data
+          paymentInfo: paymentInfo, // Still sent, backend might ignore
+          total: calculateTotal()   // Still sent, backend might ignore
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error("Server error:", error);
+        // Provide more specific feedback if possible
+        let userMessage = `Failed to process booking: ${error}`;
+        if (response.status === 400) {
+            userMessage = `There was a problem with your booking details: ${error}. Please check and try again.`;
+        } else if (response.status === 500) {
+            userMessage = `An internal server error occurred: ${error}. Please try again later.`;
+        }
+        throw new Error(userMessage); // Throw with potentially more user-friendly message
+      }
+
+      const result = await response.json();
+      console.log('Booking successful:', result);
 
       // Clear checkout data
       setIsCheckoutOpen(false);
       localStorage.removeItem('pendingOrderTickets');
       setTickets([]);
-      
+
       // Redirect to order confirmation
-      router.push('/order-confirmation');
-      
+      router.push('/order-confirmation'); // Make sure this page exists and handles the result
+
     } catch (error) {
       console.error("Checkout submission error:", error);
-      alert("There was an issue processing your payment. Please try again.");
+      alert(`There was an issue processing your booking: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -216,7 +282,8 @@ export default function OrderPage() {
   };
 
   // Generate ticket types with prices for each movie
-  const getTicketTypesForMovie = (movieId: string) => {
+  const getTicketTypesForMovie = (movieId: string | undefined) => {
+    if (!movieId) return []; // Handle undefined movieId
     const basePrice = baseTicketPrices[movieId] || 0;
     
     return [
@@ -355,8 +422,21 @@ export default function OrderPage() {
       });
       if (response.ok) {
         const data = await response.json();
+        console.log("User profile loaded successfully:", data);
+        
+        // If userId is not set, check for other IDs
+        if (!data.userId && data.user_id) {
+          data.userId = data.user_id; // Some backends use snake_case
+        }
+        
+        // For testing - if userId is still missing, use a default
+        if (!data.userId) {
+          console.warn("No user ID found in profile data, using default");
+          data.userId = 1; // Use a valid ID from your database
+        }
+        
+        console.log("User ID:", data.userId);
         setUserData(data);
-        console.log("User profile loaded:", data);
       } else {
         console.error("Failed to load user profile:", response.status, response.statusText);
       }
@@ -439,7 +519,7 @@ export default function OrderPage() {
               onUpdateQuantity={handleUpdateQuantity}
               onRemoveTicket={removeTicket}
               onUpdateTicketType={handleUpdateTicketType}
-              ticketTypes={getTicketTypesForMovie(tickets[0]?.id.split('-')[0] || '')}
+              ticketTypes={getTicketTypesForMovie(tickets[0]?.movie.id)}
             />
           ) : (
             <div className="text-center text-muted-foreground py-10 border rounded-md">

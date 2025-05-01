@@ -27,6 +27,7 @@ export function OrderSummary({
             <div className="space-y-1">
               <h3 className="font-medium">{ticket.movie.title}</h3>
               <p className="text-sm text-muted-foreground">{ticket.movie.showtime}</p>
+              <p className="text-sm text-muted-foreground">Seat: {ticket.movie.seat}</p>
               
               <Select
                 value={ticket.type}

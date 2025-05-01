@@ -624,4 +624,11 @@ public class UserDAO {
             return new ArrayList<>();
         }
     }
+
+    // Add this method to check if a user exists
+    public boolean userExists(int userId) {
+        String sql = "SELECT COUNT(*) FROM user WHERE user_id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId);
+        return count != null && count > 0;
+    }
 }

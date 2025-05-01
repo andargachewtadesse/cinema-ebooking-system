@@ -1,9 +1,7 @@
 package cinema;
 
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,59 +14,61 @@ import org.springframework.stereotype.Repository;
 public class BookingDAO {
 
     private final JdbcTemplate jdbcTemplate;
-    private final EmailService emailService;
     private final UserDAO userDAO;
 
     @Autowired
-    public BookingDAO(JdbcTemplate jdbcTemplate, EmailService emailService, UserDAO userDAO) {
+    public BookingDAO(JdbcTemplate jdbcTemplate, UserDAO userDAO) {
         this.jdbcTemplate = jdbcTemplate;
-        this.emailService = emailService;
         this.userDAO = userDAO;
     }
 
-    // Add multiple bookings
-    public int addBookings(Booking booking) {
-        String sql = "INSERT INTO booking (customer_id) VALUES (?)";
+    // Create a single booking entry (shell)
+    public int createBooking(Booking booking) {
+        // Insert only customer_id and default status/timestamp
+        String sql = "INSERT INTO booking (customer_id, status) VALUES (?, 'pending')"; 
         KeyHolder keyHolder = new GeneratedKeyHolder();
     
         try {
             jdbcTemplate.update(connection -> {
                 PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
                 ps.setInt(1, booking.getCustomerId());
+                // Removed: show_id, seat_number, ticket_type, price
                 return ps;
             }, keyHolder);
     
             Number key = keyHolder.getKey();
-            return key != null ? key.intValue() : -1;
+            return key != null ? key.intValue() : -1; // Return generated booking_id
     
         } catch (Exception e) {
-            System.out.println("BookingDAO: Failed to insert booking - " + e.getMessage());
+            System.out.println("BookingDAO: Failed to create booking shell - " + e.getMessage());
             return -1;
         }
     }
 
-    // Get bookings by customer ID
+    // Get bookings by customer ID (simplified structure)
     public List<Booking> getBookingsByCustomerId(int customerId) {
-        String sql = "SELECT * FROM booking WHERE customer_id = ?";
+        String sql = "SELECT booking_id, customer_id, booking_datetime, status FROM booking WHERE customer_id = ?";
         return jdbcTemplate.query(sql, new Object[]{customerId}, (rs, rowNum) -> {
             Booking b = new Booking();
             b.setBookingId(rs.getInt("booking_id"));
             b.setCustomerId(rs.getInt("customer_id"));
             b.setBookingDatetime(rs.getTimestamp("booking_datetime"));
             b.setStatus(rs.getString("status"));
+            // Removed: showId, seatNumber, ticketType, price, paymentId
             return b;
         });
     }
 
-    // Get a booking by booking ID
+    // Get a booking by booking ID (simplified structure)
     public Booking getBookingById(int bookingId) {
-        String sql = "SELECT * FROM booking WHERE booking_id = ?";
+        String sql = "SELECT booking_id, customer_id, booking_datetime, status FROM booking WHERE booking_id = ?";
         List<Booking> bookings = jdbcTemplate.query(sql, new Object[]{bookingId}, (rs, rowNum) -> {
             Booking b = new Booking();
             b.setBookingId(rs.getInt("booking_id"));
             b.setCustomerId(rs.getInt("customer_id"));
             b.setBookingDatetime(rs.getTimestamp("booking_datetime"));
             b.setStatus(rs.getString("status"));
+            // Removed: showId, seatNumber, ticketType, price, paymentId
             return b;
         });
         return bookings.isEmpty() ? null : bookings.get(0);
@@ -76,61 +76,27 @@ public class BookingDAO {
 
     // Delete booking by ID
     public boolean deleteBookingById(int bookingId) {
+        // Note: Consider cascading delete for associated tickets or handle deletion in TicketDAO
         String sql = "DELETE FROM booking WHERE booking_id = ?";
         return jdbcTemplate.update(sql, bookingId) > 0;
     }
 
-    // update booking status to confirmed after confirmation page
+    // update booking status to confirmed (no email logic)
     public int updateBookingStatusToConfirmed(int bookingId) {
-
-        getMovieAndTicketTypesByBookingId(bookingId);
-
-        String sql = "UPDATE booking SET status = 'confirmed' WHERE booking_id = ? AND status = 'pending'"; // Ensure only pending bookings are updated
+        String sql = "UPDATE booking SET status = 'confirmed' WHERE booking_id = ? AND status = 'pending'"; 
         try {
             int rowsAffected = jdbcTemplate.update(sql, bookingId);
-            return rowsAffected; // Returns the number of rows updated (1 if successful, 0 if booking not found or not in 'pending' status)
+            // Removed email sending logic
+            return rowsAffected; 
         } catch (Exception e) {
-            System.out.println("BookingDAO: Failed to update booking status - " + e.getMessage());
+            System.out.println("BookingDAO: Failed to update booking status for ID " + bookingId + " - " + e.getMessage());
             return -1; // Return -1 in case of failure
         }
     }
 
-    public void getMovieAndTicketTypesByBookingId(int bookingId) {
-        String sql = "SELECT m.title, t.ticket_type, t.price " +
-                     "FROM ticket t " +
-                     "JOIN show_times st ON t.show_id = st.show_time_id " +
-                     "JOIN movies m ON st.movie_id = m.movie_id " +
-                     "WHERE t.booking_id = ?";
-    
-        List<String> movieNames = new ArrayList<>();
-        List<String> ticketTypes = new ArrayList<>();
-        List<Double> prices = new ArrayList<>();
-    
-        try {
-            jdbcTemplate.query(sql, new Object[]{bookingId}, (ResultSet resultSet) -> {
-                while (resultSet.next()) {
-                    movieNames.add(resultSet.getString("title"));
-                    ticketTypes.add(resultSet.getString("ticket_type"));
-                    prices.add(resultSet.getDouble("price"));
-                }
-            });
-    
-            // Get the user's email by booking ID
-            String userEmail = userDAO.getUserEmailByStatusId();
-    
-            // Call the email confirmation function
-            emailService.sendOrderConfirm(userEmail, bookingId, movieNames, ticketTypes, prices);
-    
-        } catch (Exception e) {
-            System.out.println("BookingDAO: Failed to fetch movie names, ticket types, or prices - " + e.getMessage());
-        }
-    }
-    
-    //makes pending booking to cancelled after 30 minutes
+    // Cancel pending bookings after 30 minutes (unchanged conceptually)
     public int cancelPendingBookingsAfter30Minutes() {
-
         System.out.println("Cancelling pending bookings");
-
         String sql = """
             UPDATE booking
             SET status = 'cancelled'
