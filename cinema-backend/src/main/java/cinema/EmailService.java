@@ -1,6 +1,11 @@
 package cinema;
 
 import java.util.List;
+import java.util.Optional;
+import java.time.format.DateTimeFormatter;
+import java.math.BigDecimal;
+import cinema.ShowTime;
+import cinema.Ticket;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
@@ -12,6 +17,9 @@ public class EmailService {
 
     @Autowired
     private JavaMailSender mailSender;
+    
+    @Autowired
+    private ShowTimeDAO showTimeDAO;
 
     public void sendVerificationEmail(String to, String verificationCode) {
         SimpleMailMessage message = new SimpleMailMessage();
@@ -104,33 +112,61 @@ public class EmailService {
         }
     }
 
-    public void sendOrderConfirm(String to, int bookingId, List<String> movieNames, List<String> ticketTypes, List<Double> prices) {
+    public void sendOrderConfirm(String to, List<Ticket> tickets) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
         message.setSubject("Cinema E-Booking System - Order Confirmation");
-    
+
         StringBuilder emailText = new StringBuilder();
         emailText.append("Dear customer,\n\n")
                  .append("Thank you for your booking at Cinema E-Booking System! Your order has been confirmed.\n\n")
-                 .append("Booking ID: ").append(bookingId).append("\n\n")
-                 .append("Tickets:\n");
-    
-        // Format: Movie Title - Ticket Type - $Price (each on a new line)
-        for (int i = 0; i < movieNames.size(); i++) {
-            emailText.append(movieNames.get(i))
-                     .append(" - ")
-                     .append(ticketTypes.get(i))
-                     .append(" - $")
-                     .append(String.format("%.2f", prices.get(i)))
-                     .append("\n");
+                 .append("Here are your ticket details:\n\n");
+
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy");
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("h:mm a");
+
+        BigDecimal totalOrderPrice = BigDecimal.ZERO;
+
+        for (Ticket ticket : tickets) {
+            Optional<ShowTime> showTimeOpt = showTimeDAO.getShowTimeById(ticket.getShowId());
+            String showDateStr = "N/A";
+            String showTimeStr = "N/A";
+
+            if (showTimeOpt.isPresent()) {
+                ShowTime showTime = showTimeOpt.get();
+                if (showTime.getShowDate() != null) {
+                    showDateStr = showTime.getShowDate().toLocalDate().format(dateFormatter);
+                }
+                if (showTime.getShowTime() != null) {
+                    showTimeStr = showTime.getShowTime().format(timeFormatter);
+                }
+            }
+            
+            emailText.append("Movie: ").append(ticket.getMovieTitle()).append("\n")
+                     .append("Seat: ").append(ticket.getSeatNumber()).append("\n")
+                     .append("Type: ").append(capitalize(ticket.getTicketType())).append("\n")
+                     .append("Date: ").append(showDateStr).append("\n")
+                     .append("Time: ").append(showTimeStr).append("\n")
+                     .append("Price: $").append(String.format("%.2f", ticket.getPrice()))
+                     .append("\n\n");
+                     
+            totalOrderPrice = totalOrderPrice.add(ticket.getPrice());
         }
-    
-        emailText.append("\nIf you did not make this booking, please contact our support team.\n\n")
+
+        emailText.append("Total Price: $").append(String.format("%.2f", totalOrderPrice)).append("\n\n");
+
+        emailText.append("If you did not make this booking, please contact our support team.\n\n")
                  .append("Best Regards,\nCinema E-Booking Team");
-    
+
         message.setText(emailText.toString());
         mailSender.send(message);
-        System.out.println("Order confirmation email sent to: " + to);
+        System.out.println("Order confirmation email sent to: " + to + " for " + tickets.size() + " tickets.");
     }
     
+    private String capitalize(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+        return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
+    }
 }

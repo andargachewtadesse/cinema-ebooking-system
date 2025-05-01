@@ -1,6 +1,7 @@
 package cinema;
 
 import java.util.List;
+import cinema.Ticket;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

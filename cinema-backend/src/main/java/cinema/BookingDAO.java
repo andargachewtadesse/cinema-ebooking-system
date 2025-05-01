@@ -3,6 +3,8 @@ package cinema;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.math.BigDecimal;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -15,11 +17,15 @@ public class BookingDAO {
 
     private final JdbcTemplate jdbcTemplate;
     private final UserDAO userDAO;
+    private final TicketDAO ticketDAO;
+    private final EmailService emailService;
 
     @Autowired
-    public BookingDAO(JdbcTemplate jdbcTemplate, UserDAO userDAO) {
+    public BookingDAO(JdbcTemplate jdbcTemplate, UserDAO userDAO, TicketDAO ticketDAO, EmailService emailService) {
         this.jdbcTemplate = jdbcTemplate;
         this.userDAO = userDAO;
+        this.ticketDAO = ticketDAO;
+        this.emailService = emailService;
     }
 
     // Create a single booking entry (shell)
@@ -81,15 +87,52 @@ public class BookingDAO {
         return jdbcTemplate.update(sql, bookingId) > 0;
     }
 
-    // update booking status to confirmed (no email logic)
+    // update booking status to confirmed (including email sending)
     public int updateBookingStatusToConfirmed(int bookingId) {
         String sql = "UPDATE booking SET status = 'confirmed' WHERE booking_id = ? AND status = 'pending'"; 
         try {
             int rowsAffected = jdbcTemplate.update(sql, bookingId);
-            // Removed email sending logic
+            
+            // If update was successful, send confirmation email
+            if (rowsAffected > 0) {
+                try {
+                    // 1. Get Booking details (to find customerId)
+                    Booking booking = getBookingById(bookingId); 
+                    if (booking == null) {
+                        System.out.println("BookingDAO: Cannot send email, booking not found after update: " + bookingId);
+                        return rowsAffected; // Return success, but log the issue
+                    }
+                    
+                    // 2. Get User email
+                    User user = userDAO.getUserProfileById(booking.getCustomerId());
+                    if (user == null || user.getEmail() == null) {
+                        System.out.println("BookingDAO: Cannot send email, user or email not found for booking: " + bookingId);
+                        return rowsAffected; // Return success, but log the issue
+                    }
+                    String userEmail = user.getEmail();
+                    
+                    // 3. Get Tickets for the booking
+                    List<Ticket> tickets = ticketDAO.getTicketsByBookingId(bookingId);
+                    if (tickets.isEmpty()) {
+                        System.out.println("BookingDAO: Cannot send email, no tickets found for booking: " + bookingId);
+                        // Proceed without tickets? Or consider it an error? Let's proceed for now.
+                    }
+                    
+                    // 4. Send the email (passing the list of tickets)
+                    emailService.sendOrderConfirm(userEmail, tickets);
+                    System.out.println("BookingDAO: Order confirmation email initiated for booking ID: " + bookingId + " to " + userEmail);
+                    
+                } catch (Exception emailEx) {
+                    // Log email sending error but don't fail the booking confirmation
+                    System.err.println("BookingDAO: Error sending confirmation email for booking ID " + bookingId + ": " + emailEx.getMessage());
+                    emailEx.printStackTrace();
+                }
+            }
+            
             return rowsAffected; 
         } catch (Exception e) {
             System.out.println("BookingDAO: Failed to update booking status for ID " + bookingId + " - " + e.getMessage());
+            e.printStackTrace(); // Print stack trace for DB errors
             return -1; // Return -1 in case of failure
         }
     }

@@ -1,6 +1,7 @@
 package cinema;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -152,4 +153,31 @@ public class ShowTimeDAO {
         }
     }
     
+    // Added method to fetch a single ShowTime by its ID
+    public Optional<ShowTime> getShowTimeById(int showTimeId) {
+        String query = "SELECT * FROM show_times WHERE show_time_id = ?";
+        try {
+            ShowTime showTime = jdbcTemplate.queryForObject(query, new Object[]{showTimeId}, (rs, rowNum) -> {
+                ShowTime st = new ShowTime();
+                st.setShowTimeId(rs.getInt("show_time_id"));
+                st.setMovieId(rs.getInt("movie_id"));
+                st.setShowroomId(rs.getInt("showroom_id"));
+                st.setShowDate(rs.getDate("show_date"));
+                st.setShowTime(rs.getObject("show_time", LocalTime.class));
+                st.setAvailableSeats(rs.getInt("available_seats"));
+                st.setDuration(rs.getInt("duration"));
+                st.setPrice(rs.getBigDecimal("price"));
+                return st;
+            });
+            return Optional.ofNullable(showTime);
+        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+            // Expected case when ID doesn't exist
+            return Optional.empty(); 
+        } catch (Exception e) {
+            System.out.println("ShowTimeDAO: Error in getShowTimeById for ID " + showTimeId + ": " + e.getMessage());
+            e.printStackTrace();
+            // Return empty Optional on other errors too, or rethrow
+            return Optional.empty(); 
+        }
+    }
 }

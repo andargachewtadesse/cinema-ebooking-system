@@ -20,17 +20,12 @@ export default function OrderConfirmationPage() {
             Thank you for your purchase. Your tickets have been sent to your email.
           </p>
 
-          <div className="bg-muted p-4 rounded-lg mb-6">
-            <div className="text-sm mb-2">Order Reference</div>
-            <div className="font-mono text-lg">#ORD-2025-1234</div>
-          </div>
-
           <div className="space-y-4">
             <Button asChild className="w-full">
               <Link href="/">Browse More Movies</Link>
             </Button>
             <Button variant="outline" asChild className="w-full">
-              <Link href="/account/orders">View Order History</Link>
+              <Link href="/profile">View Order History</Link>
             </Button>
           </div>
         </Card>
