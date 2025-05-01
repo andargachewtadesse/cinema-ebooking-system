@@ -12,13 +12,15 @@ public class DataInitializer implements CommandLineRunner {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    private MovieDAO movieDAO;
+   
+    private BookingDAO bookingDAO;
 
     @Override
     public void run(String... args) throws Exception {
 
         updateUserStatusToInactive(); // Update user status
-
+        bookingDAO.cancelPendingBookingsAfter30Minutes(); //cancle pending booking
+        
     }
 
     public void updateUserStatusToInactive() {

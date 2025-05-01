@@ -28,14 +28,13 @@ public class BookingDAO {
 
     // Add multiple bookings
     public int addBookings(Booking booking) {
-        String sql = "INSERT INTO booking (customer_id, booking_datetime) VALUES (?, ?)";
+        String sql = "INSERT INTO booking (customer_id) VALUES (?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
     
         try {
             jdbcTemplate.update(connection -> {
                 PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
                 ps.setInt(1, booking.getCustomerId());
-                ps.setTimestamp(2, booking.getBookingDatetime());
                 return ps;
             }, keyHolder);
     
@@ -124,6 +123,26 @@ public class BookingDAO {
     
         } catch (Exception e) {
             System.out.println("BookingDAO: Failed to fetch movie names, ticket types, or prices - " + e.getMessage());
+        }
+    }
+    
+    //makes pending booking to cancelled after 30 minutes
+    public int cancelPendingBookingsAfter30Minutes() {
+
+        System.out.println("Cancelling pending bookings");
+
+        String sql = """
+            UPDATE booking
+            SET status = 'cancelled'
+            WHERE status = 'pending'
+              AND booking_datetime < NOW() - INTERVAL 30 MINUTE
+        """;
+    
+        try {
+            return jdbcTemplate.update(sql);
+        } catch (Exception e) {
+            System.out.println("BookingDAO: Failed to cancel pending bookings after 30 minutes - " + e.getMessage());
+            return 0;
         }
     }
     
