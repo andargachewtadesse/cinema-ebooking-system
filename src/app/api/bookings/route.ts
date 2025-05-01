@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     const authToken = request.headers.get('Authorization'); // Get token from request
     
     // Extract promotion details from the request data
-    const appliedDiscount = data.appliedDiscount; // Discount percentage (e.g., 10 for 10%)
+    const appliedDiscount = data.appliedDiscount;
     const promoCode = data.promoCode;
     
     if (!authToken) {
@@ -72,8 +72,7 @@ export async function POST(request: NextRequest) {
         ticketType: ticket.ticketType.toLowerCase(),
         price: finalPrice, // Use the calculated final price
         seatNumber: ticket.seatLabel,
-        // Optionally add promoCode or promoId here if backend supports it
-        // promotionCode: promoCode, 
+
       };
       console.log(`Adding ticket ${index + 1}:`, JSON.stringify(ticketPayload, null, 2));
 
@@ -124,7 +123,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error processing booking:', error);
     
-    // Optional: Attempt to cancel the booking if something went wrong after creation
+
     if (bookingId) {
       console.warn(`Attempting to cancel potentially incomplete booking ID: ${bookingId} due to error.`);
     }

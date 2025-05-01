@@ -38,7 +38,7 @@ public class BookingDAO {
             jdbcTemplate.update(connection -> {
                 PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
                 ps.setInt(1, booking.getCustomerId());
-                // Removed: show_id, seat_number, ticket_type, price
+
                 return ps;
             }, keyHolder);
     
@@ -51,7 +51,7 @@ public class BookingDAO {
         }
     }
 
-    // Get bookings by customer ID (simplified structure)
+    // Get bookings by customer ID 
     public List<Booking> getBookingsByCustomerId(int customerId) {
         String sql = "SELECT booking_id, customer_id, booking_datetime, status FROM booking WHERE customer_id = ?";
         return jdbcTemplate.query(sql, new Object[]{customerId}, (rs, rowNum) -> {
@@ -60,12 +60,12 @@ public class BookingDAO {
             b.setCustomerId(rs.getInt("customer_id"));
             b.setBookingDatetime(rs.getTimestamp("booking_datetime"));
             b.setStatus(rs.getString("status"));
-            // Removed: showId, seatNumber, ticketType, price, paymentId
+
             return b;
         });
     }
 
-    // Get a booking by booking ID (simplified structure)
+    // Get a booking by booking ID 
     public Booking getBookingById(int bookingId) {
         String sql = "SELECT booking_id, customer_id, booking_datetime, status FROM booking WHERE booking_id = ?";
         List<Booking> bookings = jdbcTemplate.query(sql, new Object[]{bookingId}, (rs, rowNum) -> {
@@ -74,7 +74,7 @@ public class BookingDAO {
             b.setCustomerId(rs.getInt("customer_id"));
             b.setBookingDatetime(rs.getTimestamp("booking_datetime"));
             b.setStatus(rs.getString("status"));
-            // Removed: showId, seatNumber, ticketType, price, paymentId
+
             return b;
         });
         return bookings.isEmpty() ? null : bookings.get(0);
@@ -82,7 +82,7 @@ public class BookingDAO {
 
     // Delete booking by ID
     public boolean deleteBookingById(int bookingId) {
-        // Note: Consider cascading delete for associated tickets or handle deletion in TicketDAO
+
         String sql = "DELETE FROM booking WHERE booking_id = ?";
         return jdbcTemplate.update(sql, bookingId) > 0;
     }
@@ -100,14 +100,14 @@ public class BookingDAO {
                     Booking booking = getBookingById(bookingId); 
                     if (booking == null) {
                         System.out.println("BookingDAO: Cannot send email, booking not found after update: " + bookingId);
-                        return rowsAffected; // Return success, but log the issue
+                        return rowsAffected; 
                     }
                     
                     // 2. Get User email
                     User user = userDAO.getUserProfileById(booking.getCustomerId());
                     if (user == null || user.getEmail() == null) {
                         System.out.println("BookingDAO: Cannot send email, user or email not found for booking: " + bookingId);
-                        return rowsAffected; // Return success, but log the issue
+                        return rowsAffected; 
                     }
                     String userEmail = user.getEmail();
                     
@@ -115,7 +115,7 @@ public class BookingDAO {
                     List<Ticket> tickets = ticketDAO.getTicketsByBookingId(bookingId);
                     if (tickets.isEmpty()) {
                         System.out.println("BookingDAO: Cannot send email, no tickets found for booking: " + bookingId);
-                        // Proceed without tickets? Or consider it an error? Let's proceed for now.
+
                     }
                     
                     // 4. Send the email (passing the list of tickets)
@@ -132,12 +132,12 @@ public class BookingDAO {
             return rowsAffected; 
         } catch (Exception e) {
             System.out.println("BookingDAO: Failed to update booking status for ID " + bookingId + " - " + e.getMessage());
-            e.printStackTrace(); // Print stack trace for DB errors
+            e.printStackTrace(); 
             return -1; // Return -1 in case of failure
         }
     }
 
-    // Cancel pending bookings after 30 minutes (unchanged conceptually)
+    // Cancel pending bookings after 30 minutes 
     public int cancelPendingBookingsAfter30Minutes() {
         System.out.println("Cancelling pending bookings");
         String sql = """

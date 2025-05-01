@@ -67,7 +67,7 @@ export default function OrderPage() {
           const datePart = storedTicket.showDate; // 'yyyy-MM-dd'
           const timePart = storedTicket.showTime; // 'h:mm A' format
           
-          // Parse date safely
+
           let formattedDate = datePart; // Default
           try {
             const parts = datePart.split('-');
@@ -83,7 +83,7 @@ export default function OrderPage() {
             console.error("Error formatting date in order page:", datePart, e);
           }
           
-          // Combine formatted date and time (time is already formatted)
+          // Combine formatted date and time 
           const displayShowtime = `${formattedDate} at ${timePart}`;
           
           if (!prices[storedTicket.movieId] && storedTicket.ticketType === 'adult') {
@@ -134,7 +134,7 @@ export default function OrderPage() {
     if (storedData) {
         try {
             let pendingTickets: StoredTicketInfo[] = JSON.parse(storedData);
-            // Filter out the removed ticket based on the derived ID logic
+
             const parts = id.split('-');
             if (parts.length >= 4) {
                  const movieId = parts[0];
@@ -152,12 +152,12 @@ export default function OrderPage() {
   }
 
   const calculateTotal = () => {
-    // Calculates total based on *current* ticket prices in state (which might already be adjusted by type)
+
     return tickets.reduce((total, ticket) => total + ticket.price * ticket.quantity, 0)
   }
 
   const handleCheckoutSubmit = async (data: SubmitData) => {
-    console.log('Checkout form data received in OrderPage:', data); // Includes promoCode and appliedDiscount now
+    console.log('Checkout form data received in OrderPage:', data); // Includes promoCode and appliedDiscount 
 
     // User validation
     if (!userData || !userData.userId) {
@@ -180,18 +180,18 @@ export default function OrderPage() {
     try {
       setIsSubmitting(true);
 
-      // Format tickets for API - USE THE CORRECT showId from the Ticket object
+      // Format tickets for API 
       const ticketData = tickets.map(ticket => {
          // Access showId directly from the ticket object
          const showIdNum = parseInt(ticket.showId, 10); // Already stored on the ticket object
          if (isNaN(showIdNum)) {
-             // This shouldn't happen if loading logic is correct, but good to check
+
              console.error("Invalid showId found in ticket state:", ticket);
              throw new Error("Invalid ticket data: show ID is not a number.");
          }
 
         return {
-          showId: showIdNum, // <<< USE THE CORRECT showId FROM TICKET STATE
+          showId: showIdNum, 
           seatLabel: ticket.movie.seat,
           ticketType: ticket.type.toLowerCase(),
           price: ticket.price // Send the final price for this ticket
@@ -199,12 +199,12 @@ export default function OrderPage() {
       });
       console.log("Formatted ticket data for API:", ticketData);
 
-      // Payment info object construction (remains the same)
+      // Payment info object construction 
       const paymentInfo = data.selectedCardId ? { id: data.selectedCardId, type: 'saved' } : data.newCardDetails ? {
               type: 'new',
               details: {
                 cardholderName: data.newCardDetails.cardholderName,
-                cardNumber: data.newCardDetails.cardNumber.slice(-4), // Send only last 4 for logging/display? Check API req.
+                cardNumber: data.newCardDetails.cardNumber.slice(-4), 
                 expiryMonth: data.newCardDetails.expiryMonth,
                 expiryYear: data.newCardDetails.expiryYear,
                 saveCard: data.newCardDetails.saveCard
@@ -233,14 +233,14 @@ export default function OrderPage() {
       if (!response.ok) {
         const error = await response.text();
         console.error("Server error:", error);
-        // Provide more specific feedback if possible
+
         let userMessage = `Failed to process booking: ${error}`;
         if (response.status === 400) {
             userMessage = `There was a problem with your booking details: ${error}. Please check and try again.`;
         } else if (response.status === 500) {
             userMessage = `An internal server error occurred: ${error}. Please try again later.`;
         }
-        throw new Error(userMessage); // Throw with potentially more user-friendly message
+        throw new Error(userMessage);
       }
 
       const result = await response.json();
@@ -251,8 +251,8 @@ export default function OrderPage() {
       localStorage.removeItem('pendingOrderTickets');
       setTickets([]);
 
-      // Redirect to order confirmation
-      router.push('/order-confirmation'); // Make sure this page exists and handles the result
+
+      router.push('/order-confirmation'); 
 
     } catch (error) {
       console.error("Checkout submission error:", error);
@@ -427,15 +427,15 @@ export default function OrderPage() {
         const data = await response.json();
         console.log("User profile loaded successfully:", data);
         
-        // If userId is not set, check for other IDs
+        
         if (!data.userId && data.user_id) {
-          data.userId = data.user_id; // Some backends use snake_case
+          data.userId = data.user_id; 
         }
         
         // For testing - if userId is still missing, use a default
         if (!data.userId) {
           console.warn("No user ID found in profile data, using default");
-          data.userId = 1; // Use a valid ID from your database
+          data.userId = 1; 
         }
         
         console.log("User ID:", data.userId);
@@ -473,7 +473,7 @@ export default function OrderPage() {
       // Load user profile data
       await loadUserProfile();
       
-      // Load user cards - uncommented this line
+
       await loadUserCards();
       
       setIsCheckoutOpen(true);

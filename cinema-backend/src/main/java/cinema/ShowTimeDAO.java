@@ -125,7 +125,7 @@ public class ShowTimeDAO {
         } catch (DataAccessException e) {
             System.out.println("ShowTimeDAO: Database error deleting showtime with ID: " + showTimeId + " - " + e.getMessage());
             e.printStackTrace();
-            // Re-throw as a runtime exception or a custom exception if needed
+
             throw new RuntimeException("Failed to delete showtime due to database error.", e);
         }
     }
@@ -176,7 +176,7 @@ public class ShowTimeDAO {
         } catch (Exception e) {
             System.out.println("ShowTimeDAO: Error in getShowTimeById for ID " + showTimeId + ": " + e.getMessage());
             e.printStackTrace();
-            // Return empty Optional on other errors too, or rethrow
+
             return Optional.empty(); 
         }
     }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Define the expected structure of the context parameters
+
 interface RouteContext {
   params: {
     code: string;
@@ -15,19 +15,19 @@ export async function GET(request: NextRequest, context: RouteContext) {
   }
 
   try {
-    // Forward the request to the Java backend
+    // Forward the request to backend
     const backendUrl = `http://localhost:8080/api/promotions/validate/${encodeURIComponent(code)}`;
     console.log(`Forwarding validation request for code '${code}' to: ${backendUrl}`);
 
     const backendResponse = await fetch(backendUrl, {
       method: 'GET',
       headers: {
-        // Add any necessary headers, like Authorization if required by backend
+
         'Content-Type': 'application/json',
       },
     });
 
-    // Read the response body as text first for robust error handling
+
     const responseText = await backendResponse.text();
     let responseBody;
 
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     }
 
     if (!backendResponse.ok) {
-      // If backend returned an error status code (e.g., 404, 500), but sent JSON
+      // If backend returned an error status code but sent JSON
       console.error(`Backend validation failed for code '${code}': ${backendResponse.status} - ${JSON.stringify(responseBody)}`);
       return NextResponse.json(
         { error: responseBody.error || 'Invalid or unavailable promotion code.' },
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // Backend responded successfully (2xx status) with valid JSON
+    // Backend responded successfully 
     console.log(`Backend validation successful for code '${code}'. Response:`, responseBody);
     return NextResponse.json(responseBody, { status: 200 });
 

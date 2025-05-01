@@ -1,4 +1,4 @@
-import { Promotion } from "@/types/Promotion" // Assuming Promotion type exists or will be created
+import { Promotion } from "@/types/Promotion" 
 
 const API_BASE_URL = "http://localhost:8080/api"
 

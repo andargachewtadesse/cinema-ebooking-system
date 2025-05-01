@@ -26,7 +26,7 @@ export async function DELETE(
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API Route: Failed to delete showtime ${showTimeId}. Backend response: ${response.status} - ${errorText}`);
-      // Forward the backend error message and status if possible
+
       return NextResponse.json(
         { error: `Failed to delete showtime: ${errorText || response.statusText}` },
         { status: response.status } // Use the backend's status code

@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const movieId = formData.get('movieId');
     const isUpdate = !!movieId;
     
-    // Prepare data for Java backend
+    // Prepare data for backend
     const movieData = {
       title: formData.get('title'),
       category: formData.get('category'),

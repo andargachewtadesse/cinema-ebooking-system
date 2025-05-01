@@ -532,13 +532,13 @@ function ShowTimeForm({
               
               <div className="border rounded-md divide-y">
                 {existingShowTimes.map(showTime => (
-                  <div key={showTime.showTimeId} className="p-4 flex justify-between items-center">
+                  <div key={showTime.id} className="p-4 flex justify-between items-center">
                     <div>
                       <p className="font-medium">
-                        {formatDateTime(showTime.showDate, showTime.showTime)}
+                        {formatDateTime(showTime.date, showTime.time)}
                       </p>
                       <p className="text-sm text-gray-500">
-                        Showroom: {showrooms.find(sr => sr.showroomId === showTime.showroomId)?.showroomName || showTime.showroomId}
+                        Showroom: {showrooms.find(sr => sr.showroomId === showTime.screenNumber)?.showroomName || showTime.screenNumber}
                         {' • '}Duration: {showTime.duration} min
                         {' • '}Price: ${parseFloat(showTime.price).toFixed(2)}
                       </p>
@@ -546,7 +546,7 @@ function ShowTimeForm({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleDeleteShowTime(showTime.showTimeId)}
+                      onClick={() => handleDeleteShowTime(parseInt(showTime.id))}
                       disabled={isLoading}
                       className="text-red-500"
                     >

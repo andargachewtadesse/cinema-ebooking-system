@@ -179,7 +179,7 @@ export default function UsersPage() {
     setPasswordStrength(strength)
   }
   
-  // Get color for password strength bar
+  //  color for password strength bar
   const getStrengthColor = () => {
     if (passwordStrength < 50) return "bg-red-500"
     if (passwordStrength < 75) return "bg-yellow-500"

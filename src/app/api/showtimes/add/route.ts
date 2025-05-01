@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
 
     console.log('Received showtimes data:', showTimesData);
 
-    // Forward the request to the Java backend
+
     const response = await fetch(JAVA_API_URL, {
       method: 'POST',
       headers: {
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text(); // Get error text from backend
       console.error('Backend error response:', errorText);
-      // Return the backend error message as JSON
+      // Return the backend error message 
       return NextResponse.json(
         { error: `Backend error: ${errorText || response.statusText}` },
         { status: response.status }

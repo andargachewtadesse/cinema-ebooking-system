@@ -1150,8 +1150,6 @@ export default function Profile() {
                     <Skeleton className="h-20 w-full" />
                     <Skeleton className="h-20 w-full" />
                   </div>
-                ) : bookingsError ? (
-                  <div className="text-center py-8 text-red-500">{bookingsError}</div>
                 ) : bookings.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <div className="mb-4">
@@ -1166,6 +1164,8 @@ export default function Profile() {
                       Browse Movies
                     </Button>
                   </div>
+                ) : bookingsError ? (
+                  <div className="text-center py-8 text-red-500">{bookingsError}</div>
                 ) : (
                   <Accordion type="single" collapsible className="w-full">
                     {bookings.map((booking) => (

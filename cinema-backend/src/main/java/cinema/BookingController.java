@@ -43,7 +43,6 @@ public class BookingController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(-1);
             }
             
-            // Create a minimal Booking object for the DAO
             Booking newBooking = new Booking(customerId); 
             
             int bookingId = bookingDAO.createBooking(newBooking); // Call the updated DAO method
@@ -63,7 +62,7 @@ public class BookingController {
         }
     }
 
-    // Get bookings by customer ID (returns simplified Booking objects)
+    // Get bookings by customer ID 
     @GetMapping("/customer/{customerId}")
     public ResponseEntity<List<Booking>> FetchBookingsForCustomer(@PathVariable int customerId) {
         try {
@@ -82,7 +81,7 @@ public class BookingController {
         }
     }
 
-    // Get a specific booking by booking ID (returns simplified Booking object)
+    // Get a specific booking by booking ID 
     @GetMapping("/{bookingId}")
     public ResponseEntity<Booking> FetchBookingById(@PathVariable int bookingId) {
         try {
@@ -106,8 +105,7 @@ public class BookingController {
     public ResponseEntity<String> DeleteBooking(@PathVariable int bookingId) {
         try {
             System.out.println("BookingController: Deleting booking ID " + bookingId);
-             // Consider implications for associated tickets. 
-             // Maybe delete tickets first or use database cascade.
+           
             boolean deleted = bookingDAO.deleteBookingById(bookingId);
 
             if (deleted) {

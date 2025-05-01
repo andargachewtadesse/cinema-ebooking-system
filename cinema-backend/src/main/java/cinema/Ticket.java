@@ -84,7 +84,7 @@ public class Ticket {
         this.seatNumber = seatNumber;
     }
 
-    // toString method for displaying ticket details
+
     @Override
     public String toString() {
         return "Ticket{" +

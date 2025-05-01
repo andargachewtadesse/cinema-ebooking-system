@@ -1,4 +1,4 @@
-// src/app/api/showtimes/movie/[id]/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 
 const JAVA_API_URL = 'http://localhost:8080/api/showtimes';
@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = params.id;
+    const { id } = params;
     if (!id) {
       return NextResponse.json(
         { error: 'Movie ID is required' },
@@ -16,9 +16,18 @@ export async function GET(
       );
     }
 
-    console.log(`Fetching showtimes for movie ID: ${id}`);
 
-    const response = await fetch(`${JAVA_API_URL}/movie/${id}`, {
+    const movieId = parseInt(id, 10);
+    if (isNaN(movieId)) {
+      return NextResponse.json(
+        { error: 'Invalid Movie ID format' },
+        { status: 400 }
+      );
+    }
+
+    console.log(`Fetching showtimes for movie ID: ${movieId}`);
+
+    const response = await fetch(`${JAVA_API_URL}/movie/${movieId}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -37,7 +46,7 @@ export async function GET(
     }
 
     const showtimes = await response.json();
-    console.log(`Retrieved ${showtimes.length} showtimes for movie ID ${id}`);
+    console.log(`Retrieved ${showtimes.length} showtimes for movie ID ${movieId}`);
 
     // Transform the backend data format to match the frontend expected format
     const transformedShowtimes = showtimes.map((st: any) => {

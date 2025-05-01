@@ -31,7 +31,7 @@ import {
   createPromotion,
   deletePromotion,
   sendPromotion,
-} from "@/lib/api" // Import API functions
+} from "@/lib/api" 
 import { Progress } from "@/components/ui/progress"
 
 export default function PromotionsPage() {

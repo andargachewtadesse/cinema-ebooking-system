@@ -31,7 +31,7 @@ interface ShowTime {
   seats?: boolean[][];
 }
 
-// Interface for the raw showtime data
+
 interface RawShowTime {
   id: string;
   date: string; // Format received from API: YYYY-MM-DD
@@ -42,7 +42,7 @@ interface RawShowTime {
   seats?: boolean[][];
 }
 
-// Update Movie interface to use RawShowTime for the initial data
+
 interface Movie {
   id: string;
   title: string;
@@ -56,7 +56,7 @@ interface Movie {
   producer?: string;
   cast?: string[];
   originalCategory?: string;
-  showTimes: RawShowTime[]; // Use RawShowTime here for the fetched data
+  showTimes: RawShowTime[]; // RawShowTime for the fetched data
 }
 
 interface SelectedSeat {
@@ -65,11 +65,11 @@ interface SelectedSeat {
   type: 'adult' | 'child' | 'senior';
 }
 
-// Define the structure for localStorage
+// structure for localStorage
 interface StoredTicketInfo {
   movieId: string;
   movieTitle: string;
-  showId: string; // <<< ADDED: This will store the RawShowTime.id (show_time_id)
+  showId: string; // store the RawShowTime.id (show_time_id)
   showDate: string; // 'yyyy-MM-dd'
   showTime: string; // 'h:mm A' format from API
   seatRow: number;
@@ -256,23 +256,23 @@ const MoviePage = () => {
     return dateSet;
   };
 
-  // Function to convert YouTube URL to embed URL
+  // convert YouTube URL to embed URL
   const getEmbedUrl = (url: string | undefined) => {
     if (!url) return '';
     const videoId = url.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=))([^"&?\/\s]{11})/);
     return videoId ? `https://www.youtube.com/embed/${videoId[1]}` : url;
   };
 
-  // Function to get seat label
+  // get seat label
   const getSeatLabel = (row: number, col: number) => {
     return `${String.fromCharCode(65 + row)}${col + 1}`;
   };
 
-  // ADDED: Handler for selecting a time button
+  // Handler for selecting a time button
   const handleTimeSelection = (timeData: RawShowTime) => {
     console.log("Selected time data:", timeData);
-    setSelectedTime(timeData.time); // Keep storing the string for button styling if needed
-    setSelectedTimeData(timeData); // <<< ADDED: Store the full object
+    setSelectedTime(timeData.time); 
+    setSelectedTimeData(timeData); // Store the full object
     setShowCalendar(false); // Hide calendar, show seats
     setSelectedSeats([]); // Clear seats when time changes
   };
@@ -307,7 +307,7 @@ const MoviePage = () => {
       const storedTicket: StoredTicketInfo = {
         movieId: movie!.id,
         movieTitle: movie!.title,
-        showId: selectedTimeData.id, // <<< USE THE CORRECT show_time_id
+        showId: selectedTimeData.id, 
         showDate: format(selectedDate!, 'yyyy-MM-dd'),
         showTime: selectedTimeData.time, // Use time from selectedTimeData
         seatRow: seat.row,
@@ -323,7 +323,7 @@ const MoviePage = () => {
     if (pendingTickets.length > 0) {
         console.log("Saving to localStorage:", JSON.stringify(pendingTickets, null, 2));
         localStorage.setItem('pendingOrderTickets', JSON.stringify(pendingTickets));
-        // Navigate to order page
+
         router.push('/order');
     } else {
         console.warn("No seats selected. Not proceeding to checkout.");
@@ -433,7 +433,7 @@ const MoviePage = () => {
                         return acc;
                       }, {})
                     )
-                    // Sort dates chronologically with safe parsing
+                    // Sort dates chronologically 
                     .sort(([dateA], [dateB]) => {
                       // Try to use safer date parsing, explicitly using components
                       const parseDateSafely = (dateStr: string) => {
@@ -452,7 +452,7 @@ const MoviePage = () => {
                             }
                           }
                           console.warn("Could not parse date components:", dateStr);
-                          // Fallback or throw error? Returning epoch for now.
+
                           return new Date(0); 
                         } catch (e) {
                           console.error("Error parsing date:", dateStr, e);
@@ -503,7 +503,7 @@ const MoviePage = () => {
                             }
                           } catch (error) {
                             console.log('Error during date formatting:', date, error);
-                            // Keep the original string if parsing fails
+
                           }
                           
                           // Sort times chronologically
@@ -603,7 +603,7 @@ const MoviePage = () => {
                       // Check if the formatted date exists in the set
                       const isDisabled = !availableDatesSet.has(formattedDate);
 
-                      // Optional: Debug log
+
                       if (date.getFullYear() === 2025 && date.getMonth() === 3) {
                          console.log(`Calendar disabled check:
                            Input Date Obj: ${date.toString()}
@@ -633,7 +633,7 @@ const MoviePage = () => {
                         <Button
                           key={timeData.id} // Use the unique show_time_id as key
                           variant={selectedTimeData?.id === timeData.id ? "default" : "outline"} // Style based on selected object ID
-                          onClick={() => handleTimeSelection(timeData)} // <<< CALL THE HANDLER
+                          onClick={() => handleTimeSelection(timeData)} 
                         >
                           {timeData.time} {/* Display the time string */}
                         </Button>

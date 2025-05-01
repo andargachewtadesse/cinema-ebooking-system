@@ -51,7 +51,7 @@ public class Showroom {
         this.seatCount = seatCount;
     }
 
-    // toString method for debugging and logging
+
     @Override
     public String toString() {
         return "Showroom{" +

@@ -55,13 +55,13 @@ CREATE TABLE IF NOT EXISTS card (
     FOREIGN KEY (customer_id) REFERENCES user(user_id) ON DELETE CASCADE
 );
 
--- Create table booking (simplified structure)
+-- Create table booking 
 CREATE TABLE booking (
     booking_id INT AUTO_INCREMENT PRIMARY KEY,
-    customer_id INT NULL, -- Use NULL if user can book without logging in, otherwise NOT NULL
+    customer_id INT NULL, 
     booking_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status ENUM('pending', 'confirmed', 'cancelled') DEFAULT 'pending',
-    FOREIGN KEY (customer_id) REFERENCES user(user_id) ON DELETE SET NULL -- Or ON DELETE CASCADE if bookings should be removed when user is deleted
+    FOREIGN KEY (customer_id) REFERENCES user(user_id) ON DELETE SET NULL 
 );
 
 -- Create table promotion
@@ -106,13 +106,13 @@ CREATE TABLE theatre (
 -- Create table ticket (with movie_title)
 CREATE TABLE ticket (
     ticket_id INT AUTO_INCREMENT PRIMARY KEY,
-    booking_id INT NULL, -- Link to the booking table
+    booking_id INT NULL,
     show_id INT NULL,
     movie_title VARCHAR(255) NULL,
     ticket_type ENUM('adult', 'senior', 'child') DEFAULT 'adult',
     price DECIMAL(10,2) NULL,
     seat_number VARCHAR(10) NULL,
-    FOREIGN KEY (booking_id) REFERENCES booking(booking_id) ON DELETE SET NULL, -- Or ON DELETE CASCADE
+    FOREIGN KEY (booking_id) REFERENCES booking(booking_id) ON DELETE SET NULL, 
     FOREIGN KEY (show_id) REFERENCES show_times(show_time_id) ON DELETE SET NULL
 );
 

@@ -43,7 +43,7 @@ export default function AdminLoginPage() {
       // Clear existing storage
       localStorage.clear();
       
-      // Create a simplified admin object
+      // admin object
       const adminUser = {
         userId: data.userId || 1,
         email: data.email || email,

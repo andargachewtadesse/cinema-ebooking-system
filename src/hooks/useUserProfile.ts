@@ -64,7 +64,7 @@ export function useUserProfile() {
     fetchUserProfile();
   }, [fetchUserProfile]);
 
-  // Add a function to update the profile locally (without API call)
+  // pdate the profile locally (without API call)
   const updateProfileLocally = useCallback((updatedFields: Partial<UserProfile>) => {
     setProfile(prevProfile => {
       if (!prevProfile) return null;
@@ -78,7 +78,7 @@ export function useUserProfile() {
     });
   }, []);
 
-  // Add a function to refresh the profile data
+  // function to refresh the profile data
   const refreshProfile = useCallback(() => {
     fetchUserProfile();
   }, [fetchUserProfile]);

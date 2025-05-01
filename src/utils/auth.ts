@@ -1,4 +1,4 @@
-// src/utils/auth.ts
+
 export const getAuthToken = () => {
     // First check sessionStorage (session-only login)
     let token = sessionStorage.getItem("authToken");

@@ -126,6 +126,21 @@ public class UserController {
             boolean passwordChanged = userDAO.changePassword(userId, oldPassword, newPassword);
             
             if (passwordChanged) {
+                // Fetch user email to send notification
+                User updatedUser = userDAO.getUserProfileById(userId);
+                if (updatedUser != null) {
+                    try {
+                        System.out.println("UserController (changePassword): Sending profile update notification to: " + updatedUser.getEmail());
+                        emailService.sendProfileUpdateEmail(updatedUser.getEmail());
+                        System.out.println("UserController (changePassword): Profile update email sent successfully.");
+                    } catch (Exception emailError) {
+                        System.err.println("UserController (changePassword): Failed to send profile update email: " + emailError.getMessage());
+                        emailError.printStackTrace();
+                        // Continue with the response despite email failure
+                    }
+                } else {
+                     System.err.println("UserController (changePassword): Could not find user with ID " + userId + " to send email.");
+                }
                 return ResponseEntity.ok(Map.of("message", "Password updated successfully"));
             } else {
                 return ResponseEntity.badRequest().body(Map.of("error", "Incorrect old password"));
@@ -441,7 +456,7 @@ public class UserController {
     public ResponseEntity<Map<String, Object>> getActiveUserProfile() {
     try {
         // Get active user ID
-        Integer activeUserId = userDAO.getActiveUserId(); // This method would return the ID of the active user
+        Integer activeUserId = userDAO.getActiveUserId();
 
         if (activeUserId != null) {
             // Fetch the user's profile from the database
@@ -644,8 +659,7 @@ public class UserController {
     @GetMapping("/admin/all")
     public ResponseEntity<?> getAllAdmins(@RequestHeader("Authorization") String authHeader) {
         try {
-            // Auth check - make sure the request comes from an admin
-            // Implement proper JWT token validation here
+
             if (!isAdminRequest(authHeader)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Not authorized"));
@@ -666,7 +680,7 @@ public class UserController {
         @RequestBody Map<String, Object> userData
     ) {
         try {
-            // Auth check - make sure the request comes from an admin
+
             if (!isAdminRequest(authHeader)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Not authorized"));
@@ -714,7 +728,7 @@ public class UserController {
         return authHeader != null && authHeader.startsWith("Bearer ");
     }
 
-    // Placeholder for JWT token generation
+
     private String generateJwtToken(User user) {
 
         return "dummy_token_" + user.getUserId() + "_" + (user.isAdmin() ? "admin" : "user");

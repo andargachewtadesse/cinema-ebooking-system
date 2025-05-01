@@ -25,7 +25,7 @@ const mockMovie: Movie = {
   trailerUrl: 'https://www.youtube.com/embed/YoHD9XEInc0',
   seats: Array.from({ length: 6 }, () => Array.from({ length: 8 }, () => Math.random() > 0.3)), // Random seat availability
   genre: 'Sci-Fi',
-  imageUrl: 'https://m.media-amazon.com/images/M/MV5BMjExMjkwNTQ0Nl5BMl5BanBnXkFtZTcwNTY0OTk1Mw@@._V1_.jpg', // Placeholder image
+  imageUrl: 'https://m.media-amazon.com/images/M/MV5BMjExMjkwNTQ0Nl5BMl5BanBnXkFtZTcwNTY0OTk1Mw@@._V1_.jpg', 
   status: 'Currently Running',
 };
 

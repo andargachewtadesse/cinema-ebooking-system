@@ -235,7 +235,7 @@ public class UserDAO {
                         emailService.sendPasswordResetEmail(email, resetToken);
                     } catch (Exception e) {
                         System.err.println("Warning: Failed to send password reset email: " + e.getMessage());
-                        // Log but don't propagate the exception
+
                     }
                     return true;
                 }
@@ -272,10 +272,10 @@ public class UserDAO {
             // If user is not found, return false
             return false;
         } catch (Exception e) {
-            // Log the error and print stack trace
+
             System.out.println("UserDAO: Error in updateUserDetails: " + e.getMessage());
             e.printStackTrace();
-            return false; // Return false if an exception occurs
+            return false; 
         }
     }
     
@@ -354,7 +354,6 @@ public class UserDAO {
                     result.put("isValid", true);
                     result.put("isAdmin", isAdmin);
                     
-                    // Only update status if this is a normal login (not during admin account creation)
                     // This update happens for real users logging in, not during account creation
                     query = "UPDATE user SET status_id = 1 WHERE email = ?";
                     jdbcTemplate.update(query, email);
@@ -537,7 +536,7 @@ public class UserDAO {
             // Encrypt password
             String encryptedPassword = passwordEncoder.encode(user.getPassword());
             
-            // Debug message to check what we're about to do
+
             System.out.println("UserDAO: Creating admin account with email: " + user.getEmail() + 
                                " and explicitly setting status_id=2");
             
@@ -625,7 +624,7 @@ public class UserDAO {
         }
     }
 
-    // Add this method to check if a user exists
+    // check if a user exists
     public boolean userExists(int userId) {
         String sql = "SELECT COUNT(*) FROM user WHERE user_id = ?";
         Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId);

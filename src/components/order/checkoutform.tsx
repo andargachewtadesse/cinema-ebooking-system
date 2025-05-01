@@ -15,16 +15,16 @@ import { Loader2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 
-// Define a type for the saved card data based on what backend provides
+
 interface SavedCard {
   id: number;
   cardholderName: string;
-  cardNumber: string; // Usually last 4 digits
-  expiration_date: string; // From backend it's expiration_date, not expirationDate
+  cardNumber: string; 
+  expiration_date: string; 
   cardAddress: string;
 }
 
-// Define a type for the user data
+
 interface UserData {
   firstName: string;
   lastName: string;
@@ -82,7 +82,7 @@ const checkoutFormSchema = z.object({
 
 type CheckoutFormValues = z.infer<typeof checkoutFormSchema>
 
-// Type for the data submitted to the parent onSubmit
+
 export interface SubmitData {
     firstName: string;
     lastName: string;
@@ -101,7 +101,7 @@ export interface SubmitData {
         zipCode: string;
         saveCard: boolean;
     };
-    // Added promotion details
+
     promoCode?: string;
     appliedDiscount?: number; // Discount percentage
 }
@@ -198,7 +198,7 @@ export function CheckoutForm({
        setPromoError(null);
        setIsApplyingPromo(false);
     }
-  }, [open, userData, form, userCards]); // Added open to dependencies
+  }, [open, userData, form, userCards]); 
 
   // Handle payment method selection
   const handlePaymentMethodChange = (value: string) => {
@@ -259,8 +259,7 @@ export function CheckoutForm({
     setAppliedPromoCode(null);
 
     try {
-      // Make API call to backend validator
-      // NOTE: You'll need to create this API route in your Next.js app
+
       const response = await fetch(`/api/promotions/validate/${promoCodeInput.trim()}`);
       const data = await response.json();
 
@@ -327,7 +326,7 @@ export function CheckoutForm({
       await onSubmit(submitPayload); // Pass the payload with promo info
     } catch (error) {
       console.error("Checkout submission error:", error);
-      // Optionally show an error message to the user here
+
     } finally {
       setIsSubmitting(false);
     }

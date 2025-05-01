@@ -148,7 +148,7 @@ public class MovieDAO {
         } catch (Exception e) {
             System.out.println("MovieDAO: Error loading showtimes: " + e.getMessage());
             e.printStackTrace();
-            // Don't throw here, just log the error
+
         }
     }
     
