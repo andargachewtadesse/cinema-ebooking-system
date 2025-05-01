@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { isAuthenticated } from "@/utils/auth";
 
 interface PaymentCard {
   id: number;
@@ -16,6 +17,13 @@ export function usePaymentCards() {
   const fetchPaymentCards = useCallback(async () => {
     try {
       setLoading(true);
+      
+      // Check authentication first before making API calls
+      if (!isAuthenticated()) {
+        setCards([]);
+        return;
+      }
+      
       const response = await fetch("http://localhost:8080/api/cards/activeCards");
       
       if (!response.ok) {

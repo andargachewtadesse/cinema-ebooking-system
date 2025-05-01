@@ -27,7 +27,7 @@ export default function OrderConfirmationPage() {
 
           <div className="space-y-4">
             <Button asChild className="w-full">
-              <Link href="/movies">Browse More Movies</Link>
+              <Link href="/">Browse More Movies</Link>
             </Button>
             <Button variant="outline" asChild className="w-full">
               <Link href="/account/orders">View Order History</Link>

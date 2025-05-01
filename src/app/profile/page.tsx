@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from 'next/navigation'
+import { isAuthenticated } from "@/utils/auth"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,6 +27,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
 
 export default function Profile() {
+  const router = useRouter()
   const [editingPersonal, setEditingPersonal] = useState(false)
   const [editingAddress, setEditingAddress] = useState(false)
   const [formData, setFormData] = useState({
@@ -63,6 +66,13 @@ export default function Profile() {
   const [passwordChanging, setPasswordChanging] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+
+  // Check authentication first and redirect if not logged in
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      router.push('/signup')
+    }
+  }, [router])
 
   // Update form data when profile is loaded
   useEffect(() => {

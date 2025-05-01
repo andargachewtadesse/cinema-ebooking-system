@@ -9,6 +9,16 @@ import type { Ticket } from "@/types/order"
 import { CheckoutForm } from "@/components/order/checkoutform"
 import { format } from 'date-fns'
 import { useRouter } from 'next/navigation'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { isAuthenticated } from "@/utils/auth"
+import type { SubmitData } from "@/components/order/checkoutform"
 
 // Interface matching the data stored from MoviePage
 interface StoredTicketInfo {
@@ -26,8 +36,11 @@ interface StoredTicketInfo {
 
 export default function OrderPage() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false)
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [baseTicketPrices, setBaseTicketPrices] = useState<Record<string, number>>({})
+  const [userData, setUserData] = useState<any>(null)
+  const [userCards, setUserCards] = useState<any[]>([])
   const router = useRouter()
   
   // Load tickets from localStorage on component mount
@@ -132,13 +145,52 @@ export default function OrderPage() {
     return tickets.reduce((total, ticket) => total + ticket.price, 0)
   }
 
-  const handleCheckoutSubmit = async (data: any) => {
-    console.log('Checkout data:', data)
+  const handleCheckoutSubmit = async (data: SubmitData) => {
+    console.log('Checkout form data received in OrderPage:', data);
     console.log('Tickets submitted:', tickets); 
-    setIsCheckoutOpen(false)
-    localStorage.removeItem('pendingOrderTickets'); // Clear storage on successful checkout
-    alert("Checkout successful (simulation)!"); 
 
+    // TEMPORARY: Skip actual API call and redirect
+    try {
+      console.log("Mock success - would normally send payload to backend");
+      
+      // Log what would have been sent to the backend
+      const payload = {
+        tickets: tickets.map(t => ({
+          movieId: t.movie.id,
+          showtime: t.movie.showtime,
+          seatLabel: t.movie.seat,
+          ticketType: t.type.toLowerCase(),
+          price: t.price,
+          quantity: t.quantity
+        })),
+        payment: data.selectedCardId 
+          ? { type: 'savedCard', cardId: data.selectedCardId }
+          : { 
+              type: 'newCard', 
+              cardDetails: data.newCardDetails
+            },
+        userDetails: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+        },
+        totalAmount: calculateTotal()
+      };
+      
+      console.log("Would have sent payload:", JSON.stringify(payload, null, 2));
+
+      // Clear checkout data
+      setIsCheckoutOpen(false);
+      localStorage.removeItem('pendingOrderTickets');
+      setTickets([]);
+      
+      // Redirect to order confirmation
+      router.push('/order-confirmation');
+      
+    } catch (error) {
+      console.error("Checkout submission error:", error);
+      alert("There was an issue processing your payment. Please try again.");
+    }
   }
 
   const getTicketPrice = (type: string, movieId: string): number => {
@@ -293,6 +345,84 @@ export default function OrderPage() {
     }
   };
 
+  // Function to load user profile data
+  const loadUserProfile = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/users/profileLoad', {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("authToken")}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUserData(data);
+        console.log("User profile loaded:", data);
+      } else {
+        console.error("Failed to load user profile:", response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error("Error loading user profile:", error);
+    }
+  };
+  
+  // Function to load user's saved cards
+  const loadUserCards = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/cards/activeCards', {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("authToken")}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUserCards(data);
+        console.log("User cards loaded:", data);
+      } else {
+        console.error("Failed to load user cards:", response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error("Error loading user cards:", error);
+    }
+  };
+  
+  const handleCheckoutClick = async () => {
+    if (isAuthenticated()) {
+      // Load user profile data
+      await loadUserProfile();
+      
+      // Load user cards - uncommented this line
+      await loadUserCards();
+      
+      setIsCheckoutOpen(true);
+    } else {
+      setIsAuthDialogOpen(true);
+    }
+  }
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    const checkoutData = {
+      ...formData,
+      // If using a saved card, only send the card ID
+      ...(selectedCard && !isAddingNewCard 
+        ? { cardId: selectedCard.id } 
+        : { /* new card details */ }
+      ),
+      total: total
+    };
+    
+    onSubmit(checkoutData);
+  };
+
   return (
     <>
       <OrderHeader />
@@ -325,7 +455,7 @@ export default function OrderPage() {
                 size="lg"
                 className="w-full"
                 disabled={tickets.length === 0} 
-                onClick={() => setIsCheckoutOpen(true)}
+                onClick={handleCheckoutClick}
               >
                 Continue to Checkout
               </Button>
@@ -342,11 +472,48 @@ export default function OrderPage() {
         </div>
       </div>
 
+      <Dialog open={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Authentication Required</DialogTitle>
+            <DialogDescription>
+              You need to be logged in to complete your purchase.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-4">
+            <p>Please login to your existing account or create a new account to continue.</p>
+          </div>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              className="sm:w-1/2"
+              onClick={() => {
+                setIsAuthDialogOpen(false)
+                router.push('/signup')
+              }}
+            >
+              Register
+            </Button>
+            <Button 
+              className="sm:w-1/2 bg-black text-white hover:bg-gray-800"
+              onClick={() => {
+                setIsAuthDialogOpen(false)
+                router.push('/login')
+              }}
+            >
+              Login
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <CheckoutForm
         open={isCheckoutOpen}
         onOpenChange={setIsCheckoutOpen}
         total={calculateTotal()}
         onSubmit={handleCheckoutSubmit}
+        userData={userData}
+        userCards={userCards}
       />
     </>
   )

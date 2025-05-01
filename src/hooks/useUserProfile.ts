@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { usePaymentCards } from "./usePaymentCards";
+import { isAuthenticated } from "@/utils/auth";
 
 interface UserProfile {
   firstName: string;
@@ -21,7 +22,14 @@ export function useUserProfile() {
   const fetchUserProfile = useCallback(async () => {
     try {
       setLoading(true);
-      // First, fetch the basic profile
+      
+      // Check authentication first before making API calls
+      if (!isAuthenticated()) {
+        setError("User not authenticated");
+        return;
+      }
+      
+      // Continue with profile fetch if authenticated
       const response = await fetch("http://localhost:8080/api/users/profileLoad");
       
       if (!response.ok) {
@@ -29,7 +37,6 @@ export function useUserProfile() {
       }
       
       const data = await response.json();
-      console.log("Profile data from API:", data);
       
       // Create basic profile with user data
       let userProfile: UserProfile = {
@@ -43,7 +50,6 @@ export function useUserProfile() {
         promotionSubscription: Boolean(data.promotionSubscription)
       };
       
-      // Set the profile with what we have so far
       setProfile(userProfile);
       
     } catch (err) {
