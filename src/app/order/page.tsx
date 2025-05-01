@@ -152,12 +152,12 @@ export default function OrderPage() {
   }
 
   const calculateTotal = () => {
-    // Quantity is always 1 now
-    return tickets.reduce((total, ticket) => total + ticket.price, 0)
+    // Calculates total based on *current* ticket prices in state (which might already be adjusted by type)
+    return tickets.reduce((total, ticket) => total + ticket.price * ticket.quantity, 0)
   }
 
   const handleCheckoutSubmit = async (data: SubmitData) => {
-    console.log('Checkout form data received in OrderPage:', data);
+    console.log('Checkout form data received in OrderPage:', data); // Includes promoCode and appliedDiscount now
 
     // User validation
     if (!userData || !userData.userId) {
@@ -221,9 +221,12 @@ export default function OrderPage() {
         },
         body: JSON.stringify({
           customerId: userId,
-          tickets: ticketData, // Send the corrected ticket data
+          tickets: ticketData, // Send the ticket data (prices are pre-calculated by type)
           paymentInfo: paymentInfo, // Still sent, backend might ignore
-          total: calculateTotal()   // Still sent, backend might ignore
+          total: calculateTotal(),   // Send the calculated total (could be original or discounted)
+          // Forward promotion details to the booking API route
+          promoCode: data.promoCode,
+          appliedDiscount: data.appliedDiscount
         })
       });
 
@@ -478,30 +481,6 @@ export default function OrderPage() {
       setIsAuthDialogOpen(true);
     }
   }
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    const checkoutData = {
-      ...formData,
-      // If using a saved card, only send the card ID
-      ...(selectedCard && !isAddingNewCard 
-        ? { cardId: selectedCard.id } 
-        : { /* new card details */ }
-      ),
-      total: total
-    };
-    
-    onSubmit(checkoutData);
-  };
 
   return (
     <>

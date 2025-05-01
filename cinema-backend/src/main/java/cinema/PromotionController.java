@@ -100,4 +100,29 @@ public class PromotionController {
                 .body(Map.of("error", "Failed to delete promotion: " + e.getMessage()));
         }
     }
+    
+    // Endpoint to validate a promotion code
+    @GetMapping("/validate/{code}")
+    public ResponseEntity<?> validatePromotionCode(@PathVariable String code) {
+        try {
+            Double discountPercentage = promotionDAO.validatePromotionCode(code);
+            
+            if (discountPercentage != null) {
+                // Code is valid and sent
+                return ResponseEntity.ok(Map.of(
+                    "message", "Promotion code is valid.",
+                    "discountPercentage", discountPercentage
+                ));
+            } else {
+                // Code is invalid, not found, or not sent yet
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                       .body(Map.of("error", "Invalid or unavailable promotion code."));
+            }
+        } catch (Exception e) {
+            System.out.println("PromotionController: Error validating promotion code: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Failed to validate promotion code: " + e.getMessage()));
+        }
+    }
 }

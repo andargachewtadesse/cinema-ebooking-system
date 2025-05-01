@@ -7,6 +7,10 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     const authToken = request.headers.get('Authorization'); // Get token from request
     
+    // Extract promotion details from the request data
+    const appliedDiscount = data.appliedDiscount; // Discount percentage (e.g., 10 for 10%)
+    const promoCode = data.promoCode;
+    
     if (!authToken) {
       return NextResponse.json({ error: 'Unauthorized: Missing token' }, { status: 401 });
     }
@@ -27,7 +31,6 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         customerId: data.customerId, 
-        // Only send customerId as per the updated BookingController
       })
     });
 
@@ -47,22 +50,30 @@ export async function POST(request: NextRequest) {
     // Step 2: Add each Ticket individually, associating with the bookingId
     console.log(`Step 2: Adding ${data.tickets.length} tickets for booking ID: ${bookingId}`);
     const ticketPromises = data.tickets.map(async (ticket: any, index: number) => {
-       // Validate the fields received in the request body's tickets array
        if (!ticket.showId || !ticket.seatLabel || !ticket.ticketType || ticket.price == null) {
            console.warn(`Skipping invalid ticket data received at index ${index}:`, ticket);
-           // Decide how to handle invalid tickets - skip, or fail the whole booking?
-           // Returning null skips this ticket. Throwing an error would stop the Promise.all later.
-           // Let's throw an error to be safer and indicate a bad request.
            throw new Error(`Invalid ticket data received for ticket at index ${index}.`);
+       }
+
+       // Calculate final price based on potential discount
+       let finalPrice = ticket.price;
+       if (typeof appliedDiscount === 'number' && appliedDiscount > 0 && appliedDiscount <= 100) {
+           const discountMultiplier = 1 - (appliedDiscount / 100);
+           finalPrice = parseFloat((ticket.price * discountMultiplier).toFixed(2));
+           console.log(`Applying discount ${appliedDiscount}% to ticket ${index + 1}. Original: ${ticket.price}, Final: ${finalPrice}`);
+       } else {
+           console.log(`No valid discount applied to ticket ${index + 1}. Price: ${finalPrice}`);
        }
 
       // Construct the payload for the backend /api/tickets/add endpoint
       const ticketPayload = {
         bookingId: bookingId,
-        showId: ticket.showId, // Use the validated showId
-        ticketType: ticket.ticketType.toLowerCase(), // Ensure lowercase for backend ENUM
-        price: ticket.price, // Use the validated price
-        seatNumber: ticket.seatLabel // Map seatLabel to seatNumber for backend
+        showId: ticket.showId,
+        ticketType: ticket.ticketType.toLowerCase(),
+        price: finalPrice, // Use the calculated final price
+        seatNumber: ticket.seatLabel,
+        // Optionally add promoCode or promoId here if backend supports it
+        // promotionCode: promoCode, 
       };
       console.log(`Adding ticket ${index + 1}:`, JSON.stringify(ticketPayload, null, 2));
 
@@ -88,7 +99,6 @@ export async function POST(request: NextRequest) {
     });
 
     // Wait for all ticket additions to complete
-    // If any promise threw an error, Promise.all will reject, and the catch block will run.
     await Promise.all(ticketPromises);
     console.log(`All tickets added successfully for booking ID: ${bookingId}`);
 
@@ -104,7 +114,6 @@ export async function POST(request: NextRequest) {
     if (!confirmResponse.ok) {
       const errorText = await confirmResponse.text();
       console.error(`Booking confirmation failed for ${bookingId}: ${confirmResponse.status} - ${errorText}`);
-      // If confirmation fails, the booking remains pending. Might need cleanup logic.
       throw new Error(`Failed to confirm booking ${bookingId}: ${errorText}`);
     }
     console.log(`Booking ${bookingId} confirmed successfully.`);
@@ -118,14 +127,6 @@ export async function POST(request: NextRequest) {
     // Optional: Attempt to cancel the booking if something went wrong after creation
     if (bookingId) {
       console.warn(`Attempting to cancel potentially incomplete booking ID: ${bookingId} due to error.`);
-      // try {
-      //   await fetch(`http://localhost:8080/api/bookings/cancel/${bookingId}`, { // Assuming a cancel endpoint exists
-      //     method: 'PUT',
-      //     headers: { 'Authorization': request.headers.get('Authorization')! } 
-      //   });
-      // } catch (cancelError) {
-      //   console.error(`Failed to automatically cancel booking ${bookingId}:`, cancelError);
-      // }
     }
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred during booking process';

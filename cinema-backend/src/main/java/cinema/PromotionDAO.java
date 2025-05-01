@@ -103,6 +103,32 @@ public class PromotionDAO {
         }
     }
     
+    // Validate a promotion code
+    public Double validatePromotionCode(String code) {
+        try {
+            String query = "SELECT discount_percentage FROM promotion WHERE code = ? AND is_sent = TRUE";
+            
+            // Use queryForObject, expecting one result or throwing an exception
+            Double discount = jdbcTemplate.queryForObject(
+                query, 
+                new Object[] { code },
+                Double.class
+            );
+            
+            System.out.println("PromotionDAO: Validated code '" + code + "' with discount: " + discount);
+            return discount;
+            
+        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+            // Code doesn't exist or hasn't been sent
+            System.out.println("PromotionDAO: Invalid or not sent promotion code: " + code);
+            return null; 
+        } catch (Exception e) {
+            System.out.println("PromotionDAO: Error validating promotion code '" + code + "': " + e.getMessage());
+            e.printStackTrace();
+            return null; // Indicate error
+        }
+    }
+    
     // Delete a promotion by ID
     public boolean deletePromotion(int promotionId) {
         try {

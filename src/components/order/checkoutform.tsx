@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -12,6 +12,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { Loader2 } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 
 // Define a type for the saved card data based on what backend provides
 interface SavedCard {
@@ -55,6 +57,9 @@ const checkoutFormSchema = z.object({
 
   // Additional Options
   savePaymentInfo: z.boolean().optional(),
+  
+  // Promotion Code (optional)
+  promotionCode: z.string().optional(), 
 }).refine(data => {
     // If card number is present, other card details are required
     if (data.cardNumber) {
@@ -82,7 +87,7 @@ export interface SubmitData {
     firstName: string;
     lastName: string;
     email: string;
-    total: number;
+    total: number; // Original total before discount
     selectedCardId?: number; // ID of the saved card if used
     newCardDetails?: { // New card details if used
         cardholderName: string;
@@ -96,12 +101,15 @@ export interface SubmitData {
         zipCode: string;
         saveCard: boolean;
     };
+    // Added promotion details
+    promoCode?: string;
+    appliedDiscount?: number; // Discount percentage
 }
 
 interface CheckoutFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  total: number
+  total: number // Original total
   onSubmit: (data: SubmitData) => void
   userData: UserData | null
   userCards: SavedCard[]
@@ -122,6 +130,13 @@ export function CheckoutForm({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('new')
   const [showFullCardNumber, setShowFullCardNumber] = useState(false);
+  
+  // Promotion state
+  const [promoCodeInput, setPromoCodeInput] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<number | null>(null);
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
 
   const form = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutFormSchema),
@@ -139,36 +154,51 @@ export function CheckoutForm({
       state: "",
       zipCode: "",
       savePaymentInfo: false,
+      promotionCode: "", // Initialize promotion code
     },
     mode: "onChange"
   })
 
-  // Effect to pre-populate form
+  // Effect to pre-populate form and reset promo state
   useEffect(() => {
-    if (open && userData) {
-      form.reset({
-        firstName: userData.firstName || "",
-        lastName: userData.lastName || "",
-        email: userData.email || "",
-        address: selectedPaymentMethod === 'new' ? (userData.streetAddress || "") : "",
-        city: selectedPaymentMethod === 'new' ? (userData.city || "") : "",
-        state: selectedPaymentMethod === 'new' ? (userData.state || "") : "",
-        zipCode: selectedPaymentMethod === 'new' ? (userData.zipCode || "") : "",
-        cardNumber: "",
-        expiryMonth: "",
-        expiryYear: "",
-        cvv: "",
-        cardholderName: "",
-        savePaymentInfo: false,
-      });
-      
-      // Default to first saved card if available
-      setSelectedPaymentMethod(userCards && userCards.length > 0 ? userCards[0].id.toString() : 'new');
-    } else if (!open) {
-      form.reset();
-      setSelectedPaymentMethod('new');
+    if (open) {
+       if (userData) {
+         form.reset({
+            firstName: userData.firstName || "",
+            lastName: userData.lastName || "",
+            email: userData.email || "",
+            address: selectedPaymentMethod === 'new' ? (userData.streetAddress || "") : "",
+            city: selectedPaymentMethod === 'new' ? (userData.city || "") : "",
+            state: selectedPaymentMethod === 'new' ? (userData.state || "") : "",
+            zipCode: selectedPaymentMethod === 'new' ? (userData.zipCode || "") : "",
+            cardNumber: "",
+            expiryMonth: "",
+            expiryYear: "",
+            cvv: "",
+            cardholderName: "",
+            savePaymentInfo: false,
+            promotionCode: "", // Clear promo code on open/user change
+         });
+         // Default to first saved card if available
+         setSelectedPaymentMethod(userCards && userCards.length > 0 ? userCards[0].id.toString() : 'new');
+       }
+       // Reset promo state when dialog opens
+       setPromoCodeInput("");
+       setAppliedDiscount(null);
+       setAppliedPromoCode(null);
+       setPromoError(null);
+       setIsApplyingPromo(false);
+    } else {
+       form.reset();
+       setSelectedPaymentMethod('new');
+       // Reset promo state when dialog closes
+       setPromoCodeInput("");
+       setAppliedDiscount(null);
+       setAppliedPromoCode(null);
+       setPromoError(null);
+       setIsApplyingPromo(false);
     }
-  }, [open, userData, form, userCards]);
+  }, [open, userData, form, userCards]); // Added open to dependencies
 
   // Handle payment method selection
   const handlePaymentMethodChange = (value: string) => {
@@ -207,15 +237,64 @@ export function CheckoutForm({
     }
   };
 
+  // Calculate discounted total
+  const discountedTotal = useMemo(() => {
+    if (appliedDiscount !== null && total > 0) {
+      const discountAmount = total * (appliedDiscount / 100);
+      return Math.max(0, total - discountAmount); // Ensure total doesn't go below 0
+    }
+    return total;
+  }, [total, appliedDiscount]);
+
+  // Handle applying promotion code
+  const handleApplyPromo = async () => {
+    if (!promoCodeInput.trim()) {
+      setPromoError("Please enter a promotion code.");
+      return;
+    }
+    
+    setIsApplyingPromo(true);
+    setPromoError(null);
+    setAppliedDiscount(null); // Clear previous discount
+    setAppliedPromoCode(null);
+
+    try {
+      // Make API call to backend validator
+      // NOTE: You'll need to create this API route in your Next.js app
+      const response = await fetch(`/api/promotions/validate/${promoCodeInput.trim()}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setAppliedDiscount(data.discountPercentage);
+        setAppliedPromoCode(promoCodeInput.trim());
+        setPromoError(null); // Clear error on success
+      } else {
+        setPromoError(data.error || "Invalid or unavailable promotion code.");
+        setAppliedDiscount(null);
+        setAppliedPromoCode(null);
+      }
+    } catch (error) {
+      console.error("Error validating promo code:", error);
+      setPromoError("Failed to validate code. Please try again.");
+      setAppliedDiscount(null);
+       setAppliedPromoCode(null);
+    } finally {
+      setIsApplyingPromo(false);
+    }
+  };
+
   // Handle form submission
   const handleSubmitForm = async (data: CheckoutFormValues) => {
     setIsSubmitting(true);
     
+    // Construct the payload with potential promotion details
     let submitPayload: SubmitData = {
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,
-      total: total,
+      total: total, // Send original total
+      promoCode: appliedPromoCode || undefined, // Send code if applied
+      appliedDiscount: appliedDiscount || undefined, // Send discount % if applied
     };
 
     if (selectedPaymentMethod === 'new') {
@@ -223,14 +302,14 @@ export function CheckoutForm({
       if (!data.cardNumber || !data.expiryMonth || !data.expiryYear || !data.cvv || !data.cardholderName || 
           !data.address || !data.city || !data.state || !data.zipCode) {
         console.error("Missing required fields for new card submission.");
-        form.trigger();
+        form.trigger(); // Ensure validation messages show
         setIsSubmitting(false);
         return;
       }
       
       submitPayload.newCardDetails = {
         cardholderName: data.cardholderName!,
-        cardNumber: data.cardNumber!.replace(/\s/g, ''),
+        cardNumber: data.cardNumber!.replace(/\s/g, ''), // Send cleaned number
         expiryMonth: data.expiryMonth!,
         expiryYear: data.expiryYear!,
         cvv: data.cvv!,
@@ -245,9 +324,10 @@ export function CheckoutForm({
     }
 
     try {
-      await onSubmit(submitPayload);
+      await onSubmit(submitPayload); // Pass the payload with promo info
     } catch (error) {
       console.error("Checkout submission error:", error);
+      // Optionally show an error message to the user here
     } finally {
       setIsSubmitting(false);
     }
@@ -518,9 +598,72 @@ export function CheckoutForm({
               </>
             )}
 
+            {/* Promotion Code Section */}
+            <section className="space-y-4 border-b pb-6">
+              <h3 className="text-lg font-semibold">Promotion Code (Optional)</h3>
+              <div className="flex items-start gap-2">
+                <Input 
+                  placeholder="Enter code" 
+                  value={promoCodeInput}
+                  onChange={(e) => {
+                     setPromoCodeInput(e.target.value);
+                     // Clear errors/status if user types again
+                     setPromoError(null);
+                     if (appliedDiscount) { // Clear applied discount if user types new code
+                        setAppliedDiscount(null);
+                        setAppliedPromoCode(null);
+                     }
+                  }}
+                  className="flex-grow"
+                  disabled={isApplyingPromo || !!appliedPromoCode} // Disable if applying or already applied
+                />
+                <Button 
+                  type="button" 
+                  onClick={handleApplyPromo} 
+                  disabled={isApplyingPromo || !promoCodeInput.trim() || !!appliedPromoCode}
+                  variant="outline"
+                  className="min-w-[80px]"
+                >
+                  {isApplyingPromo ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
+                </Button>
+              </div>
+              {/* Display Promo Status */}
+              {promoError && (
+                <p className="text-sm text-destructive">{promoError}</p>
+              )}
+              {appliedDiscount !== null && appliedPromoCode && (
+                 <div className="flex items-center gap-2 text-sm text-green-600">
+                   <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">Applied</Badge>
+                   <span>Code '{appliedPromoCode}' applied ({appliedDiscount}% discount)</span>
+                   <Button 
+                     type="button" 
+                     variant="ghost" 
+                     size="sm" 
+                     onClick={() => {
+                       setPromoCodeInput("");
+                       setAppliedDiscount(null);
+                       setAppliedPromoCode(null);
+                       setPromoError(null);
+                     }}
+                     className="h-auto p-0 text-destructive hover:bg-transparent hover:text-destructive/80"
+                   >
+                     Remove
+                   </Button>
+                 </div>
+              )}
+            </section>
+
             {/* Order Total */}
-            <div className="pt-4 text-right">
-              <p className="text-xl font-bold">Total: ${total.toFixed(2)}</p>
+            <div className="pt-4 space-y-2 text-right">
+              {appliedDiscount !== null && (
+                 <>
+                   <p className="text-muted-foreground text-sm">Original Total: ${total.toFixed(2)}</p>
+                   <p className="text-muted-foreground text-sm">Discount ({appliedDiscount}%): -${(total - discountedTotal).toFixed(2)}</p>
+                 </>
+              )}
+              <p className="text-xl font-bold">
+                Total: ${discountedTotal.toFixed(2)}
+              </p>
             </div>
 
             {/* Submit Button */}
@@ -530,7 +673,7 @@ export function CheckoutForm({
               </Button>
               <Button type="submit" disabled={isSubmitting} className="min-w-[120px]">
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {isSubmitting ? "Processing..." : `Pay $${total.toFixed(2)}`}
+                {isSubmitting ? "Processing..." : `Pay $${discountedTotal.toFixed(2)}`} {/* Update button text */}
               </Button>
             </DialogFooter>
           </form>
